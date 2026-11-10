@@ -31,7 +31,7 @@
   const DAY = 864e5;
   // Five sections in the top bar; the pages inside each appear as tabs at the top of the section.
   const GROUPS = [
-    { id: "today", label: "Today", pages: [["home", "Overview"], ["log", "Study log"]] },
+    { id: "today", label: "Today", pages: [["home", "Overview"], ["schedule", "Schedule"], ["log", "Study log"]] },
     { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["library", "Library"], ["plan", "Your plan"], ["practice", "Practice"], ["toolkit", "Toolkit"]] },
     { id: "projects", label: "Projects", pages: [["projects", "Projects"]] },
     { id: "career", label: "Career", pages: [["interview", "Interview room"], ["applications", "Applications"], ["career", "CV and pitch"], ["portfolio", "Portfolio"], ["routes", "Specialisms"]] },
@@ -84,7 +84,7 @@
   const daysSince = (s) => Math.floor((parseDate(today()) - parseDate(s)) / DAY);
   const r1 = (n) => Math.round(n * 10) / 10;
   const uidGen = () => Math.random().toString(36).slice(2, 10);
-  const clampH = (n) => Math.max(3, Math.min(40, Math.round(Number(n)) || 15));
+  const clampH = (n) => Math.max(3, Math.min(40, Math.round(Number(n) * 2) / 2 || 15));
   const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
   const dateWords = (s) => (s ? parseDate(s).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "");
   const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
@@ -110,6 +110,7 @@
     if (typeof n.cohort !== "string") n.cohort = "";
     n.notifSeen = Number(n.notifSeen) || 0;
     if (!n.remind || typeof n.remind !== "object") n.remind = null;
+    if (!n.sched || typeof n.sched !== "object" || !n.sched.days || typeof n.sched.days !== "object") n.sched = null;
     if (!n.resume || typeof n.resume !== "object" || typeof n.resume.h !== "string" || !/^[a-z0-9-]{1,60}$/.test(n.resume.h)) n.resume = null;
     if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
     if (!n.lib || typeof n.lib !== "object") n.lib = { done: {}, quiz: {}, prob: {}, route: "" };

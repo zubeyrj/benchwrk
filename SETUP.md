@@ -72,7 +72,7 @@ Gmail allows about 500 emails a day, which covers a few hundred members.
 2. In Vercel add:
    - `ANTHROPIC_API_KEY`
    - `CONTACT_EMAIL`: the address shown on the privacy notice (the Gmail account is fine)
-   - Optional: `TUTOR_DAILY_LIMIT` (questions per member per day, default 40) and `TUTOR_SITE_DAILY_LIMIT` (whole site, default 1500)
+   - Optional: `TUTOR_DAILY_LIMIT` (questions per member per day, default 40) and `TUTOR_SITE_DAILY_LIMIT` (whole site, default 600), `INTERVIEW_DAILY_CALLS` (interviewer calls per member per day, default 30; a full mock interview uses about 8) and `INTERVIEW_SITE_DAILY_CALLS` (default 300). Also set a monthly spend limit in the Anthropic Console under Limits
 3. Redeploy.
 
 ## 6b. Live job search (optional, free, 10 minutes)

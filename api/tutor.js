@@ -20,7 +20,7 @@ export default withErrors(async function handler(req, res) {
   }
   if (chars > MAX_CHARS || messages[0].role !== "user") return fail(res, 400, "That conversation is too long. Start a fresh one.");
 
-  const perUser = Number(env("TUTOR_DAILY_LIMIT", 40)), perSite = Number(env("TUTOR_SITE_DAILY_LIMIT", 1500));
+  const perUser = Number(env("TUTOR_DAILY_LIMIT", 40)), perSite = Number(env("TUTOR_SITE_DAILY_LIMIT", 600));
   if ((await usageToday(user.id, "tutor")) >= perUser) return fail(res, 429, "You've used today's " + perUser + " tutor questions. They reset at midnight.", "daily_cap");
   if ((await siteUsageToday("tutor")) >= perSite) return fail(res, 429, "The tutor has hit today's limit for the whole site. Try again tomorrow.", "site_cap");
 

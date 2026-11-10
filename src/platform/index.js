@@ -207,6 +207,7 @@ async function bootstrap() {
         if (error) throw error; return site.replace(/\/$/, "") + "/c/" + data.id;
       },
       push: makePush(cfg.vapidPublicKey, api),
+      calendar: { link: (rotate) => api("/api/cal-link", rotate ? { rotate: true } : {}).then((r) => r.url) },
       portfolio: {
         url: (slug) => site.replace(/\/$/, "") + "/p/" + slug,
         get: async () => { const { data, error } = await sb.from("portfolios").select("slug, published, headline, about, links, show, hidden").eq("user_id", session.user.id).maybeSingle(); if (error) throw error; return data; },

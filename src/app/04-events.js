@@ -314,6 +314,7 @@
       const nm = document.getElementById("s-name").value.trim();
       if (nm) S.account.name = nm.slice(0, 40);
       S.hpw = clampH(document.getElementById("s-hpw").value);
+      if (S.sched && S.sched.mode === "auto") { S.sched.days = autoDays(S.hpw, S.sched.tod, S.sched.weekends, S.sched.avoid); S.sched.until = isoDate(plan().end); S.sched.ms = schedMilestones(); }
       const g = f.querySelector('input[name="sgoal"]:checked'); S.goal = g ? g.value : S.goal;
       S.start = document.getElementById("s-start").value || S.start;
       persist(); toast("Settings saved."); location.hash = "plan"; return;

@@ -382,6 +382,36 @@ delete globalThis.__testNow; delete globalThis.__testPush;
   delete process.env.BACKUP_KEY;
 }
 
+// ---- study schedule: reminders follow it, and the calendar feed ----
+{
+  const wk = { MO: { t: "07:00", m: 45 }, WE: { t: "18:30", m: 60 }, SA: { t: "10:00", m: 120 } };
+  const sm = (log) => ({ profile: { id: "u1" }, prefs: {}, state: { account: { created: "2026-10-01" }, hpw: 4, log, remind: { level: "persistent", tz: "Europe/London" }, sched: { days: wk } }, summary: { streak: 0, cur: "SQL basics" }, partnerSummary: null });
+  const s1 = situation(sm([{ d: "2026-11-10", h: 1 }]), new Date("2026-11-11T19:05:00Z"));
+  ok("schedule: reminder after a missed session, at the session's hour", dueSlot(s1) === "eve" && dueSlot(situation(sm([{ d: "2026-11-10", h: 1 }]), new Date("2026-11-11T18:40:00Z"))) === null);
+  ok("schedule: copy names the session time", /18:30/.test(JSON.stringify(pickCopy(s1, "eve", "a")) + JSON.stringify(pickCopy(s1, "eve", "b"))));
+  ok("schedule: rest days stay quiet unless the streak is at risk", dueSlot(situation(sm([{ d: "2026-11-08", h: 1 }]), new Date("2026-11-10T19:30:00Z"))) === null);
+  const { buildCalendar } = await import("../api/_ics.js");
+  const ics = buildCalendar({ sched: { tz: "Europe/London", until: "2027-09-30", days: wk, ms: [["2026-12-07", "Start APIs, services; more"]] } }, { uid: "abc", site: "https://bw.test", now: new Date("2026-11-10T12:00:00Z") });
+  ok("calendar: one weekly event per study day", (ics.match(/BEGIN:VEVENT/g) || []).length === 4 && /RRULE:FREQ=WEEKLY;BYDAY=WE;UNTIL=20270930T235959Z/.test(ics));
+  ok("calendar: first Wednesday at 18:30 local, an hour long", /DTSTART;TZID=Europe\/London:20261111T183000\r\nDTEND;TZID=Europe\/London:20261111T193000/.test(ics));
+  ok("calendar: Monday's first session is next week", /DTSTART;TZID=Europe\/London:20261116T070000/.test(ics));
+  ok("calendar: course dates as all-day events, text escaped", /DTSTART;VALUE=DATE:20261207\r\nSUMMARY:Start APIs\\, services\\; more/.test(ics) && ics.endsWith("END:VCALENDAR\r\n"));
+  ok("calendar: lines folded at 75", ics.split("\r\n").every((l) => l.length <= 75));
+  const prof = sb.tables.profiles.find((x) => x.id === amira.id); prof.cal_token = "11111111-2222-4333-8444-555555555555";
+  sb._doc("data/users/" + amira.id + "/state", { sched: { tz: "Europe/London", days: wk } });
+  await new Promise((res) => setTimeout(res, 10));
+  const calR = await load("cal.js"), linkR = await load("cal-link.js");
+  r = await call(calR, { method: "GET", url: "/api/cal?t=" + prof.cal_token + ".ics" });
+  ok("calendar feed served by private link", r.status === 200 && /BYDAY=SA/.test(r.text) && /text\/calendar/.test(r.headers["content-type"]));
+  ok("unknown link refused", (await call(calR, { method: "GET", url: "/api/cal?t=99999999-2222-4333-8444-555555555555" })).status === 404 && (await call(calR, { method: "GET", url: "/api/cal?t=../x" })).status === 404);
+  ok("calendar link needs sign-in", (await call(linkR, { body: {} })).status === 401);
+  r = await call(linkR, { token: T.amira, body: {} });
+  ok("member gets their link", r.json.url.endsWith("/cal/" + prof.cal_token + ".ics"));
+  const old = prof.cal_token;
+  r = await call(linkR, { token: T.amira, body: { rotate: true } });
+  ok("new link replaces the old one", !r.json.url.includes(old) && (await call(calR, { method: "GET", url: "/api/cal?t=" + old })).status === 404);
+}
+
 // ---- delete ----
 const del = await load("me-delete.js");
 ok("delete needs confirmation", (await call(del, { token: T.amira, body: {} })).status === 400);

@@ -34,7 +34,11 @@ export function situation(m, now) {
   const monday = mondayOf(new Date(L.day + "T12:00:00Z")), need = r1(Number(st.hpw || 15) * 0.6), have = r1(weekHours(st, monday));
   const weeks = Number((m.summary && m.summary.streak) || 0);
   const ps = m.partnerSummary;
-  return { R, L, today: last === L.day, quiet: daysBetween(since, L.day), need, have, left: r1(Math.max(0, need - have)), weeks,
+  // A study week saved on the Schedule page moves the evening reminder to today's session time.
+  const sd = st.sched && st.sched.days && typeof st.sched.days === "object" ? st.sched.days : null;
+  const sess = sd ? sd[["SU", "MO", "TU", "WE", "TH", "FR", "SA"][L.dow]] : null;
+  const sessAt = sess && /^([01]\d|2[0-3]):[0-5]\d$/.test(sess.t) ? sess.t : null;
+  return { R, L, sched: !!sd, sess: sessAt ? { t: sessAt, h: Math.min(20, Math.max(8, Number(sessAt.slice(0, 2)) + (Number(sessAt.slice(3)) > 0 ? 1 : 0))) } : null, today: last === L.day, quiet: daysBetween(since, L.day), need, have, left: r1(Math.max(0, need - have)), weeks,
     atRisk: weeks >= 1 && have < need && [4, 5, 6, 0].indexOf(L.dow) >= 0, sunday: L.dow === 0,
     cur: (m.summary && m.summary.cur) || "your next lesson", partner: ps && ps.name ? { name: ps.name, hours: r1(ps.week || 0) } : null };
 }
@@ -45,12 +49,16 @@ export function dueSlot(s) {
   if (lvl !== "persistent" && lvl !== "relentless") return null;
   if (s.L.hour < 8 || s.L.hour >= 21 || s.today) return null;
   if (s.quiet > 60) return null;
-  const slots = (lvl === "relentless" ? [["noon", 12]] : []).concat([["eve", s.R.hour]]);
+  // With a schedule: the evening slot follows today's session (an hour into it, or at the top of the next hour),
+  // and on a rest day persistent reminders only come when the streak is at risk.
+  const eveAt = s.sess ? s.sess.h : s.R.hour;
+  if (lvl === "persistent" && s.sched && !s.sess && !s.atRisk && s.quiet <= 14) return null;
+  const slots = (lvl === "relentless" && !(s.sess && s.sess.h <= 13) ? [["noon", 12]] : []).concat([["eve", eveAt]]);
   const due = slots.filter((x) => s.L.hour >= x[1]);
   if (!due.length) return null;
   const slot = due[due.length - 1][0];
   if (s.quiet > 14) return s.sunday && slot === "eve" ? slot : null; // weekly once they've gone quiet
-  if (lvl === "persistent" && !(s.atRisk || s.quiet >= 2)) return null;
+  if (lvl === "persistent" && !(s.atRisk || s.quiet >= 2 || (s.sess && s.quiet >= 1))) return null;
   if (lvl === "relentless" && s.quiet < 1 && !s.atRisk) return null;
   return slot;
 }
@@ -66,6 +74,8 @@ const C = {
   ldown: [["You're about to drop out of {tier}", "You're {lr} of {ln}. Earn some XP before Sunday night or you go down a league."],
     ["Relegation zone", "{lr} of {ln} in the {tier} league. One lesson moves you up the table."]],
   lnear: [["{gap} XP from promotion", "You're {lr} in the {tier} league. The top {k} go up on Monday."]],
+  sess: [["Your {st} session is waiting", "You booked it in, so it's yours. Even half of it counts."],
+    ["It's past {st}", "That was your study slot. {cur} is open where you left it."]],
   d1: [["Your bench is getting cold", "No session yet today. Twenty minutes on {cur} counts."],
     ["Still waiting", "Today's lesson is ready when you are. It's been ready for a while."],
     ["Quick one?", "One exercise from {cur}. Ten minutes. We'll stop asking today."]],
@@ -85,6 +95,7 @@ export function pickCopy(s, slot, seed) {
   else if (s.league && s.league.zone === "down" && s.L && [5, 6, 0].indexOf(s.L.dow) >= 0) pool = C.ldown;
   else if (s.league && s.league.gapUp && s.league.rank === s.league.k + 1 && s.quiet < 15) pool = C.lnear;
   else if (s.partner && s.partner.hours > s.have && s.quiet < 15 && (hash(seed + "p") % 3 === 0)) pool = C.partner;
+  else if (s.sess && slot === "eve" && s.quiet < 4) pool = C.sess;
   else if (s.quiet > 14) pool = C.d15;
   else if (s.quiet >= 7) pool = C.d7;
   else if (s.quiet >= 4) pool = C.d4;
@@ -92,7 +103,7 @@ export function pickCopy(s, slot, seed) {
   else pool = C.d1;
   const [t, b] = pool[hash(seed) % pool.length];
   const fill = (x) => x.replace(/\{w\}/g, s.weeks).replace(/\{left\}/g, hrs(s.left)).replace(/\{have\}/g, hrs(s.have)).replace(/\{need\}/g, hrs(s.need))
-    .replace(/\{q\}/g, s.quiet).replace(/\{cur\}/g, s.cur).replace(/\{p\}/g, s.partner ? s.partner.name : "Your partner").replace(/\{ph\}/g, s.partner ? hrs(s.partner.hours) : "")
+    .replace(/\{st\}/g, s.sess ? s.sess.t : "").replace(/\{q\}/g, s.quiet).replace(/\{cur\}/g, s.cur).replace(/\{p\}/g, s.partner ? s.partner.name : "Your partner").replace(/\{ph\}/g, s.partner ? hrs(s.partner.hours) : "")
     .replace(/\{tier\}/g, s.league ? s.league.tier : "").replace(/\{lr\}/g, s.league ? ordinal(s.league.rank) : "").replace(/\{ln\}/g, s.league ? s.league.n : "").replace(/\{gap\}/g, s.league ? s.league.gapUp : "").replace(/\{k\}/g, s.league ? s.league.k : "");
   return { title: fill(t), body: fill(b) };
 }

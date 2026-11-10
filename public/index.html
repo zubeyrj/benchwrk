@@ -716,6 +716,27 @@ hr.soft{border:0;border-top:1px solid var(--line);margin:14px 0}
 .hp-foot nav{display:flex;gap:22px}
 .hp-foot a{color:var(--night-ink)}
 .plan-note{margin:0 0 18px}
+.sched-seg{margin:0 0 20px}
+.sched-auto{display:grid;gap:18px}
+.sched-own{display:grid;gap:6px}
+.sched-row{display:grid;grid-template-columns:minmax(120px,1fr) 150px 140px;gap:10px;align-items:center}
+.sched-row.off input[type=time],.sched-row.off select{opacity:.45}
+.sched-hd{font-size:13px;color:var(--muted);font-weight:600}
+.sched-day{display:flex;gap:10px;align-items:center;font-weight:600;min-height:44px}
+.sched-day input{width:18px;height:18px}
+.sched-row input[type=time],.sched-row select{min-height:42px;padding:8px 10px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;width:100%}
+.wk{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wk li{display:flex;flex-direction:column;gap:6px;min-height:150px;font-size:13px}
+.wk li>b{text-align:center;font-size:13px;color:var(--muted)}
+.wk-blk{margin-top:auto;height:var(--h);min-height:44px;border-radius:10px;background:var(--learn);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:6px;font-weight:600;line-height:1.25;font-size:12.5px}
+.wk-rest{margin-top:auto;text-align:center;color:var(--faint);padding:6px 0;border:1px dashed var(--line-2);border-radius:10px}
+.sched-total{margin:0 0 16px;font-size:16px}
+.err-text{color:var(--fail)}
+.cal-links{display:grid;gap:8px;margin:12px 0}
+.cal-url{width:100%;font:13px var(--mono);padding:8px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--ink);margin:6px 0}
+.sched-mini{display:flex;flex-direction:column;gap:2px;text-decoration:none}
+.sched-mini b{font-size:18px}
+@media (max-width:560px){.sched-row{grid-template-columns:1fr 1fr;row-gap:6px}.sched-day{grid-column:1/-1;min-height:32px}.sched-hd{display:none}.wk{gap:3px}.wk li{min-height:120px}.wk-blk{font-size:11px;padding:4px}}
 .resume{display:flex;align-items:center;gap:14px;padding:14px 16px;margin:0 0 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);text-decoration:none;box-shadow:var(--shadow)}
 .resume .grow{display:flex;flex-direction:column;min-width:0}
 .resume b{font-size:16.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/c/:id", "destination": "/api/cert?id=:id" }, { "source": "/p/:slug", "destination": "/api/portfolio?slug=:slug" }],
+  "rewrites": [{ "source": "/c/:id", "destination": "/api/cert?id=:id" }, { "source": "/p/:slug", "destination": "/api/portfolio?slug=:slug" }, { "source": "/cal/:t", "destination": "/api/cal?t=:t" }],
   "functions": { "api/cron/*.js": { "maxDuration": 60 }, "api/backup.js": { "maxDuration": 60 } },
   "crons": [
     { "path": "/api/cron/weekly", "schedule": "0 18 * * 0" },

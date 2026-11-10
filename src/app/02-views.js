@@ -1,6 +1,6 @@
 
   /* ---------- router ---------- */
-  const SIMPLE = ["league", "portfolio", "home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "library", "problems", "glossary", "routes", "log", "cohort", "toolkit", "placement", "settings", "admin"];
+  const SIMPLE = ["schedule", "league", "portfolio", "home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "library", "problems", "glossary", "routes", "log", "cohort", "toolkit", "placement", "settings", "admin"];
   function route() {
     let h = decodeURIComponent((location.hash || "#home").slice(1));
     if (h === "roadmap") h = "plan";
@@ -66,7 +66,7 @@
       else {
         const r = route();
         renderNav(NAVOF[r.name] || r.name);
-        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, league: vLeague, portfolio: vPortfolio, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
+        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, schedule: vSchedule, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, league: vLeague, portfolio: vPortfolio, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
         else html = V[r.name](r) + pageFooter(r);
@@ -250,7 +250,7 @@
     return remindBanner() + resumeCard() + hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your week</h2><div class="row"><button class="btn line sm" data-act="qlog" data-h="1">Log 1 hour</button><button class="btn line sm" data-act="qlog" data-h="2">Log 2 hours</button></div></div><div style="margin-top:14px">' + stripHtml(thisWeekDays()) + "</div></div>" +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your path</h2><a class="link small" href="#plan">See the dated plan</a></div>' + pathHtml(p, 5) + "</div></div>" +
-      "<aside>" + remindAskCard() + homeLeagueCard() + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
+      "<aside>" + homeSchedCard() + remindAskCard() + homeLeagueCard() + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
   }
   function pathHtml(p, around) {
     const rows = p.rows, cur = currentRow(p), ci = cur ? rows.indexOf(cur) : rows.length;

@@ -28,7 +28,7 @@ export default withErrors(async function handler(req, res) {
   if ((needsJob && !validJob(job)) || (!needsJob && job != null && !validJob(job))) return fail(res, 400, "Add a job description of at least a few lines.");
   if (profile && JSON.stringify(profile).length > 20000) return fail(res, 400, "Bad request.");
 
-  const perUser = Number(env("INTERVIEW_DAILY_CALLS", 60)), perSite = Number(env("INTERVIEW_SITE_DAILY_CALLS", 2000));
+  const perUser = Number(env("INTERVIEW_DAILY_CALLS", 30)), perSite = Number(env("INTERVIEW_SITE_DAILY_CALLS", 300));
   if ((await usageToday(user.id, "interview")) >= perUser) return fail(res, 429, "That's today's interview allowance used. It resets at midnight.", "daily_cap");
   if ((await siteUsageToday("interview")) >= perSite) return fail(res, 429, "The interviewer has hit today's limit for the whole site. Try again tomorrow.", "site_cap");
 

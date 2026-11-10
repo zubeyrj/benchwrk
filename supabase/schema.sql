@@ -260,3 +260,10 @@ create policy portfolios_delete on public.portfolios for delete using (user_id =
 -- Members can't un-hide a page the owner hid.
 revoke update on public.portfolios from authenticated;
 grant update (slug, published, headline, about, links, show, updated_at) on public.portfolios to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Calendar feed: a private link per member (/cal/<token>.ics) that calendar apps subscribe to.
+-- Only the API reads it; members get theirs from /api/cal-link, which can also make a new one.
+-- ---------------------------------------------------------------------------
+alter table public.profiles add column if not exists cal_token uuid not null default gen_random_uuid();
+create unique index if not exists profiles_cal_token on public.profiles (cal_token);
