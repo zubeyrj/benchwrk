@@ -38,9 +38,26 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   const shot = (p, n, full) => p.screenshot({ path: path.join(OUT, n + ".png"), fullPage: !!full });
   const calls = (p) => p.evaluate(() => window.__fakeSupabase.calls.filter((c) => c.t === "auth"));
 
+  // 0. The public homepage
+  let p = await page("fresh", "/");
+  ok("homepage is the default", /Become an AI engineer from zero/.test(await text(p)) && await p.isVisible("#hp-hours"));
+  ok("plan uses the real course hours", /397 hours/.test(await p.textContent("#hp-out")));
+  await p.selectOption("#hp-hours", "20"); await p.selectOption("#hp-from", "some"); await p.waitForTimeout(200);
+  ok("calculator updates in place", /357 hours/.test(await p.textContent("#hp-out")) && /20 hours a week/.test(await p.textContent("#hp-out")) && (await p.$$(".hp-bar li.off")).length === 1);
+  ok("homepage has no horizontal scroll", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await shot(p, "a0-home", true);
+  await p.click('.hp-cta [data-home="start"]'); await p.waitForTimeout(200);
+  ok("Build my plan opens sign-up with the plan", /Create your free account/.test(await text(p)) && /20 hours a week/.test(await text(p)) && /\?join/.test(p.url()));
+  ok("plan choice remembered for the app", await p.evaluate(() => JSON.parse(localStorage.getItem("bw-plan")).hpw === 20));
+  await p.goBack(); await p.waitForTimeout(200);
+  ok("back returns to the homepage", await p.isVisible(".hp-hero"));
+  await p.click('#me [data-auth="to-signin"]'); await p.waitForTimeout(150);
+  ok("masthead sign in", /Welcome back/.test(await text(p)));
+  await p.close();
+
   // 1. Sign-up, then the confirmation screen
-  let p = await page("fresh", "/?invite=spring7");
-  ok("sign-up is the default", /Create your free account/.test(await text(p)));
+  p = await page("fresh", "/?invite=spring7");
+  ok("an invite link goes straight to sign-up", /Create your free account/.test(await text(p)));
   ok("Google button", await p.isVisible('[data-auth="google"]'));
   ok("legal links", (await p.$$('a[href="privacy.html"]')).length === 1 && (await p.$$('a[href="terms.html"]')).length === 1);
   await shot(p, "a1-signup");

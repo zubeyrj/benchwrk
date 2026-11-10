@@ -111,6 +111,14 @@ let BASE = '';
   await shot(p, '08-lesson'); await overflow(p, 'lesson');
   await p.click('[data-act="lread"]'); await p.waitForTimeout(400);
   ok('mark read moves to lesson 2', (await p.evaluate(() => location.hash)) === '#lesson-m13-1');
+  {
+    const h1 = (await p.textContent('#app h1')).trim();
+    await go(p, 'home', 500);
+    ok('Today offers to pick up where you left off', await p.isVisible('.resume') && (await p.textContent('.resume b')).trim() === h1 && /lesson 2/.test(await p.textContent('.resume')));
+    ok('resume point saved with progress', await p.evaluate(() => window.__store.get('data/users/u1/state').resume.h === 'lesson-m13-1'));
+    await p.click('.resume'); await p.waitForTimeout(400);
+    ok('Continue reopens the lesson', (await p.evaluate(() => location.hash)) === '#lesson-m13-1');
+  }
   // tutor on lesson
   await p.fill('[data-tform] textarea', 'Why does the newest value win?'); await p.press('[data-tform] textarea', 'Enter'); await p.waitForTimeout(400);
   ok('tutor answers on lesson', /Tutor/.test(await p.textContent('.tutor .msgs')));

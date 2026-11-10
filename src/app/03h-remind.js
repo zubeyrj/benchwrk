@@ -1,3 +1,5 @@
+  // Hours a week picked on the public homepage before signing up, if any.
+  function homeHpw() { try { const p = JSON.parse(localStorage.getItem("bw-plan") || "null"); return p && Number(p.hpw) >= 3 && Number(p.hpw) <= 40 ? Number(p.hpw) : 0; } catch (e) { return 0; } }
   /* ---------- Reminders: how hard Benchwork pushes you, and phone or browser notifications ---------- */
   const RLEVELS = [
     ["off", "Off", "No reminders at all. Weekly progress emails are set separately."],

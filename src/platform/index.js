@@ -2,6 +2,7 @@
 // Once there's a session it installs the runtime (window.claude) and extras (window.BW), then loads the app.
 import { createClient } from "@supabase/supabase-js";
 import { makeRuntime } from "./runtime.js";
+import { homeView, planFor, readPlanChoice, savePlanChoice, updatePlan } from "./home.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -24,7 +25,7 @@ const side = '<aside class="auth-side"><div><h1>Become an AI engineer, <em>from 
   '<div class="pv cur"><i>2</i><div>Python for engineers<br><span>Lesson 3 of 6</span></div><span>12 days left</span></div>' +
   '<div class="pv"><i>3</i><div>Engineering habits<br><span>Starts after</span></div><span></span></div></div></aside>';
 
-const ui = { mode: "signup", email: "", name: "", err: "", info: "", busy: false, fieldErr: {} };
+const ui = { mode: "home", choice: readPlanChoice(), email: "", name: "", err: "", info: "", busy: false, fieldErr: {} };
 
 function field(id, label, type, attrs, hint) {
   const e = ui.fieldErr[id];
@@ -38,9 +39,12 @@ function view() {
     '<div class="or"><span>or with email</span></div>';
   const banner = (ui.err ? '<p class="notice bad" role="alert">' + esc(ui.err) + "</p>" : "") + (ui.info ? '<p class="notice" role="status">' + esc(ui.info) + "</p>" : "");
   let card;
+  if (m === "home") return homeView(ui.choice, MARK);
   if (m === "signup") {
+    const P = ui.picked ? planFor(ui.choice.hpw, ui.choice.from) : null;
     card = '<form class="auth-card" data-form="signup" novalidate><div class="steps" aria-label="Sign-up steps"><span class="on"><i>1</i>Account</span><span><i>2</i>Your tools</span><span><i>3</i>Placement</span></div>' +
-      '<h2 style="font-size:28px;margin-bottom:6px">Create your free account</h2><p class="muted" style="margin:0 0 22px">Already a member? <a href="#" data-auth="to-signin">Sign in</a></p>' + banner + google +
+      '<h2 style="font-size:28px;margin-bottom:6px">Create your free account</h2><p class="muted" style="margin:0 0 22px">Already a member? <a href="#" data-auth="to-signin">Sign in</a></p>' +
+      (P ? '<p class="notice plan-note">Your plan so far: ' + ui.choice.hpw + " hours a week, applying for jobs from " + P.apply.toLocaleDateString("en-GB", { month: "long", year: "numeric" }) + '. You can change it after sign-up.</p>' : "") + banner + google +
       field("au-name", "Your name", "text", 'maxlength="60" autocomplete="name" value="' + esc(ui.name) + '"') +
       field("au-email", "Email", "email", 'maxlength="120" autocomplete="email" value="' + esc(ui.email) + '"', "We'll send a link to confirm it.") +
       field("au-pass", "Password", "password", 'minlength="8" autocomplete="new-password"', "At least 8 characters.") +
@@ -74,8 +78,20 @@ function view() {
   return '<section class="auth">' + side + '<div class="auth-main">' + card + "</div></section>";
 }
 
+// The small mark used on the homepage's example notifications.
+const MARK = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="#fff" stroke-width="4.2"/></svg>';
+
+// The masthead's right-hand side while signed out.
+function mast() {
+  const me = $("#me"); if (!me) return;
+  me.innerHTML = ui.mode === "home" ? '<a class="btn ghost sm" href="?signin" data-auth="to-signin">Sign in</a><button class="btn sm" type="button" data-home="start">Start free</button>'
+    : ["signup", "signin", "forgot"].indexOf(ui.mode) >= 0 ? '<a class="btn ghost sm" href="./" data-home="back">About Benchwork</a>' : "";
+  const shell = $("#shell"); if (shell) shell.classList.toggle("home", ui.mode === "home");
+}
+
 function render() {
   const app = $("#app");
+  mast();
   const focusId = document.activeElement && document.activeElement.id;
   app.innerHTML = view();
   const target = (focusId && document.getElementById(focusId)) || app.querySelector('[aria-invalid="true"]') || null;
@@ -134,6 +150,24 @@ async function bootstrap() {
 
   const params = new URLSearchParams(location.search);
   if (params.get("signin") !== null) ui.mode = "signin";
+  if (params.get("join") !== null || invite) ui.mode = "signup";
+  // Homepage: the plan calculator updates in place; "Build my plan" and "Start free" open sign-up.
+  const go = (mode, push) => { ui.mode = mode; ui.err = ""; ui.info = ""; ui.fieldErr = {}; if (push) { try { history.pushState({ bw: mode }, "", mode === "home" ? location.pathname : "?" + (mode === "signin" ? "signin" : "join")); } catch (e) { /* ignore */ } } render(); window.scrollTo(0, 0); const f = $("#app h1, #app h2"); if (f) { f.setAttribute("tabindex", "-1"); f.focus({ preventScroll: true }); } };
+  window.addEventListener("popstate", () => { if (started) return; const q = new URLSearchParams(location.search); go(q.get("signin") !== null ? "signin" : q.get("join") !== null ? "signup" : "home", false); });
+  document.addEventListener("change", (e) => {
+    if (started || ui.mode !== "home" || (e.target.id !== "hp-hours" && e.target.id !== "hp-from")) return;
+    ui.choice = { hpw: Number($("#hp-hours").value) || 8, from: $("#hp-from").value === "some" ? "some" : "zero" };
+    updatePlan($("#app"), ui.choice);
+  });
+  document.addEventListener("click", (e) => {
+    if (started) return;
+    const h = e.target.closest("[data-home]"), logo = e.target.closest(".logo");
+    if (logo && ui.mode !== "home") { e.preventDefault(); go("home", true); return; }
+    if (!h) return;
+    e.preventDefault();
+    if (h.dataset.home === "start") { ui.picked = true; savePlanChoice(ui.choice); go("signup", true); }
+    else go("home", true);
+  });
   if (params.get("reset") !== null) ui.mode = "reset";
   const errDesc = params.get("error_description") || new URLSearchParams(location.hash.slice(1)).get("error_description");
   if (errDesc) { ui.err = /expired|invalid/i.test(errDesc) ? "That link has expired or was already used. Sign in, or ask for a new one." : errDesc; ui.mode = "signin"; }
@@ -144,6 +178,7 @@ async function bootstrap() {
   });
 
   async function start(session) {
+    { const sh = $("#shell"); if (sh) sh.classList.remove("home"); }
     if (started) return; started = true;
     if (location.search && ui.mode !== "reset") history.replaceState(null, "", location.pathname + location.hash);
     const api = async (path, body, o = {}) => {
@@ -199,7 +234,7 @@ async function bootstrap() {
     e.preventDefault();
     const k = a.dataset.auth; ui.err = ""; ui.info = ""; ui.fieldErr = {};
     const em = $("#au-email"); if (em) ui.email = em.value.trim();
-    if (k.indexOf("to-") === 0) { ui.mode = k.slice(3); render(); return; }
+    if (k.indexOf("to-") === 0) { const to = k.slice(3); if (to === "signin" || to === "signup") { try { history.pushState({ bw: to }, "", "?" + (to === "signin" ? "signin" : "join")); } catch (x) { /* ignore */ } } ui.mode = to; render(); window.scrollTo(0, 0); return; }
     if (k === "google") {
       ui.busy = true; render();
       const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: site } });

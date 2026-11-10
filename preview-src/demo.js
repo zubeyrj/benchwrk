@@ -11,7 +11,8 @@
   };
   // Sample members for the league table. Whoever signs in joins their Bronze group.
   const wk = (() => { const d = new Date(), x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();
-  const RIVALS = [["Amira", 410, 4, "Python for engineers"], ["Tom", 265, 3, "SQL and data"], ["Priya", 190, 3, "Calling LLM APIs"], ["Kwame", 120, 2, "Programming from zero"], ["Sofia", 75, 2, "Python for engineers"], ["Dan", 30, 1, "Programming from zero"], ["Lena", 0, 1, "Rating their tools"]];
+  // Placeholder rows, clearly labelled, so the table has something to rank against. No made-up people.
+  const RIVALS = [410, 265, 190, 120, 75, 30, 0].map((x, i) => ["Sample learner " + (i + 1), x, [4, 3, 3, 2, 2, 1, 1][i], ["Python for engineers", "Engineering habits", "APIs and services", "Programming from zero", "Python for engineers", "Programming from zero", "Set up your workshop"][i]]);
   const league = { wk, tier: {}, group: {}, last: {}, kept: {} };
   RIVALS.forEach((r, i) => { const id = "sample-" + i; sb._doc("learners/" + id, { name: r[0], wk, wxp: r[1], lvl: r[2], cur: r[3], at: new Date().toISOString().slice(0, 10), pts: r[1] * 3, hours: r[2] * 6, week: Math.round(r[1] / 40), streak: r[2] - 1, pct: r[2] * 7, goal: "engineer", behind: 0 }); league.tier[id] = 0; league.group[id] = "0-0"; });
   sb._doc("content/league", league);

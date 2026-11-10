@@ -110,6 +110,7 @@
     if (typeof n.cohort !== "string") n.cohort = "";
     n.notifSeen = Number(n.notifSeen) || 0;
     if (!n.remind || typeof n.remind !== "object") n.remind = null;
+    if (!n.resume || typeof n.resume !== "object" || typeof n.resume.h !== "string" || !/^[a-z0-9-]{1,60}$/.test(n.resume.h)) n.resume = null;
     if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
     if (!n.lib || typeof n.lib !== "object") n.lib = { done: {}, quiz: {}, prob: {}, route: "" };
     n.hpw = clampH(n.hpw);
