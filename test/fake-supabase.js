@@ -86,6 +86,7 @@
       users[u.id] = u;
       tables.profiles.push(decorate("profiles", { id: u.id, email, name: (meta && (meta.full_name || meta.name)) || "", unsub_token: uuid(), created_at: u.created_at }));
       if (opts.ownerEmail && email.toLowerCase() === opts.ownerEmail.toLowerCase()) tables.admins.push({ user_id: u.id });
+      else if (opts.firstIsOwner && !tables.admins.length) tables.admins.push({ user_id: u.id });
       return u;
     }
     const byEmail = (e) => Object.values(users).find((u) => u.email.toLowerCase() === String(e).toLowerCase());

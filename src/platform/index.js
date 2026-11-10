@@ -45,7 +45,7 @@ function view() {
       field("au-email", "Email", "email", 'maxlength="120" autocomplete="email" value="' + esc(ui.email) + '"', "We'll send a link to confirm it.") +
       field("au-pass", "Password", "password", 'minlength="8" autocomplete="new-password"', "At least 8 characters.") +
       '<button class="btn lg wide" type="submit"' + busy + ">" + (ui.busy ? "Creating your account…" : "Create my account") + "</button>" +
-      '<p class="small muted" style="margin-top:14px">By joining you agree to the <a href="/privacy.html">privacy notice</a> and <a href="/terms.html">terms</a>.</p></form>';
+      '<p class="small muted" style="margin-top:14px">By joining you agree to the <a href="privacy.html">privacy notice</a> and <a href="terms.html">terms</a>.</p></form>';
   } else if (m === "signin") {
     card = '<form class="auth-card" data-form="signin" novalidate><h2 style="font-size:28px;margin-bottom:6px">Welcome back</h2><p class="muted" style="margin:0 0 22px">New here? <a href="#" data-auth="to-signup">Create a free account</a></p>' + banner + google +
       field("au-email", "Email", "email", 'maxlength="120" autocomplete="email" value="' + esc(ui.email) + '"') +
