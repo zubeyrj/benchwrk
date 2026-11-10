@@ -1,0 +1,24 @@
+// GET /api/me-export -> every record Benchwork holds about the signed-in member (UK GDPR access request).
+import { adminClient, fail, requireUser, send } from "./_lib.js";
+
+export default async function handler(req, res) {
+  if (req.method !== "GET") return fail(res, 405, "Use GET.");
+  const user = await requireUser(req, res); if (!user) return;
+  const db = adminClient(), id = user.id;
+  const paths = ["learners/" + id, "subs/" + id, "reviews/" + id, "pairs/" + id];
+  const [mine, shared, profile, certs, usage, emails] = await Promise.all([
+    db.from("docs").select("path, data, updated_at").like("path", "data/users/" + id + "/%"),
+    db.from("docs").select("path, data, updated_at").in("path", paths),
+    db.from("profiles").select("email, name, created_at, last_seen, prefs").eq("id", id).maybeSingle(),
+    db.from("certs").select("id, name, course, course_title, hours, issued").eq("user_id", id),
+    db.from("tutor_usage").select("day, calls, in_tokens, out_tokens").eq("user_id", id),
+    db.from("email_log").select("kind, sent_at").eq("user_id", id),
+  ]);
+  send(res, 200, {
+    exported_at: new Date().toISOString(),
+    account: { id, email: user.email, created_at: user.created_at, sign_in: (user.app_metadata && user.app_metadata.provider) || "email" },
+    profile: profile.data, private_records: mine.data || [], shared_with_cohort: shared.data || [],
+    certificates: certs.data || [], tutor_usage: usage.data || [], emails_sent: emails.data || [],
+    note: "Tutor conversations are not stored by Benchwork. They are sent to Anthropic to generate each answer.",
+  });
+}

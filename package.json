@@ -1,0 +1,25 @@
+{
+  "name": "benchwork",
+  "version": "1.0.0",
+  "description": "Benchwork: from zero to AI engineer.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "content": "node scripts/gen-content.mjs",
+    "test": "node test/rls.test.mjs && node test/api.test.mjs && node test/auth.test.cjs && node test/app.test.cjs",
+    "test:db": "node test/rls.test.mjs"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
+    "nodemailer": "^10.2.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.7",
+    "esbuild": "^0.25.10"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

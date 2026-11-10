@@ -1,0 +1,84 @@
+import ast, contextlib, inspect, io, json, traceback
+
+_FLAGS = ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
+
+
+async def _exec(src, ns):
+    r = eval(compile(src, "<exercise>", "exec", flags=_FLAGS), ns)
+    if inspect.iscoroutine(r):
+        await r
+
+
+def _err(e):
+    tb = traceback.extract_tb(e.__traceback__)
+    lines = [f.lineno for f in tb if f.filename == "<exercise>"]
+    msg = "".join(traceback.format_exception_only(type(e), e)).strip()
+    if isinstance(e, SyntaxError) and e.lineno:
+        return f"Line {e.lineno}: {msg}"
+    return (f"Line {lines[-1]}: " if lines else "") + msg
+
+
+async def _fail_msg(e):
+    if isinstance(e, AssertionError):
+        return str(e) or "The check didn't pass"
+    return _err(e)
+
+
+async def run_exercise(payload):
+    p = json.loads(payload)
+    out = io.StringIO()
+    res = {"stdout": "", "error": None, "tests": []}
+    if p.get("mode") == "write-tests":
+        impls = p["impls"]
+        for label, impl in [("good", impls["good"])] + [("bad", b) for b in impls["bad"]]:
+            ns = {"__name__": "__main__"}
+            try:
+                with contextlib.redirect_stdout(out):
+                    await _exec(impl, ns)
+                    await _exec(p["code"], ns)
+            except Exception as e:
+                res["error"] = _err(e)
+                break
+            fns = [v for k, v in ns.items() if k.startswith("test_") and callable(v)]
+            if label == "good":
+                if len(fns) < 3:
+                    res["tests"].append(["Write at least three test_ functions", False, f"Found {len(fns)}"])
+                bad = []
+                for f in fns:
+                    try:
+                        with contextlib.redirect_stdout(out):
+                            r = f()
+                            if inspect.iscoroutine(r):
+                                await r
+                    except Exception as e:
+                        bad.append(f"{f.__name__}: {await _fail_msg(e)}")
+                res["tests"].append(["Your tests pass on a correct version", not bad, "; ".join(bad)])
+            else:
+                caught = False
+                for f in fns:
+                    try:
+                        with contextlib.redirect_stdout(out):
+                            r = f()
+                            if inspect.iscoroutine(r):
+                                await r
+                    except Exception:
+                        caught = True
+                n = sum(1 for t in res["tests"] if t[0].startswith("Catches")) + 1
+                res["tests"].append([f"Catches broken version {n}", caught, "" if caught else "All your tests passed on a broken version"])
+    else:
+        ns = {"__name__": "__main__"}
+        try:
+            with contextlib.redirect_stdout(out):
+                await _exec(p["code"], ns)
+        except Exception as e:
+            res["error"] = _err(e)
+        if not res["error"]:
+            for name, src in p["tests"]:
+                try:
+                    with contextlib.redirect_stdout(out):
+                        await _exec(src, ns)
+                    res["tests"].append([name, True, ""])
+                except Exception as e:
+                    res["tests"].append([name, False, await _fail_msg(e)])
+    res["stdout"] = out.getvalue()[-4000:]
+    return json.dumps(res)

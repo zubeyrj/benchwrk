@@ -1,0 +1,113 @@
+# Setting up Benchwork
+
+About 40 minutes, once. Everything here is free except the tutor, which costs a few pence per learner per week.
+You'll create five accounts: GitHub (you have it), Supabase, Vercel, Anthropic and a Gmail account for sending email.
+
+Keep a note open as you go: you'll collect keys in steps 1, 3, 4 and 5 and paste them all into Vercel in step 6.
+
+---
+
+## 1. Supabase: the database and sign-in
+
+1. Go to [supabase.com](https://supabase.com), sign up with GitHub and click **New project**.
+   - Name: `benchwork`. Region: **London (eu-west-2)**, so members' data stays in the UK.
+   - Save the database password somewhere safe. You won't need it day to day.
+2. When it's ready, open **SQL Editor > New query**, paste the whole of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**. You should see "Success. No rows returned".
+3. In a new query, make yourself the one admin (use the email you'll sign up with):
+   ```sql
+   select public.set_owner('you@example.com');
+   ```
+   This works whether you sign up before or after running it. Nobody else can become admin from the website.
+4. Open **Project Settings > API** and copy three values into your note:
+   - **Project URL** (this is `SUPABASE_URL`)
+   - **anon public** key (`SUPABASE_ANON_KEY`)
+   - **service_role** key (`SUPABASE_SERVICE_ROLE_KEY`). This one is a master key: it only ever goes into Vercel, never into code or chat.
+
+## 2. Vercel: put the site online
+
+1. Create an empty private repository on GitHub called `benchwork` and push this code to it (Claude can do this for you).
+2. Go to [vercel.com](https://vercel.com), sign up with GitHub, click **Add New > Project** and import `benchwork`.
+3. Leave the build settings as they are (they come from `vercel.json`). Open **Environment Variables** and add for now:
+   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` from step 1
+   - `CRON_SECRET`: any long random string, for example from [1password.com/password-generator](https://1password.com/password-generator)
+4. Click **Deploy**. Your address will be something like `https://benchwork.vercel.app`. If that name is taken, Vercel adds a suffix; rename the project in **Settings > General** to get a cleaner one.
+5. Add `SITE_URL` with that address (no slash at the end) and redeploy (**Deployments > ⋯ > Redeploy**).
+
+## 3. Email: confirmations, password resets and progress emails
+
+A free `vercel.app` address can't send email under its own name, so use a dedicated Gmail account for now. When you buy a domain, switch to Resend (see the end).
+
+1. Create a new Gmail account, for example `benchwork.app@gmail.com`. Don't use your personal one: members will see this address.
+2. Turn on 2-Step Verification for it: [myaccount.google.com/security](https://myaccount.google.com/security).
+3. Create an app password: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). Name it `Benchwork` and copy the 16-letter password.
+4. **Supabase** (for sign-up confirmations and password resets): **Authentication > Emails > SMTP Settings**, switch on **Enable custom SMTP** and fill in:
+   - Sender email: your new Gmail address. Sender name: `Benchwork`
+   - Host `smtp.gmail.com`, port `465`, username: the Gmail address, password: the app password
+5. Still in **Authentication > Emails > Templates**, paste in the branded templates from [`supabase/email-templates`](supabase/email-templates): `confirm-signup.html` into **Confirm signup**, `reset-password.html` into **Reset password** and `change-email.html` into **Change email address**. Subjects: "Confirm your Benchwork email", "Reset your Benchwork password", "Confirm your new Benchwork email".
+6. **Vercel** (for weekly emails, reminders and partner messages): add `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER` (the Gmail address) and `SMTP_PASS` (the app password).
+
+Gmail allows about 500 emails a day, which covers a few hundred members.
+
+## 4. Supabase sign-in settings
+
+1. **Authentication > URL Configuration**:
+   - Site URL: your Vercel address
+   - Redirect URLs: add `https://YOUR-ADDRESS.vercel.app/**` and `http://localhost:3000/**`
+2. **Authentication > Providers > Email**: keep **Confirm email** on. Set the minimum password length to 8.
+3. **Authentication > Rate Limits**: the defaults are fine.
+
+## 5. Google sign-in
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com), create a project called `Benchwork`.
+2. **APIs & Services > OAuth consent screen**: choose **External**, app name `Benchwork`, your support email, and add your Vercel address as the app domain. Publish the app (**Publish app**) so anyone can sign in, not just test users.
+3. **APIs & Services > Credentials > Create credentials > OAuth client ID**:
+   - Type: **Web application**
+   - Authorised JavaScript origins: your Vercel address
+   - Authorised redirect URIs: `https://YOUR-PROJECT.supabase.co/auth/v1/callback` (Supabase shows this exact address on its Google provider page)
+4. Copy the client ID and secret into **Supabase > Authentication > Providers > Google**, switch it on and save.
+
+## 6. The tutor and the last settings
+
+1. Go to [console.anthropic.com](https://console.anthropic.com), add a payment method and create an API key. Set a monthly spend limit under **Limits** (£10 is plenty to start).
+2. In Vercel add:
+   - `ANTHROPIC_API_KEY`
+   - `CONTACT_EMAIL`: the address shown on the privacy notice (the Gmail account is fine)
+   - Optional: `TUTOR_DAILY_LIMIT` (questions per member per day, default 40) and `TUTOR_SITE_DAILY_LIMIT` (whole site, default 1500)
+3. Redeploy.
+
+## 7. First visit
+
+1. Open your site and sign up with the email you used in `set_owner`. Confirm it from your inbox.
+2. You'll see "The course content isn't in the database yet". Click **Load the course content**. This takes a few seconds and happens once.
+3. Finish your profile, and you're in. **Admin** appears in the top bar for you only.
+4. Share the address. Anyone can sign up.
+
+---
+
+## Day to day
+
+- **Change a course**: edit it in Admin > Content editor, or edit `content/` in the repo, run `npm run content`, push, then click **Reload all courses from the repo** in Admin.
+- **Email a learner**: Admin > Members > Email.
+- **Scheduled emails**: weekly progress goes out on Sundays at 18:00 UK time (19:00 in summer) and reminders run daily at 17:00 (18:00 in summer). See them under Vercel > Settings > Cron Jobs.
+- **Tutor spend**: Admin shows an estimate for the last 30 days; the Anthropic console has the exact figure.
+- **Back-ups**: Supabase's free plan keeps daily back-ups for 7 days.
+
+## Moving to your own domain later
+
+1. Buy a domain (for example `benchwork.co.uk`) and add it in **Vercel > Settings > Domains**. Update `SITE_URL` and the Supabase URL settings in step 4, and the Google origins in step 5.
+2. Sign up at [resend.com](https://resend.com), verify the domain, create an API key, then:
+   - Vercel: add `RESEND_API_KEY` and `EMAIL_FROM=Benchwork <hello@your-domain>`. Resend is used instead of Gmail as soon as the key exists.
+   - Supabase SMTP: host `smtp.resend.com`, port `465`, user `resend`, password: the API key, sender `hello@your-domain`.
+
+## Running it on your computer
+
+```bash
+npm install
+cp .env.example .env.local   # fill in the values
+npx vercel link && npx vercel env pull .env.local
+npx vercel dev               # http://localhost:3000
+```
+
+## Tests
+
+`npm test` checks the database access rules against real Postgres, every API route, the sign-in screens and the whole learner journey in a browser. They run on every push to GitHub.

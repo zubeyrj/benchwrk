@@ -1,0 +1,9 @@
+node_modules/
+public/app.js
+public/platform.js
+public/config.js
+public/privacy.html
+public/terms.html
+test/shots/
+.vercel
+.env*
