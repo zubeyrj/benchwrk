@@ -7,7 +7,8 @@ export const SITE = () => env("SITE_URL", "http://localhost:3000").replace(/\/$/
 let admin = null;
 export function adminClient() {
   if (globalThis.__testAdminClient) return globalThis.__testAdminClient;
-  if (!admin) admin = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
+  // Names from Vercel's Supabase integration work too.
+  if (!admin) admin = createClient(env("SUPABASE_URL") || env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
   return admin;
 }
 
