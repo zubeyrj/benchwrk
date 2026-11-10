@@ -127,7 +127,7 @@
     } else if (bw && bw.calendar) sub = '<p class="small muted">Preparing your calendar link…</p>';
     return '<div class="card"><h2>Add it to your calendar</h2>' + sub + '<p class="small" style="margin-top:12px">Or download a file with your sessions and course start dates. It works with every calendar app, but won\'t update if you change your week.</p><button class="btn line sm" data-act="calfile">Download calendar file</button></div>';
   }
-  // The one-off file mirrors the server's feed (api/_ics.js).
+  // The one-off file mirrors the server's feed (server/_ics.js).
   function schedIcs() {
     const s = S.sched, tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Europe/London", site = (window.BW && window.BW.site) || location.origin;
     const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z", until = (s.until || isoDate(addDays(parseDate(today()), 364))).replace(/-/g, "") + "T235959Z";

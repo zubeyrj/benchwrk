@@ -2,19 +2,70 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/c/:id", "destination": "/api/cert?id=:id" }, { "source": "/p/:slug", "destination": "/api/portfolio?slug=:slug" }, { "source": "/cal/:t", "destination": "/api/cal?t=:t" }],
-  "functions": { "api/cron/*.js": { "maxDuration": 60 }, "api/backup.js": { "maxDuration": 60 } },
+  "rewrites": [
+    {
+      "source": "/c/:id",
+      "destination": "/api/index?r=cert&id=:id"
+    },
+    {
+      "source": "/p/:slug",
+      "destination": "/api/index?r=portfolio&slug=:slug"
+    },
+    {
+      "source": "/cal/:t",
+      "destination": "/api/index?r=cal&t=:t"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index?r=:path*"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60,
+      "includeFiles": "server/**"
+    }
+  },
   "crons": [
-    { "path": "/api/cron/weekly", "schedule": "0 18 * * 0" },
-    { "path": "/api/cron/daily", "schedule": "0 17 * * *" }
+    {
+      "path": "/api/cron/weekly",
+      "schedule": "0 18 * * 0"
+    },
+    {
+      "path": "/api/cron/daily",
+      "schedule": "0 17 * * *"
+    }
   ],
   "headers": [
-    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/(.*)", "headers": [
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-      { "key": "X-Frame-Options", "value": "DENY" },
-      { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
-    ] }
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(self), geolocation=()"
+        }
+      ]
+    }
   ]
 }

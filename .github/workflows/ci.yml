@@ -16,6 +16,6 @@ jobs:
       - run: npm i --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
       - run: npm run build
       - name: Course content bundle is up to date
-        run: npm run content && git diff --exit-code api/_content.js
+        run: npm run content && git diff --exit-code server/_content.js
       - run: pip install numpy
       - run: npm test

@@ -64,7 +64,7 @@ const owner = sb._addUser("owner@example.org", "pw", { full_name: "Owner" }, tru
 const amira = sb._addUser("amira@example.org", "pw", { full_name: "Amira" }, true);
 const ben = sb._addUser("ben@example.org", "pw", { full_name: "Ben" }, true);
 const T = { owner: sb._tokenFor("owner@example.org"), amira: sb._tokenFor("amira@example.org"), ben: sb._tokenFor("ben@example.org") };
-const load = async (f) => (await import("../api/" + f)).default;
+const load = async (f) => (await import("../server/" + f)).default;
 
 // ---- tutor ----
 const tutor = await load("tutor.js");
@@ -172,7 +172,7 @@ ok("ben opted out of weekly", !wk.some((e) => e.to[0] === "ben@example.org"));
 r = await call(weekly, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
 ok("weekly email not repeated", r.json.sent === 0);
 
-const { streakEmail, comebackEmail } = await import("../api/cron/daily.js");
+const { streakEmail, comebackEmail } = await import("../server/cron/daily.js");
 const e1 = streakEmail({ state: { account: { name: "Amira" }, hpw: 10, log: [{ d: mon, h: 2 }] }, summary: { streak: 3 }, profile: { unsub_token: "t" } }, new Date(mon + "T00:00:00Z"));
 ok("streak email maths", e1.subject === "Your 3-week streak ends Sunday" && e1.text.includes("2 of the 6 hours") && e1.text.includes("4 more hours"));
 const e2 = comebackEmail({ state: { account: { name: "Ben" } }, summary: { cur: "SQL" }, profile: { unsub_token: "t" } }, 12);
@@ -188,7 +188,7 @@ await call(daily, { method: "GET", headers: { authorization: "Bearer cron-secret
 ok("errors older than 90 days deleted", !sb.tables.errors.some((e) => e.id === 999));
 
 // ---- reminders: rules and copy ----
-const { situation, dueSlot, pickCopy, remindOf } = await import("../api/_nudge.js");
+const { situation, dueSlot, pickCopy, remindOf } = await import("../server/_nudge.js");
 const at = (iso) => new Date(iso);
 const mem = (remind, log, extra = {}) => Object.assign({ profile: { id: "u1" }, prefs: {}, state: { account: { name: "Z", created: "2026-10-01" }, hpw: 10, log, remind }, summary: { streak: 0, cur: "SQL basics" }, partnerSummary: null }, extra);
 const slotAt = (m, iso) => dueSlot(situation(m, at(iso)));
@@ -272,7 +272,7 @@ delete globalThis.__testNow; delete globalThis.__testPush;
 
 // ---- leagues ----
 {
-  const { rollLeagues, addNewcomers, weekXp, leagueSpot, zoneSize, GROUP_MAX } = await import("../api/_league.js");
+  const { rollLeagues, addNewcomers, weekXp, leagueSpot, zoneSize, GROUP_MAX } = await import("../server/_league.js");
   const W1 = "2026-11-02", W2 = "2026-11-09";
   const S = {};
   for (let i = 0; i < 10; i++) S["u" + i] = { name: "M" + i, at: "2026-11-08", wk: W1, wxp: i * 10 };
@@ -313,7 +313,7 @@ delete globalThis.__testNow; delete globalThis.__testPush;
   ok("league settled and saved where members can read it", r.json.rolled === true && doc && doc.data.wk === "2026-11-16" && doc.data.group[ben.id]);
   r = await call(lroute, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
   ok("second call in the same week changes nothing", r.json.rolled === false && r.json.changed === false);
-  const { pickCopy } = await import("../api/_nudge.js");
+  const { pickCopy } = await import("../server/_nudge.js");
   const lc = pickCopy({ atRisk: false, quiet: 2, weeks: 0, left: 0, have: 0, need: 6, cur: "SQL", L: { dow: 6 }, league: { tier: "Gold", rank: 9, n: 10, zone: "down", k: 2, gapUp: 40 } }, "eve", "s");
   ok("relegation reminder on Saturday", /Gold|Relegation/.test(lc.title + lc.body) && /9th of 10/.test(lc.body));
   delete globalThis.__testNow;
@@ -350,7 +350,7 @@ delete globalThis.__testNow; delete globalThis.__testPush;
 
 // ---- batching ----
 {
-  const { pool } = await import("../api/_lib.js");
+  const { pool } = await import("../server/_lib.js");
   const seen = []; let busy = 0, peak = 0;
   const left = await pool([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, async (x) => { busy++; peak = Math.max(peak, busy); await new Promise((r) => setTimeout(r, 5)); seen.push(x); busy--; }, 0);
   ok("pool runs everything, a few at a time", left === 0 && seen.length === 10 && peak === 3);
@@ -360,7 +360,7 @@ delete globalThis.__testNow; delete globalThis.__testPush;
 
 // ---- backups ----
 {
-  const bk = await load("backup.js"), { decrypt } = await import("../api/_backup.js");
+  const bk = await load("backup.js"), { decrypt } = await import("../server/_backup.js");
   ok("backup needs the cron secret", (await call(bk, { method: "GET" })).status === 401);
   r = await call(bk, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
   ok("no BACKUP_KEY: skipped with a reason", /BACKUP_KEY/.test(r.json.skipped));
@@ -390,7 +390,7 @@ delete globalThis.__testNow; delete globalThis.__testPush;
   ok("schedule: reminder after a missed session, at the session's hour", dueSlot(s1) === "eve" && dueSlot(situation(sm([{ d: "2026-11-10", h: 1 }]), new Date("2026-11-11T18:40:00Z"))) === null);
   ok("schedule: copy names the session time", /18:30/.test(JSON.stringify(pickCopy(s1, "eve", "a")) + JSON.stringify(pickCopy(s1, "eve", "b"))));
   ok("schedule: rest days stay quiet unless the streak is at risk", dueSlot(situation(sm([{ d: "2026-11-08", h: 1 }]), new Date("2026-11-10T19:30:00Z"))) === null);
-  const { buildCalendar } = await import("../api/_ics.js");
+  const { buildCalendar } = await import("../server/_ics.js");
   const ics = buildCalendar({ sched: { tz: "Europe/London", until: "2027-09-30", days: wk, ms: [["2026-12-07", "Start APIs, services; more"]] } }, { uid: "abc", site: "https://bw.test", now: new Date("2026-11-10T12:00:00Z") });
   ok("calendar: one weekly event per study day", (ics.match(/BEGIN:VEVENT/g) || []).length === 4 && /RRULE:FREQ=WEEKLY;BYDAY=WE;UNTIL=20270930T235959Z/.test(ics));
   ok("calendar: first Wednesday at 18:30 local, an hour long", /DTSTART;TZID=Europe\/London:20261111T183000\r\nDTEND;TZID=Europe\/London:20261111T193000/.test(ics));
@@ -410,6 +410,21 @@ delete globalThis.__testNow; delete globalThis.__testPush;
   const old = prof.cal_token;
   r = await call(linkR, { token: T.amira, body: { rotate: true } });
   ok("new link replaces the old one", !r.json.url.includes(old) && (await call(calR, { method: "GET", url: "/api/cal?t=" + old })).status === 404);
+}
+
+// ---- the single entry point (Vercel's free plan allows 12 functions) ----
+{
+  const fs = await import("node:fs"), path = await import("node:path");
+  const idx = await import("../api/index.js"), src = fs.readFileSync(new URL("../api/index.js", import.meta.url), "utf8");
+  const files = [];
+  const walk = (d, pre) => { for (const f of fs.readdirSync(d)) { const full = path.join(d, f); if (fs.statSync(full).isDirectory()) walk(full, pre + f + "/"); else if (f.endsWith(".js") && !f.startsWith("_")) files.push(pre + f.replace(/\.js$/, "")); } };
+  walk(new URL("../server", import.meta.url).pathname, "");
+  ok("every server route is reachable", files.every((f) => src.includes('"../server/' + f + '.js"')) && fs.readdirSync(new URL("../api", import.meta.url).pathname).length === 1);
+  ok("route from rewrite or path", idx.routeOf({ query: { r: "cron/nudge" } }) === "cron/nudge" && idx.routeOf({ query: { r: ["cron", "weekly"] } }) === "cron/weekly" && idx.routeOf({ url: "/api/tutor?x=1" }) === "tutor");
+  r = await call(idx.default, { url: "/api/nope" });
+  ok("unknown route is a 404", r.status === 404);
+  r = await call(idx.default, { url: "/api/health", method: "GET" });
+  ok("routes through to the handler", r.status !== 404);
 }
 
 // ---- delete ----
@@ -495,7 +510,7 @@ await call(rep, { body: { message: "TypeError: x is undefined" } });
 ok("same error not repeated within a minute", sb.tables.errors.length === 1);
 await call(rep, { body: { message: "RangeError: other" } });
 ok("second error recorded, no second email within the hour", sb.tables.errors.length === 2 && sent.filter((m) => /something went wrong/i.test(m.subject)).length === 1);
-const { withErrors } = await import("../api/_lib.js");
+const { withErrors } = await import("../server/_lib.js");
 r = await call(withErrors(async () => { throw new Error("boom in route"); }), { url: "/api/x" });
 ok("server crash caught and recorded", r.status === 500 && /reported/.test(r.json.error) && sb.tables.errors.some((e) => e.source === "server" && e.message === "boom in route"));
 const mod = await load("admin-moderate.js");
@@ -542,12 +557,12 @@ ok("redirect to private IP blocked", (await call(jf, { token: T.ben, body: { url
 ok("non-HTML refused", (await call(jf, { token: T.ben, body: { url: "https://careers.example.com/pdf" } })).status === 422);
 ok("odd ports refused", (await call(jf, { token: T.ben, body: { url: "https://careers.example.com:8443/x" } })).status === 422);
 ok("file URLs refused", (await call(jf, { token: T.ben, body: { url: "file:///etc/passwd" } })).status === 422);
-const { extractJob, htmlToText } = await import("../api/_html.js");
+const { extractJob, htmlToText } = await import("../server/_html.js");
 ok("plain page fallback", /Role/.test(extractJob("<html><head><title>AI role</title></head><body><nav>x</nav><main><h1>Role</h1><p>Do things &amp; stuff</p></main></body></html>").text) && htmlToText("a&nbsp;b &#8212; c") === "a b - c");
 
 // ---- SMTP instead of Resend ----
 delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM; process.env.SMTP_HOST = "json"; process.env.SMTP_USER = "benchwork.app@gmail.com"; globalThis.__smtpSent = [];
-const { sendEmail } = await import("../api/_lib.js");
+const { sendEmail } = await import("../server/_lib.js");
 await sendEmail({ to: "ben@example.org", subject: "Hello", html: "<p>Hi</p>", text: "Hi", unsubscribe: "https://benchwork.test/api/unsubscribe?t=x&k=weekly" });
 const m = JSON.parse(globalThis.__smtpSent[0].message);
 ok("SMTP sends from the Gmail account", m.from.address === "benchwork.app@gmail.com" && m.to[0].address === "ben@example.org" && m.headers["List-Unsubscribe"].includes("unsubscribe"));

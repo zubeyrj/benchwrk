@@ -1,4 +1,4 @@
-  /* ---------- Weekly leagues (settled on the server each Monday; see api/_league.js) ---------- */
+  /* ---------- Weekly leagues (settled on the server each Monday; see server/_league.js) ---------- */
   const TIERS = ["Bronze", "Silver", "Gold", "Platinum", "Emerald", "Diamond"];
   const TIER_COL = ["#b0703a", "#8a94a6", "#c99a1a", "#4f8fa8", "#1f9d6b", "#5b7cfa"];
   // Weekly XP: the XP earned since the first visit of the week. The previous week's total is kept as lw.
