@@ -3,7 +3,7 @@
 (function (root) {
   function makeFakeSupabase(opts) {
     opts = opts || {};
-    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [], errors: [] };
+    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [], errors: [], push_subs: [] };
     const users = {}; // id -> { id, email, password, confirmed, user_metadata, app_metadata, created_at }
     const tokens = {}; // access token -> user id
     const listeners = [];
@@ -18,6 +18,7 @@
       if (t === "docs") { row.parent = row.path.replace(/\/[^/]+$/, ""); row.updated_at = new Date().toISOString(); }
       if (t === "certs" && !row.id) row.id = Math.random().toString(16).slice(2, 10) + Math.random().toString(16).slice(2, 10);
       if (t === "certs" && !row.issued) row.issued = today();
+      if (t === "push_subs") { row.id = row.id || ++seq; row.created_at = row.created_at || new Date().toISOString(); }
       if (t === "email_log" && !row.sent_at) row.sent_at = new Date().toISOString();
       if (t === "errors") { row.at = row.at || new Date().toISOString(); row.id = row.id || ++seq; if (row.resolved === undefined) row.resolved = false; }
       if (t === "profiles" && !row.prefs) row.prefs = { weekly: true, streak: true, partner: true };
@@ -115,7 +116,7 @@
       async updateUser(o) { if (!session) return { error: { message: "no session" } }; users[session.user.id].password = o.password; return { data: {}, error: null }; },
       async signOut() { session = null; emit("SIGNED_OUT", null); return { error: null }; },
       async getUser(token) { const id = tokens[token]; return id && users[id] ? { data: { user: publicUser(users[id]) }, error: null } : { data: { user: null }, error: { message: "bad token" } }; },
-      admin: { async deleteUser(id) { delete users[id]; for (const t of ["profiles", "certs", "ai_usage", "email_log", "admins"]) tables[t] = tables[t].filter((r) => (r.id || r.user_id) !== id && r.user_id !== id); return { error: null }; } },
+      admin: { async deleteUser(id) { delete users[id]; for (const t of ["profiles", "certs", "ai_usage", "email_log", "admins", "push_subs"]) tables[t] = tables[t].filter((r) => (r.id || r.user_id) !== id && r.user_id !== id); return { error: null }; } },
     };
 
     const client = {

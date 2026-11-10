@@ -65,6 +65,7 @@
     });
     if (notice && notice.text) add(notice.ts || dts(notice.at), "From the Benchwork team: " + notice.text, "#home", "notice");
     myReports.filter((r) => r.status === "resolved" && r.resolvedAt).forEach((r) => add(r.resolvedAt, "Your report about " + (r.label || "a member") + " was reviewed. Thank you.", "#settings", "report"));
+    remindNotif(add);
     const now = Date.now();
     (S.apps || []).forEach((a) => { if (a.next && a.next.date) { const t = dts(a.next.date), days = Math.round((t - now) / 864e5); if (days >= -1 && days <= 3) add(Math.min(now, t - 2 * 864e5), (a.next.what || "Next step") + " with " + (a.company || "an employer") + " " + (days <= 0 ? "today" : days === 1 ? "tomorrow" : "on " + fmt(parseDate(a.next.date))), "#applications", "app"); } });
     return out.sort((a, b) => b.ts - a.ts).slice(0, 20);

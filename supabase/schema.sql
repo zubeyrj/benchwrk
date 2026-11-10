@@ -212,3 +212,23 @@ drop policy if exists errors_update on public.errors;
 create policy errors_select on public.errors for select using (public.is_admin());
 create policy errors_update on public.errors for update using (public.is_admin()) with check (public.is_admin());
 revoke insert, delete on public.errors from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Push notifications: one row per browser or phone a member switched them on for.
+-- ---------------------------------------------------------------------------
+create table if not exists public.push_subs (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  endpoint   text not null unique,
+  p256dh     text not null,
+  auth       text not null,
+  created_at timestamptz not null default now(),
+  last_ok    timestamptz
+);
+alter table public.push_subs enable row level security;
+drop policy if exists push_subs_select on public.push_subs;
+drop policy if exists push_subs_insert on public.push_subs;
+drop policy if exists push_subs_delete on public.push_subs;
+create policy push_subs_select on public.push_subs for select using (user_id = auth.uid());
+create policy push_subs_insert on public.push_subs for insert with check (user_id = auth.uid());
+create policy push_subs_delete on public.push_subs for delete using (user_id = auth.uid());

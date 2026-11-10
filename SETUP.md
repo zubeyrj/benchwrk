@@ -93,6 +93,16 @@ Open sign-up means bots can try to create accounts and use up your tutor budget.
 3. In **Supabase > Authentication > Attack Protection**, switch on **Captcha protection**, choose Turnstile and paste the **secret key**.
 4. Redeploy. Sign-up, sign-in and password resets now check for bots; most people never see a box.
 
+## 6d. Reminders and notifications (10 minutes, free)
+
+Benchwork nags people who skip, Duolingo style. Each member picks how hard in Settings: Off, Gentle, Persistent or Relentless (new sign-ups start on Persistent). Persistent and Relentless send a phone or browser notification when one is switched on, otherwise an email, at most one a day. Nothing goes out between 9pm and 8am in the member's own time zone, nothing once they've logged a session that day, and it backs off to once a week after 14 quiet days.
+
+1. **Notification keys.** On your computer run `npx web-push generate-vapid-keys`. Put the public key in Vercel as `VAPID_PUBLIC_KEY`, the private key as `VAPID_PRIVATE_KEY` (it's a secret: Vercel only, never in chat or the repo) and `mailto:` plus your email as `VAPID_SUBJECT`. Redeploy.
+2. **The hourly check.** Vercel's free plan only runs scheduled jobs once a day, so GitHub runs this one. In your repo on GitHub open **Settings > Secrets and variables > Actions > New repository secret** and add `SITE_URL` (your `https://….vercel.app` address) and `CRON_SECRET` (the same value as in Vercel).
+3. Open **Actions > Hourly reminders > Run workflow** once to check it: the log ends with something like `{"due":0,"pushed":0,"emailed":0,"failed":0}`.
+
+GitHub pauses scheduled workflows in a repo with no commits for 60 days; it emails you first, and one click on **Enable workflow** restarts it. Without the keys, reminders still work by email. iPhone and iPad users must add Benchwork to their Home Screen before they can turn notifications on; Settings tells them how.
+
 ## 7. First visit
 
 1. Open your site and sign up with the email you used in `set_owner`. Confirm it from your inbox.
@@ -112,6 +122,7 @@ Work through this once, in a private browser window, before sharing the link wid
 - [ ] **Do one mock interview** end to end and check the scorecard reads sensibly.
 - [ ] **Search live jobs** and read one advert from a careers page link.
 - [ ] **Pair your two accounts as partners** and send a cheer: the email arrives at the other address.
+- [ ] **Turn on notifications** in Settings > Reminders on your phone (add the site to your Home Screen first on an iPhone) and press **Send me a test**.
 - [ ] **Report something** from the second account; it shows in Admin > Reports.
 - [ ] **Create a cohort** in Admin, open its invite link in a private window and sign up: the new member lands in that cohort.
 - [ ] **Download my data** and **delete the test account** from Settings.

@@ -187,6 +187,89 @@ sb.tables.errors.push({ id: 999, at: "2026-01-01T00:00:00Z", source: "client", m
 await call(daily, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
 ok("errors older than 90 days deleted", !sb.tables.errors.some((e) => e.id === 999));
 
+// ---- reminders: rules and copy ----
+const { situation, dueSlot, pickCopy, remindOf } = await import("../api/_nudge.js");
+const at = (iso) => new Date(iso);
+const mem = (remind, log, extra = {}) => Object.assign({ profile: { id: "u1" }, prefs: {}, state: { account: { name: "Z", created: "2026-10-01" }, hpw: 10, log, remind }, summary: { streak: 0, cur: "SQL basics" }, partnerSummary: null }, extra);
+const slotAt = (m, iso) => dueSlot(situation(m, at(iso)));
+ok("no reminder level means gentle", remindOf({}).level === "gentle" && slotAt(mem(undefined, [{ d: "2026-11-01", h: 1 }]), "2026-11-11T19:30:00Z") === null);
+const rel = mem({ level: "relentless", tz: "Europe/London" }, [{ d: "2026-11-10", h: 1 }]);
+ok("relentless: lunchtime the day after skipping", slotAt(rel, "2026-11-11T12:30:00Z") === "noon");
+ok("relentless: evening too", slotAt(rel, "2026-11-11T19:05:00Z") === "eve");
+ok("nothing before 8am", slotAt(rel, "2026-11-11T07:30:00Z") === null);
+ok("nothing after 9pm", slotAt(rel, "2026-11-11T21:10:00Z") === null);
+ok("nothing once you've studied today", slotAt(mem({ level: "relentless" }, [{ d: "2026-11-11", h: 1 }]), "2026-11-11T19:30:00Z") === null);
+ok("not on sign-up day", slotAt(mem({ level: "relentless" }, [], { state: { account: { created: "2026-11-11" }, hpw: 10, log: [], remind: { level: "relentless" } } }), "2026-11-11T19:30:00Z") === null);
+const per1 = mem({ level: "persistent", hour: 18 }, [{ d: "2026-11-10", h: 1 }]);
+ok("persistent: one skipped day is fine midweek", slotAt(per1, "2026-11-11T19:00:00Z") === null);
+const per2 = mem({ level: "persistent", hour: 18 }, [{ d: "2026-11-09", h: 1 }]);
+ok("persistent: two skipped days, evening only", slotAt(per2, "2026-11-11T18:20:00Z") === "eve" && slotAt(per2, "2026-11-11T13:00:00Z") === null && slotAt(per2, "2026-11-11T17:20:00Z") === null);
+const risk = mem({ level: "persistent" }, [{ d: "2026-11-11", h: 2 }], { summary: { streak: 3, cur: "SQL basics" } });
+let s = situation(risk, at("2026-11-12T19:30:00Z"));
+ok("persistent: streak at risk on Thursday", s.atRisk && s.left === 4 && dueSlot(s) === "eve");
+let c = pickCopy(s, "eve", "seed");
+ok("streak copy uses real numbers", /streak|weeks/i.test(c.title + c.body) && /4 hours|3-week|3 weeks/.test(c.title + c.body));
+s = situation(risk, at("2026-11-15T19:30:00Z"));
+c = pickCopy(s, "eve", "seed");
+ok("Sunday is last call", /Last call|ends tonight/.test(c.title));
+const gone = mem({ level: "relentless" }, [{ d: "2026-10-20", h: 1 }]);
+ok("after 14 quiet days: Sundays only", slotAt(gone, "2026-11-11T19:30:00Z") === null && slotAt(gone, "2026-11-15T19:30:00Z") === "eve" && pickCopy(situation(gone, at("2026-11-15T19:30:00Z")), "eve", "x").title === "We'll keep this short");
+ok("gives up after 60 days", slotAt(mem({ level: "relentless" }, [{ d: "2026-08-01", h: 1 }]), "2026-11-15T19:30:00Z") === null);
+const d5 = situation(mem({ level: "relentless" }, [{ d: "2026-11-06", h: 1 }]), at("2026-11-11T12:30:00Z"));
+ok("day five escalates", d5.quiet === 5 && ["These reminders don't seem to be working", "5 days. We're starting to worry"].indexOf(pickCopy(d5, "noon", "a").title) >= 0);
+const ny = mem({ level: "persistent", hour: 18, tz: "America/New_York" }, [{ d: "2026-11-08", h: 1 }]);
+ok("uses the member's time zone", slotAt(ny, "2026-11-11T23:30:00Z") === "eve" && slotAt(ny, "2026-11-11T15:00:00Z") === null);
+ok("bad time zone falls back to London", situation(mem({ level: "persistent", tz: "Mars/Olympus" }, []), at("2026-11-11T12:00:00Z")).L.hour === 12);
+let style = true;
+for (const q of [1, 2, 3, 5, 8, 20]) for (const seed of ["a", "b", "c", "d", "e", "f"]) { const x = pickCopy({ atRisk: q === 3, sunday: false, quiet: q, weeks: 2, left: 1, have: 2, need: 6, cur: "SQL", partner: { name: "Ben", hours: 5 } }, "eve", seed); if (/—|\{|\}|undefined/.test(x.title + x.body)) style = false; }
+ok("copy fills every blank and has no dashes", style);
+
+// ---- push devices ----
+const pushCalls = [];
+globalThis.__testPush = { fail: 0, async sendNotification(sub, payload) { pushCalls.push({ sub, payload: JSON.parse(payload) }); if (this.fail) throw Object.assign(new Error("gone"), { statusCode: this.fail }); } };
+const push = await load("push.js");
+const SUB = { endpoint: "https://fcm.googleapis.com/fcm/send/abc123", keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } };
+ok("push needs sign-in", (await call(push, { body: { action: "status" } })).status === 401);
+ok("push rejects a bad device", (await call(push, { token: T.amira, body: { action: "subscribe", subscription: { endpoint: "http://insecure/x", keys: SUB.keys } } })).status === 400);
+ok("push saves a device", (await call(push, { token: T.amira, body: { action: "subscribe", subscription: SUB } })).json.ok === true);
+await call(push, { token: T.amira, body: { action: "subscribe", subscription: SUB } });
+r = await call(push, { token: T.amira, body: { action: "status" } });
+ok("same device saved once", r.json.devices === 1 && r.json.ready === true);
+r = await call(push, { token: T.amira, body: { action: "test" } });
+ok("test notification sent", r.json.sent === 1 && pushCalls[0].payload.title === "Notifications are on" && pushCalls[0].sub.keys.auth === SUB.keys.auth);
+ok("other members can't see your devices", (await call(push, { token: T.ben, body: { action: "status" } })).json.devices === 0);
+
+// ---- reminder cron ----
+const nudgeCron = await load("cron/nudge.js");
+ok("nudge cron needs secret", (await call(nudgeCron, { method: "GET" })).status === 401);
+const cron = () => call(nudgeCron, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+sb._doc("data/users/" + amira.id + "/state", { account: { name: "Amira", created: "2026-10-01" }, hpw: 10, log: [{ d: "2026-11-09", h: 2 }], remind: { level: "persistent", hour: 19, tz: "Europe/London" } });
+await new Promise((res) => setTimeout(res, 10));
+globalThis.__testNow = "2026-11-12T19:30:00Z";
+pushCalls.length = 0;
+r = await cron();
+ok("nudge pushes when the streak is at risk", r.json.due === 1 && r.json.pushed === 1 && pushCalls.length === 1 && /streak|weeks/i.test(pushCalls[0].payload.title + pushCalls[0].payload.body) && pushCalls[0].payload.url.endsWith("/#home"));
+ok("nudge not repeated in the same slot", (await cron()).json.due === 0);
+globalThis.__testNow = "2026-11-12T20:30:00Z";
+ok("persistent: one a day", (await cron()).json.due === 0);
+sb._doc("data/users/" + amira.id + "/state", { account: { name: "Amira", created: "2026-10-01" }, hpw: 10, log: [{ d: "2026-11-09", h: 2 }], remind: { level: "relentless", hour: 19, tz: "Europe/London" } });
+await new Promise((res) => setTimeout(res, 10));
+globalThis.__testNow = "2026-11-13T12:10:00Z";
+globalThis.__testPush.fail = 410;
+const sentBefore = sent.length;
+r = await cron();
+ok("dead device forgotten, falls back to email", r.json.emailed === 1 && !sb.tables.push_subs.some((x) => x.user_id === amira.id) && sent[sentBefore].to[0] === "amira@example.org" && /Settings/.test(sent[sentBefore].html) && sent[sentBefore].html.includes("unsubscribe"));
+globalThis.__testNow = "2026-11-13T19:30:00Z";
+r = await cron();
+ok("relentless: second slot, but only one email a day", r.json.due === 1 && r.json.emailed === 0 && sent.length === sentBefore + 1);
+sb._doc("data/users/" + amira.id + "/state", { account: { name: "Amira", created: "2026-10-01" }, hpw: 10, log: [{ d: "2026-11-14", h: 1 }, { d: "2026-11-09", h: 2 }], remind: { level: "relentless", hour: 19, tz: "Europe/London" } });
+await new Promise((res) => setTimeout(res, 10));
+globalThis.__testNow = "2026-11-14T19:30:00Z";
+ok("quiet once you've logged today", (await cron()).json.due === 0);
+r = await call(daily, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+ok("daily cron leaves relentless members to the nudge cron", r.json.streak === 0 && r.json.comeback === 0);
+delete globalThis.__testNow; delete globalThis.__testPush;
+
 // ---- delete ----
 const del = await load("me-delete.js");
 ok("delete needs confirmation", (await call(del, { token: T.amira, body: {} })).status === 400);

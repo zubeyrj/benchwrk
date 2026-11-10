@@ -92,6 +92,32 @@ function friendly(e) {
   return msg || "Something went wrong. Try again.";
 }
 
+// Phone and browser notifications. iPhones and iPads only allow them once Benchwork is added to the Home Screen.
+function makePush(key, api) {
+  const nav = typeof navigator !== "undefined" ? navigator : {};
+  const ios = /iPad|iPhone|iPod/.test(nav.userAgent || "") || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1);
+  const standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || nav.standalone === true;
+  const has = () => "serviceWorker" in nav && "PushManager" in window && "Notification" in window;
+  const b64 = (s) => { const t = (s + "=".repeat((4 - (s.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"); return Uint8Array.from(atob(t), (c) => c.charCodeAt(0)); };
+  const reg = async () => { const r = await nav.serviceWorker.register("/sw.js"); await nav.serviceWorker.ready; return r; };
+  const current = async () => { if (!has()) return null; const r = await nav.serviceWorker.getRegistration(); return r ? r.pushManager.getSubscription() : null; };
+  return {
+    // "ready", "nokey" (site not set up), "ios-install", "unsupported" or "blocked"
+    support() { if (!key) return "nokey"; if (ios && !standalone) return "ios-install"; if (!has()) return "unsupported"; if (Notification.permission === "denied") return "blocked"; return "ready"; },
+    async on() { const s = await current(); return !!s; },
+    async enable() {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") return { ok: false, reason: perm === "denied" ? "blocked" : "dismissed" };
+      const r = await reg();
+      const s = (await r.pushManager.getSubscription()) || (await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) }));
+      await api("/api/push", { action: "subscribe", subscription: s.toJSON() });
+      return { ok: true };
+    },
+    async disable() { const s = await current(); if (!s) return; await api("/api/push", { action: "unsubscribe", endpoint: s.endpoint }).catch(() => {}); await s.unsubscribe(); },
+    test: () => api("/api/push", { action: "test" }),
+  };
+}
+
 async function bootstrap() {
   const cfg = window.BW_CONFIG || {};
   // Tests (and any host that already provides the runtime) skip straight to the app.
@@ -145,6 +171,7 @@ async function bootstrap() {
         const { data, error } = await sb.from("certs").upsert(Object.assign({ user_id: session.user.id }, c), { onConflict: "user_id,course" }).select("id").single();
         if (error) throw error; return site.replace(/\/$/, "") + "/c/" + data.id;
       },
+      push: makePush(cfg.vapidPublicKey, api),
       tutorUsage: async () => { const { data } = await sb.from("ai_usage").select("user_id, day, kind, calls, in_tokens, out_tokens").gte("day", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)); return data || []; },
     };
     sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", session.user.id).then(() => {}, () => {});

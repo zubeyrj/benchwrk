@@ -75,6 +75,9 @@ await db.query(`insert into errors (source, message, fingerprint) values ('clien
 ok("members can't read errors", ((await as(A, "select * from errors")).rows || []).length === 0);
 ok("admin reads errors", (await as(OWNER, "select * from errors")).rows.length === 1);
 ok("members can't write errors", !!(await as(A, "insert into errors (source, message, fingerprint) values ('client','y','g')")).err || ((await db.query("select count(*)::int c from errors")).rows[0].c === 1));
+ok("member saves own push subscription", !(await as(A, `insert into push_subs (user_id, endpoint, p256dh, auth) values ('${A}', 'https://push.example/a', 'k', 'a')`)).err);
+ok("can't save one for someone else", !!(await as(A, `insert into push_subs (user_id, endpoint, p256dh, auth) values ('${B}', 'https://push.example/b', 'k', 'a')`)).err);
+ok("others can't see your push subscriptions", ((await as(B, "select * from push_subs")).rows || []).length === 0);
 ok("unknown collections refused", !!(await write(A, "misc/" + A)).err);
 const del = await as(A, "delete from docs where path = $1", ["content/m1"]);
 ok("member cannot delete content", (await read(OWNER, "content/m1")) && !del.err);

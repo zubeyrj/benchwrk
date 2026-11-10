@@ -165,6 +165,7 @@
         '<label><input type="radio" name="a-goal" value="engineer"' + (S.goal !== "adjacent" ? " checked" : "") + '><span><b>AI engineer</b><br><span class="small muted">Apply once all three projects are live.</span></span></label>' +
         '<label><input type="radio" name="a-goal" value="adjacent"' + (S.goal === "adjacent" ? " checked" : "") + '><span><b>An AI-adjacent role first</b><br><span class="small muted">AI-enabled data or automation work. Apply after project 2.</span></span></label></div></fieldset>' +
         learnFields("a", S.learn) +
+        remindFields("a", ui.signDraft && ui.signDraft.remind ? ui.signDraft.remind : "persistent") +
         '<div class="field"><label for="a-invite">Invite code <span class="muted">(optional)</span></label><input id="a-invite" maxlength="12" autocomplete="off" style="text-transform:uppercase;max-width:220px" value="' + esc(ui.inviteDraft != null ? ui.inviteDraft : (window.BW && window.BW.invite) || "") + '"' + (ui.inviteErr ? ' aria-invalid="true" aria-describedby="a-invite-err"' : "") + '><p class="hint">From whoever invited you. It puts you in their cohort; you can add one later in Settings.</p>' + (ui.inviteErr ? '<p class="err" id="a-invite-err">' + esc(ui.inviteErr) + "</p>" : "") + "</div>" +
         '<button class="btn lg wide" type="submit"' + (ui.busy ? ' aria-busy="true" disabled' : "") + ">" + (ui.busy ? "Creating your account…" : "Create my account") + "</button></form>";
     }
@@ -232,10 +233,10 @@
     const questHtml = '<div class="card"><div class="row between"><h2 style="margin:0">This week\'s quests</h2><span class="xs muted">Resets Monday</span></div>' + Q.map((q) => '<div class="quest' + (q.done ? " done" : "") + '"><span class="qi">' + (q.done ? SVG.check : SVG.target) + '</span><div><div class="qt">' + esc(q.title) + '</div><span class="bar xp thin" style="margin-top:6px"><i style="--f:' + (q.got / q.need).toFixed(3) + '"></i></span></div><span class="qx n">' + (q.done ? "Done" : "+" + q.xp + " XP") + "</span></div>").join("") + "</div>";
     const due = MOD.filter((m) => inPlan(m.id) && reviewDue(m.id)), missN = Object.keys(S.miss).length;
     const review = (due.length || missN) ? '<div class="card"><h2>Keep it fresh</h2><ul class="rl">' + due.map((m) => '<li><span class="grow"><a class="ttl" href="#quiz-' + m.id + '">Quiz review due: ' + esc(m.title) + '</a></span><span class="state">+50 XP</span></li>').join("") + (missN ? '<li><span class="grow"><a class="ttl" href="#practice">Practise ' + plural(missN, "question") + ' you missed</a></span><span class="state">Practice</span></li>' : "") + "</ul></div>" : "";
-    return hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
+    return remindBanner() + hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your week</h2><div class="row"><button class="btn line sm" data-act="qlog" data-h="1">Log 1 hour</button><button class="btn line sm" data-act="qlog" data-h="2">Log 2 hours</button></div></div><div style="margin-top:14px">' + stripHtml(thisWeekDays()) + "</div></div>" +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your path</h2><a class="link small" href="#plan">See the dated plan</a></div>' + pathHtml(p, 5) + "</div></div>" +
-      "<aside>" + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
+      "<aside>" + remindAskCard() + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
   }
   function pathHtml(p, around) {
     const rows = p.rows, cur = currentRow(p), ci = cur ? rows.indexOf(cur) : rows.length;

@@ -148,7 +148,7 @@
       '<div class="card sec"><h2>Appearance</h2><div class="seg" role="radiogroup" aria-label="Colour theme" style="max-width:360px;grid-template-columns:repeat(3,1fr)">' + [["auto", "Match device"], ["light", "Light"], ["dark", "Dark"]].map((t) => '<label><input type="radio" name="theme" value="' + t[0] + '" data-theme-pick' + (theme === t[0] ? " checked" : "") + "><span>" + t[1] + "</span></label>").join("") + "</div></div>" +
       '<div class="card sec"><h2>Tour</h2><p class="muted">A two-minute walk through every tab.</p><button class="btn line" data-act="tour">Show me around again</button></div>' +
       '<div class="card sec"><h2>Tools and placement</h2><p class="muted">Update your tool ratings or retake the placement when your skills move on. Your progress stays.</p><div class="row"><button class="btn line" data-act="retools">Change my tool ratings</button><a class="btn line" href="#placement" data-act="preset">Retake the placement</a></div></div>' +
-      settingsLearn() + settingsTrust() + settingsExtras() +
+      settingsLearn() + settingsRemind() + settingsTrust() + settingsExtras() +
       '<div class="card sec"><h2>Reset</h2><p class="muted">Clears your tool ratings, placement, lessons read, exercises, quiz scores and sessions. Your account stays.</p><button class="btn line" data-act="reset" style="color:var(--fail)">' + (ui.resetArm ? "Click again to erase your progress" : "Reset my progress") + "</button></div></div>";
   }
 
@@ -165,7 +165,7 @@
     return '<div class="card sec"><h2>Account</h2><p class="muted">Signed in as <b>' + esc(bw.email || "") + "</b>" + (google ? " with Google" : "") + ".</p>" +
       '<div class="row">' + (google ? "" : '<button class="btn line" data-act="pwreset">Change my password</button>') + '<button class="btn line" data-act="signout">Sign out</button></div>' + (ui.pwSent ? '<p class="small muted" role="status">We\'ve emailed you a link to choose a new password.</p>' : "") + "</div>" +
       '<div class="card sec"><h2>Emails</h2><p class="muted">Choose what Benchwork sends you. Account emails such as password resets always arrive.</p>' +
-      [["weekly", "Weekly progress", "Sunday evening: your hours, streak, XP and your partner's week."], ["streak", "Reminders", "When your streak is about to end, or after ten quiet days."], ["partner", "Partner messages", "When your accountability partner cheers or nudges you."]]
+      [["weekly", "Weekly progress", "Sunday evening: your hours, streak, XP and your partner's week."], ["streak", "Reminder emails", "The reminders set above, when they can\'t reach you as notifications."], ["partner", "Partner messages", "When your accountability partner cheers or nudges you."]]
         .map((t) => '<label class="toggle"><span><b>' + t[1] + '</b><br><span class="small muted">' + t[2] + '</span></span><input type="checkbox" data-pref="' + t[0] + '"' + (pr[t[0]] !== false ? " checked" : "") + (ui.prefs ? "" : " disabled") + "></label>").join("") + "</div>" +
       '<div class="card sec"><h2>Study calendar</h2><p class="muted">Put your sessions in your calendar so the evenings are protected. ' + S.hpw + " hours a week over the days you pick works out at about " + (mins >= 60 ? r1(mins / 60) + " hours" : mins + " minutes") + " a session.</p>" +
       '<fieldset><legend>Days</legend><div class="days">' + DAYS.map((d) => '<label><input type="checkbox" data-calday="' + d[0] + '"' + (cal.days.indexOf(d[0]) >= 0 ? " checked" : "") + "><span>" + d[1] + "</span></label>").join("") + "</div></fieldset>" +

@@ -15,7 +15,7 @@ peer review, accountability partners, XP and streaks, and an AI tutor.
 | Python and SQL in the browser | `public/runner.js`, `public/harness.txt` | Pyodide and sql.js in a Web Worker, with tests per exercise |
 | Interview room | `src/app/03b-interview.js`, `api/interviewer.js`, `api/jobs.js`, `api/job-fetch.js` | Job advert decode, live job search, AI mock interviews (one question at a time, follow-ups), self-reflection, five-dimension scorecards, a STAR storybank |
 | API | `api/*.js` (Vercel functions) | Tutor (Claude), data export and deletion, partner emails, owner emails, content loading, public certificates, unsubscribe |
-| Scheduled emails | `api/cron/*.js` | Sunday progress email, streak-at-risk and come-back reminders |
+| Reminders | `api/cron/*.js`, `api/_nudge.js`, `.github/workflows/nudge.yml` | Sunday progress email; Duolingo-style reminders at four strengths, by phone or browser notification or email, checked hourly in each member's time zone |
 | Career | `src/app/03d-career.js` | Applications tracker with dates and calendar files, CV review, "tell me about yourself" pitch, real-interview debrief, comparing adverts |
 | Community safety | `src/app/03c-trust.js`, `api/admin-moderate.js` | Cohorts and invite codes, report and block, notifications, the owner's reports queue, suspensions, errors and system check |
 | Course editor | `src/app/03e-editor.js` | Form-based editing of courses, lessons, exercises and the quiz bank; exercises are run before saving |
