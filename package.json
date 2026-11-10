@@ -5,10 +5,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "content": "node scripts/gen-content.mjs",
-    "test": "node test/rls.test.mjs && node test/api.test.mjs && node test/auth.test.cjs && node test/app.test.cjs && node test/a11y.test.cjs",
+    "test": "node test/rls.test.mjs && node test/api.test.mjs && node test/auth.test.cjs && node test/app.test.cjs && node test/a11y.test.cjs && python3 scripts/check-practice.py",
     "test:db": "node test/rls.test.mjs",
     "links": "node scripts/check-links.mjs",
-    "test:a11y": "node test/a11y.test.cjs"
+    "test:a11y": "node test/a11y.test.cjs",
+    "library": "node scripts/import-aefs.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {

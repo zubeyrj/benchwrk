@@ -32,9 +32,9 @@
   // Five sections in the top bar; the pages inside each appear as tabs at the top of the section.
   const GROUPS = [
     { id: "today", label: "Today", pages: [["home", "Overview"], ["log", "Study log"]] },
-    { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["plan", "Your plan"], ["practice", "Quizzes"], ["toolkit", "Toolkit"]] },
+    { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["library", "Library"], ["plan", "Your plan"], ["practice", "Practice"], ["toolkit", "Toolkit"]] },
     { id: "projects", label: "Projects", pages: [["projects", "Projects"]] },
-    { id: "career", label: "Career", pages: [["interview", "Interview room"], ["applications", "Applications"], ["career", "CV and pitch"]] },
+    { id: "career", label: "Career", pages: [["interview", "Interview room"], ["applications", "Applications"], ["career", "CV and pitch"], ["routes", "Specialisms"]] },
     { id: "cohort", label: "Cohort", pages: [["cohort", "Cohort"]] },
   ];
   const NAV = GROUPS.reduce((a, g) => a.concat(g.pages), []);
@@ -110,6 +110,7 @@
     if (typeof n.cohort !== "string") n.cohort = "";
     n.notifSeen = Number(n.notifSeen) || 0;
     if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
+    if (!n.lib || typeof n.lib !== "object") n.lib = { done: {}, quiz: {}, prob: {}, route: "" };
     n.hpw = clampH(n.hpw);
     return n;
   }
@@ -222,7 +223,7 @@
   }
   function points() {
     const c = counts();
-    return c.lessons * PTS.lesson + c.ex * PTS.ex + c.exSol * PTS.exSol + c.quiz * PTS.quiz + Math.round(totalHours()) * PTS.hour + c.cp * PTS.cp + c.subs * PTS.sub + c.revs * PTS.rev + c.iv * PTS.iv + (S.qxp || 0);
+    return c.lessons * PTS.lesson + c.ex * PTS.ex + c.exSol * PTS.exSol + c.quiz * PTS.quiz + Math.round(totalHours()) * PTS.hour + c.cp * PTS.cp + c.subs * PTS.sub + c.revs * PTS.rev + c.iv * PTS.iv + (S.qxp || 0) + libPoints();
   }
   // Levels get further apart as you climb: 150, 450, 900, 1500...
   function levelInfo(xp) {

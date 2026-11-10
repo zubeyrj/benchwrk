@@ -25,6 +25,7 @@ globalThis.fetch = async (url, init) => {
     else if (/tell me about yourself/.test(sys)) text = JSON.stringify({ hook: "I turn messy data into decisions.", short: "s", medium: "m", long: "l", differentiator: "d", avoid: ["a"], follow_ups: ["f"] });
     else if (/debriefing a REAL interview/.test(sys)) text = JSON.stringify({ summary: "Went fine", confidence: "Medium", scores: { substance: 3, structure: 3, relevance: 4, credibility: 3, differentiation: 2 }, signals: ["Asked follow-ups"], questions: [{ question: "Tell me about RAG", competency: "RAG", landed: "x", gap: "y", stronger_answer: "z" }], patterns: [], next_round_prep: ["Prepare evals"], thank_you: "Thanks for...", stories_to_add: [] });
     else if (/which of several job adverts/.test(sys)) text = JSON.stringify({ ranking: [{ id: "a", rank: 1, verdict: "Strong Fit", why: "w", prep_effort: "Low", first_step: "f" }, { id: "b", rank: 2, verdict: "Weak Fit", why: "w", prep_effort: "High", first_step: "f" }], recommendation: "Start with a", skip: [] });
+    else if (/marking one answer against the model answer/.test(sys)) text = JSON.stringify({ verdict: "Adequate", scores: { substance: 3, structure: 3, relevance: 4, credibility: 3, differentiation: 2 }, landed: ["Named the tool registry"], missing: ["Turn budget"], wrong_answer_hit: "", follow_up: "Why is a turn budget separate from the stop condition?" });
     else if (/scoring a mock interview/.test(sys)) text = JSON.stringify({ band: "Early career", confidence: "Medium", hire_signal: "Mixed", scores: { substance: 3, structure: 3.5, relevance: 4, credibility: 2.5, differentiation: 2 }, self_delta: "over", questions: [{ n: 1, question: "q", heard: "h", scores: { substance: 3, structure: 3.5, relevance: 4, credibility: 2.5, differentiation: 2 }, note: "n", stronger_answer: "s" }] });
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage }), { status: 200 });
   }
@@ -249,6 +250,11 @@ ok("debrief needs notes", (await call(iv, { token: T.owner, body: { mode: "debri
 r = await call(iv, { token: T.owner, body: { mode: "compare", jobs: [Object.assign({ id: "a" }, JOB), Object.assign({ id: "b" }, JOB, { title: "ML Ops" })] } });
 ok("compare", r.status === 200 && r.json.ranking.length === 2 && /<job id="b" title="ML Ops"/.test(ivCalls[ivCalls.length - 1].messages[0].content));
 ok("compare needs 2 to 5", (await call(iv, { token: T.owner, body: { mode: "compare", jobs: [Object.assign({ id: "a" }, JOB)] } })).status === 400);
+r = await call(iv, { token: T.owner, body: { mode: "card", question: { title: "What makes a loop an agent", prompt: "Name the parts.", short: "Five parts.", full: "Buffer, registry, stop, budget, formatter.", followups: "", wrong: "A long prompt.", level: 1 }, answer: "It needs a tool registry, a message buffer and a way to stop the loop when done." } });
+ok("bank answer marked against the model answer", r.status === 200 && r.json.verdict === "Adequate" && /<model_answer>/.test(ivCalls[ivCalls.length - 1].messages[0].content) && /level 1 question/.test(ivCalls[ivCalls.length - 1].system));
+ok("bank answer too short refused", (await call(iv, { token: T.owner, body: { mode: "card", question: { title: "t", prompt: "p", short: "", full: "" }, answer: "short" } })).status === 400);
+await call(iv, { token: T.owner, body: { mode: "ask", job: JOB, setup: SETUP, transcript: [], bank: [{ title: "Explain RAG", prompt: "Walk me through a RAG pipeline.", short: "Retrieve then generate." }] } });
+ok("mock interview draws on bank questions", /Real interview questions you may draw on/.test(ivCalls[ivCalls.length - 1].system) && /Walk me through a RAG pipeline/.test(ivCalls[ivCalls.length - 1].system));
 ok("unknown mode refused", (await call(iv, { token: T.owner, body: { mode: "chat", job: JOB } })).status === 400);
 
 // ---- errors, moderation, health ----

@@ -17,4 +17,5 @@ jobs:
       - run: npm run build
       - name: Course content bundle is up to date
         run: npm run content && git diff --exit-code api/_content.js
+      - run: pip install numpy
       - run: npm test

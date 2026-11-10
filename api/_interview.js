@@ -43,7 +43,7 @@ export function decodePrompt({ job, profile, courses }) {
 }
 
 // The interviewer's next turn. The server works out what is allowed next, so the model can't run long or skip ahead.
-export function askPrompt({ job, decoded, profile, setup, transcript }) {
+export function askPrompt({ job, decoded, profile, setup, transcript, bank }) {
   const F = FORMATS[setup.format] || FORMATS.behavioural, N = setup.count;
   const mains = transcript.filter((t) => t.role === "interviewer" && t.kind === "question").length;
   const last = transcript.filter((t) => t.role === "interviewer").slice(-1)[0];
@@ -56,6 +56,7 @@ export function askPrompt({ job, decoded, profile, setup, transcript }) {
     "Format: " + F.label + ". " + F.brief + "\n" +
     "Total main questions: " + N + ". Candidate band: " + (BANDS[setup.band] || BANDS.early).split(":")[0] + ".\n" +
     (comp ? "Competencies to cover, in priority order:\n" + comp + "\n" : "") +
+    (bank && bank.length ? "Real interview questions you may draw on when they fit this job (reword them for the role; use the short answer only to judge whether a follow-up is needed, never reveal it):\n" + bank.map((b, i) => (i + 1) + ". " + clip(b.title, 160) + ": " + clip(b.prompt, 700) + "\n   Short answer: " + clip(b.short, 500)).join("\n") + "\n" : "") +
     "\nHow to run it:\n" +
     "- One question at a time. Never list several questions.\n" +
     "- Stay in role. No feedback, scores, coaching or praise during the interview. A brief neutral acknowledgement is fine (\"Thanks.\", \"Got it.\").\n" +
@@ -162,5 +163,16 @@ export function comparePrompt({ jobs, profile }) {
       "Reply with only a JSON object:\n" +
       '{"ranking":[{"id":"","rank":1,"verdict":"","why":"","prep_effort":"Low|Medium|High","first_step":""}],"recommendation":"two or three sentences on where to start and why","skip":["ids not worth applying to, with a reason, or empty"]}',
     messages: [{ role: "user", content: profileBlock(profile) + "\n\n" + jobs.map((j) => "<job id=\"" + clip(j.id, 40) + "\" title=\"" + clip(j.title, 140).replace(/"/g, "'") + "\" company=\"" + clip(j.company, 120).replace(/"/g, "'") + "\">\n" + clip(j.text, 5000) + "\n</job>").join("\n\n") + "\n\nCompare and rank these jobs for this candidate." }],
+  };
+}
+
+// Marks one answer to a question-bank card against its model answer.
+export function cardPrompt({ question, answer, profile }) {
+  return {
+    system: "You are an AI engineering interviewer marking one answer against the model answer for that question. " + STYLE + "\n\n" +
+      "Rules:\n- Compare the answer with the model answer and the list of wrong answers interviewers hear. Credit correct ideas in other words.\n- Quote or paraphrase the candidate. Never invent things they said.\n" +
+      "- Score Substance, Structure, Relevance, Credibility and Differentiation from 1 to 5 for a level " + (Number(question.level) || 2) + " question (1 screen, 2 working, 3 senior, 4 staff).\n- verdict is Strong, Adequate or Weak.\n- wrong_answer_hit names a listed wrong answer the candidate gave, or is empty.\n- follow_up is the question an interviewer would ask next, given this answer.\n\n" +
+      "Reply with only a JSON object:\n" + '{"verdict":"","scores":{"substance":0,"structure":0,"relevance":0,"credibility":0,"differentiation":0},"landed":[""],"missing":[""],"wrong_answer_hit":"","follow_up":""}',
+    messages: [{ role: "user", content: "<question title=\"" + clip(question.title, 200).replace(/"/g, "'") + "\">\n" + clip(question.prompt, 3000) + "\n</question>\n<model_answer>\n" + clip(question.short, 1500) + "\n\n" + clip(question.full, 8000) + "\n</model_answer>\n<follow_ups>\n" + clip(question.followups, 2000) + "\n</follow_ups>\n<wrong_answers>\n" + clip(question.wrong, 2000) + "\n</wrong_answers>\n\n" + profileBlock(profile) + "\n\n<candidate_answer>\n" + clip(answer, 5000) + "\n</candidate_answer>\n\nMark this answer." }],
   };
 }

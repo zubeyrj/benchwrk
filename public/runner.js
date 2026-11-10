@@ -33,6 +33,18 @@
         if (!ready) ready = boot(m.bases, m.harness).catch((err) => { ready = null; throw err; });
         const py = await ready;
         if (m.warm) { self.postMessage({ id: m.id, ok: true, warm: true }); return; }
+        if (m.practice) {
+          // Library coding problems: numpy, the problem's own check harness and files, run in /practice/<id>.
+          const P = m.practice, dir = "/practice/" + P.id;
+          if (!self.__np) { await py.loadPackage("numpy"); self.__np = true; }
+          py.FS.mkdirTree(dir);
+          py.FS.writeFile("/practice/practice_check.py", P.harness);
+          Object.entries(P.files).forEach(([name, text]) => py.FS.writeFile(dir + "/" + name, text || ""));
+          py.globals.set("__src", P.source); py.globals.set("__tests", dir + "/tests.py"); py.globals.set("__fx", P.fixtures || ""); py.globals.set("__lim", P.limit || 10);
+          const out = await py.runPythonAsync("import sys\\nif '/practice' not in sys.path: sys.path.insert(0, '/practice')\\nimport practice_check\\npractice_check.evaluate_json(__src, __tests, __fx, '', __lim)");
+          self.postMessage({ id: m.id, ok: true, result: out });
+          return;
+        }
         py.globals.set("__payload", m.payload);
         const out = await py.runPythonAsync("await run_exercise(__payload)");
         self.postMessage({ id: m.id, ok: true, result: out });
@@ -73,6 +85,15 @@
     const r = await call({ payload: JSON.stringify(payload) }, TIMEOUT);
     if (!r.ok) return { error: r.error, tests: [], stdout: "" };
     try { return JSON.parse(r.result); } catch (e) { return { error: "Unreadable result", tests: [], stdout: "" }; }
+  }
+
+  // Runs a library coding problem with its own checks. Returns the harness's report.
+  async function runPractice(problem, source, harnessText) {
+    if (state !== "ready") { const w = await warm(); if (w && !w.ok) return { error: "Python couldn't start in this browser: " + w.error }; }
+    const files = { "tests.py": problem.tests }; if (problem.support) files["support.py"] = problem.support;
+    const r = await call({ practice: { id: problem.id, files, source, fixtures: problem.fixtures, limit: problem.limit || 10, harness: harnessText } }, Math.max(20000, (problem.limit || 10) * 1000 + 15000));
+    if (!r.ok) return { error: r.error };
+    try { return JSON.parse(r.result); } catch (e) { return { error: "Unreadable result" }; }
   }
 
   /* ---------- SQL ---------- */
@@ -117,5 +138,6 @@
     state: () => state,
     onState: (f) => stateListeners.push(f),
     stop: kill,
+    runPractice,
   };
 })();

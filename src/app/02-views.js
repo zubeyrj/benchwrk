@@ -1,6 +1,6 @@
 
   /* ---------- router ---------- */
-  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "log", "cohort", "toolkit", "placement", "settings", "admin"];
+  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "library", "problems", "glossary", "routes", "log", "cohort", "toolkit", "placement", "settings", "admin"];
   function route() {
     let h = decodeURIComponent((location.hash || "#home").slice(1));
     if (h === "roadmap") h = "plan";
@@ -13,6 +13,13 @@
     if ((m = h.match(/^ex-(m\d+)-([a-z0-9]+)$/))) return { name: "ex", id: m[1], ex: m[2] };
     if (h === "iv-new" || h === "iv-stories" || h === "iv-compare") return { name: "interview", sub: h.slice(3) };
     if ((m = h.match(/^career-(cv|pitch|debrief)$/))) return { name: "career", sub: m[1] };
+    if ((m = h.match(/^lib-(\d\d)$/))) return { name: "library", sub: "phase", key: m[1] };
+    if ((m = h.match(/^(lib-\d\d-\d\d)$/))) return { name: "library", sub: "lesson", key: m[1] };
+    if ((m = h.match(/^prob-([a-z0-9-]+)$/))) return { name: "problems", sub: "one", key: m[1] };
+    if ((m = h.match(/^route-([a-z0-9-]+)$/))) return { name: "routes", sub: "route", key: m[1] };
+    if (h === "iv-bank") return { name: "ivbank" };
+    if ((m = h.match(/^ivb-([a-z0-9-]+)$/))) return { name: "ivbank", sub: "card", key: m[1] };
+    if ((m = h.match(/^ivq-([a-z0-9-]+)$/))) return { name: "ivbank", sub: "q", key: m[1] };
     if ((m = h.match(/^iv-(job|run|report)-([a-z0-9]+)$/))) return { name: "interview", sub: m[1], key: m[2] };
     return { name: SIMPLE.indexOf(h) >= 0 ? h : "home" };
   }
@@ -46,7 +53,7 @@
     const xp = points(), L = levelInfo(xp), st = streak();
     document.getElementById("me").innerHTML = '<span class="chip" title="Weekly streak">' + '<span style="color:#ff8a5c">' + SVG.fire + '</span><span class="n">' + st + '</span></span><span class="chip lvl" title="' + L.into + " of " + L.need + ' XP to the next level"><span style="color:var(--xp)">' + SVG.bolt + '</span><span class="n">Lv ' + L.level + " · " + xp + ' XP</span></span>' + bellHtml() + '<details class="acct"><summary class="avatar" aria-label="Account menu for ' + esc(S.account.name) + '">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + '</summary><div class="acct-menu" role="menu"><div class="acct-who"><b>' + esc(S.account.name) + "</b>" + (myEmail ? '<span>' + esc(myEmail) + "</span>" : "") + '</div><a role="menuitem" href="#settings"' + (active === "settings" ? ' aria-current="page"' : "") + ">Settings</a>" + (isOwner ? '<a role="menuitem" href="#admin"' + (active === "admin" ? ' aria-current="page"' : "") + ">Admin</a>" : "") + (window.BW ? '<button role="menuitem" data-act="signout">Sign out</button>' : "") + "</div></details>";
   }
-  const NAVOF = { course: "courses", lesson: "courses", ex: "courses", quiz: "courses", cert: "courses", placement: "home" };
+  const NAVOF = { problems: "practice", glossary: "library", ivbank: "interview", course: "courses", lesson: "courses", ex: "courses", quiz: "courses", cert: "courses", placement: "home" };
   function render() {
     const gated = phase !== "ready";
     $shell.classList.toggle("solo", gated);
@@ -59,7 +66,7 @@
       else {
         const r = route();
         renderNav(NAVOF[r.name] || r.name);
-        const V = { interview: vInterview, applications: vApplications, career: vCareer, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
+        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
         else html = V[r.name](r) + pageFooter(r);
@@ -228,7 +235,7 @@
     return hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your week</h2><div class="row"><button class="btn line sm" data-act="qlog" data-h="1">Log 1 hour</button><button class="btn line sm" data-act="qlog" data-h="2">Log 2 hours</button></div></div><div style="margin-top:14px">' + stripHtml(thisWeekDays()) + "</div></div>" +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your path</h2><a class="link small" href="#plan">See the dated plan</a></div>' + pathHtml(p, 5) + "</div></div>" +
-      "<aside>" + homeCareerCard() + partnerCard() + questHtml + review + "</aside></div>";
+      "<aside>" + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
   }
   function pathHtml(p, around) {
     const rows = p.rows, cur = currentRow(p), ci = cur ? rows.indexOf(cur) : rows.length;
@@ -341,7 +348,7 @@
       '<div class="card"><h2>Build</h2><p>' + rich(m.build) + '</p><h3 style="margin-top:16px">How to learn this</h3><p class="muted" style="margin:0">' + esc(m.method) + "</p></div>" + project + bank + mock +
       '<div class="row">' + doneBtn + "</div></div>" +
       '<aside><div class="card"><h3>You\'ll be able to</h3><ul style="margin:0;padding-left:18px" class="small">' + m.outcomes.map((o) => "<li>" + esc(o) + "</li>").join("") + "</ul></div>" +
-      '<div class="card"><h3>Resources</h3>' + res + "</div></aside></div>" +
+      '<div class="card"><h3>Resources</h3>' + res + "</div>" + courseLibCard(m) + "</aside></div>" +
       '<div class="sec row between">' + (prev ? '<a class="btn line" href="#course-' + prev.id + '">Previous: ' + esc(prev.title) + "</a>" : "<span></span>") + (next ? '<a class="btn line" href="#course-' + next.id + '">Next: ' + esc(next.title) + "</a>" : "") + "</div>";
   }
 
@@ -423,10 +430,11 @@
     const missN = Object.keys(S.miss).length;
     if (!P) {
       const opts = MOD.filter((m) => inPlan(m.id)).map((m) => '<option value="' + m.id + '">' + esc(m.title) + "</option>").join("");
-      return '<div class="narrow"><h1>Practice</h1><p class="lede">Ten questions at a time with instant feedback. Questions you miss come back until you get them right: that\'s spaced retrieval, the most reliable way to make things stick.</p>' +
+      return '<div class="narrow"><h1>Practice</h1><p class="lede">Quiz rounds and coding problems. Quiz rounds are ten questions at a time with instant feedback. Questions you miss come back until you get them right: that\'s spaced retrieval, the most reliable way to make things stick.</p>' +
         '<div class="stack sec">' +
         '<div class="card row between"><div><h3>Mixed review</h3><p class="small muted" style="margin:0">' + (started.length ? "From the " + plural(started.length, "course") + " you've started, missed questions first." : "Start a course first; until then this draws from your first course.") + '</p></div><button class="btn" data-act="pstartp" data-mode="mixed">Start</button></div>' +
         '<div class="card row between"><div><h3>Questions you missed</h3><p class="small muted" style="margin:0">' + (missN ? plural(missN, "question") + " waiting." : "Nothing missed yet.") + '</p></div><button class="btn line" data-act="pstartp" data-mode="miss"' + (missN ? "" : " disabled") + ">Start</button></div>" +
+        '<a class="card row between tile" href="#problems"><div><h3>Coding problems</h3><p class="small muted" style="margin:0">51 problems from the library: losses, attention, retrieval scores and agent parsers, checked in your browser.</p></div><span class="btn line">Open</span></a>' +
         '<div class="card"><h3>One course</h3><div class="row" style="align-items:flex-end"><div class="field" style="margin:0;flex:1;min-width:220px"><label class="xs" for="p-mod">Course</label><select id="p-mod">' + opts + '</select></div><button class="btn line" data-act="pstartp" data-mode="one">Start</button></div></div></div></div>';
     }
     if (P.loading) return loading(300);

@@ -49,7 +49,7 @@
     }).join("");
     const jobs = S.iv.jobs.slice().reverse().map((j) => '<a class="iv-row" href="#iv-job-' + j.id + '"><div><b>' + esc(j.title || "Untitled job") + "</b>" + (j.company ? '<span class="muted"> at ' + esc(j.company) + "</span>" : "") + '<div class="xs muted">' + esc(j.source || "Pasted") + (j.location ? " · " + esc(j.location) : "") + "</div></div>" + (j.decoded && j.decoded.fit ? '<span class="tag ' + (VERDICT[j.decoded.fit.verdict] || "") + '">' + esc(j.decoded.fit.verdict) + "</span>" : "<span></span>") + "<span></span></a>").join("");
     return '<section class="banner iv-banner"><div><p class="crumb">Interview room</p><h1>Practise the interview before it counts</h1><p class="lede">Bring a real job advert, or find one here. Benchwork decodes what the employer wants, an AI interviewer asks one question at a time, and you get a scorecard on five dimensions with a stronger version of each answer.</p>' +
-      '<div class="row" style="margin-top:18px"><a class="btn lg" href="#iv-new">Start a mock interview</a><a class="btn line lg on-dark" href="#iv-stories">Your stories (' + S.iv.stories.length + ")</a>" + (S.iv.jobs.length >= 2 ? '<a class="btn line lg on-dark" href="#iv-compare">Compare saved jobs</a>' : "") + "</div></div></section>" +
+      '<div class="row" style="margin-top:18px"><a class="btn lg" href="#iv-new">Start a mock interview</a><a class="btn line lg on-dark" href="#iv-stories">Your stories (' + S.iv.stories.length + ")</a>" + '<a class="btn line lg on-dark" href="#iv-bank">Question bank</a>' + (S.iv.jobs.length >= 2 ? '<a class="btn line lg on-dark" href="#iv-compare">Compare saved jobs</a>' : "") + "</div></div></section>" +
       '<div class="cols"><div>' +
       (ses.length ? '<div class="card sec"><div class="row between"><h2 style="margin:0">Your interviews</h2><span class="xs muted">' + plural(scored.length, "scored interview") + "</span></div>" + trend + '<div class="iv-list">' + rows + "</div></div>"
         : '<div class="card sec"><h2>How it works</h2><ol class="iv-steps"><li><b>Pick a job.</b> Paste an advert or a link, or search live AI roles.</li><li><b>Read the decode.</b> What they really want, how you fit and the gaps to frame.</li><li><b>Do the interview.</b> Type or speak your answers. The interviewer follows up when an answer is vague.</li><li><b>Reflect, then get scored.</b> Rate yourself first, then see Substance, Structure, Relevance, Credibility and Differentiation, with a stronger answer for each question.</li></ol></div>') +
@@ -206,7 +206,8 @@
     const j = ivJob(x.jobId); if (!j) return;
     ui.iv.busy["run" + x.id] = "ask"; ui.iv.err["run" + x.id] = ""; render();
     try {
-      const turn = await ivCall({ mode: "ask", job: jobPayload(j), decoded: j.decoded, setup: x.setup, transcript: x.transcript });
+      if (!x.bank) { x.bank = await bankFor(x.setup); persist(); }
+      const turn = await ivCall({ mode: "ask", job: jobPayload(j), decoded: j.decoded, setup: x.setup, transcript: x.transcript, bank: x.bank });
       x.transcript.push(Object.assign({ role: "interviewer" }, turn)); persist();
       if (x.setup.voice) speak(turn.text);
     } catch (e) { ui.iv.err["run" + x.id] = ivErr(e); }

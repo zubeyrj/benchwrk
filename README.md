@@ -19,6 +19,7 @@ peer review, accountability partners, XP and streaks, and an AI tutor.
 | Career | `src/app/03d-career.js` | Applications tracker with dates and calendar files, CV review, "tell me about yourself" pitch, real-interview debrief, comparing adverts |
 | Community safety | `src/app/03c-trust.js`, `api/admin-moderate.js` | Cohorts and invite codes, report and block, notifications, the owner's reports queue, suspensions, errors and system check |
 | Course editor | `src/app/03e-editor.js` | Form-based editing of courses, lessons, exercises and the quiz bank; exercises are run before saving |
+| Library | `content/aefs/`, `src/app/03g-library.js`, `scripts/import-aefs.mjs` | 542 lessons with quizzes, 51 NumPy coding problems with their own checks, a 482-question interview bank, career specialisms, 78 project challenges and a glossary, imported from [AI Engineering from Scratch](https://github.com/rohitg00/ai-engineering-from-scratch) by Rohit Ghumare (MIT licence, notice kept in `content/aefs/LICENSE`). Refresh with `npm run library -- <path to a clone>` |
 | Database | `supabase/schema.sql` | Documents table with row-level security, profiles, certificates, tutor usage, email log |
 | Course content | `content/seed`, `content/seedx` | Courses, lessons, exercises and question pools, bundled into `api/_content.js` |
 

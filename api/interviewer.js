@@ -1,6 +1,6 @@
 // POST /api/interviewer { mode: "decode" | "ask" | "score", job, profile, ... }
 // decode -> JSON job analysis; ask -> the interviewer's next turn; score -> the scorecard.
-import { FORMATS, askPrompt, comparePrompt, cvPrompt, debriefPrompt, decodePrompt, parseTurn, pitchPrompt, scorePrompt } from "./_interview.js";
+import { FORMATS, askPrompt, comparePrompt, cvPrompt, debriefPrompt, decodePrompt, parseTurn, pitchPrompt, scorePrompt, cardPrompt } from "./_interview.js";
 import { bumpAi, claude, env, fail, parseJsonReply, readJson, requireUser, send, siteUsageToday, usageToday, withErrors } from "./_lib.js";
 
 const isStr = (s, max) => typeof s === "string" && s.length <= max;
@@ -22,7 +22,7 @@ export default withErrors(async function handler(req, res) {
   if (!env("ANTHROPIC_API_KEY")) return fail(res, 503, "The interviewer isn't switched on yet.", "unavailable");
   const body = await readJson(req);
   const { mode, job, profile } = body;
-  const CAREER = ["cv", "pitch", "debrief", "compare"];
+  const CAREER = ["cv", "pitch", "debrief", "compare", "card"];
   if (["decode", "ask", "score"].concat(CAREER).indexOf(mode) < 0) return fail(res, 400, "Bad request.");
   const needsJob = ["decode", "ask", "score"].indexOf(mode) >= 0;
   if ((needsJob && !validJob(job)) || (!needsJob && job != null && !validJob(job))) return fail(res, 400, "Add a job description of at least a few lines.");
@@ -33,7 +33,12 @@ export default withErrors(async function handler(req, res) {
   if ((await siteUsageToday("interview")) >= perSite) return fail(res, 429, "The interviewer has hit today's limit for the whole site. Try again tomorrow.", "site_cap");
 
   let prompt, maxTokens, allowed;
-  if (mode === "cv") {
+  if (mode === "card") {
+    const q = body.question;
+    if (!q || typeof q !== "object" || !isStr(q.title, 300) || !isStr(q.prompt, 6000) || !isStr(q.short || "", 3000) || !isStr(q.full || "", 20000) || !isStr(q.followups || "", 6000) || !isStr(q.wrong || "", 6000)) return fail(res, 400, "Bad request.");
+    if (!isStr(body.answer, 6000) || body.answer.trim().split(/\s+/).length < 8) return fail(res, 400, "Write a fuller answer first: a few sentences.");
+    prompt = cardPrompt({ question: q, answer: body.answer, profile }); maxTokens = 1200;
+  } else if (mode === "cv") {
     if (!isStr(body.cv, 20000) || body.cv.trim().split(/\s+/).length < 60) return fail(res, 400, "Paste your whole CV: at least the profile and your recent roles.");
     prompt = cvPrompt({ cv: body.cv, job, profile }); maxTokens = 2500;
   } else if (mode === "pitch") {
@@ -54,7 +59,10 @@ export default withErrors(async function handler(req, res) {
   } else {
     if (!validSetup(body.setup) || !validTranscript(body.transcript || [])) return fail(res, 400, "Bad request.");
     const setup = Object.assign({}, body.setup, { directness: Number(body.setup.directness) });
-    if (mode === "ask") { prompt = askPrompt({ job, decoded: body.decoded, profile, setup, transcript: body.transcript || [] }); allowed = prompt.allowed; maxTokens = 400; }
+    if (mode === "ask") {
+      const bank = Array.isArray(body.bank) ? body.bank.slice(0, 6).filter((b) => b && isStr(b.title, 300) && isStr(b.prompt, 1000) && isStr(b.short || "", 800)) : [];
+      prompt = askPrompt({ job, decoded: body.decoded, profile, setup, transcript: body.transcript || [], bank }); allowed = prompt.allowed; maxTokens = 400;
+    }
     else {
       if (!(body.transcript || []).some((t) => t.role === "candidate")) return fail(res, 400, "Answer at least one question before scoring.");
       const self = body.self && typeof body.self === "object" ? body.self : {};

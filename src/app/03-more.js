@@ -70,6 +70,7 @@
           (open ? '<form class="sec tight" data-rev="' + key + '">' + rub.map((c, i) => '<fieldset style="margin:0 0 12px"><legend class="small">' + esc(c) + '</legend><div class="seg" style="max-width:360px;grid-template-columns:repeat(3,1fr)">' + [1, 2, 3].map((v) => '<label><input type="radio" name="rv' + i + '" value="' + v + '"' + (done && done.s[i] === v ? " checked" : "") + "><span>" + ["Not yet", "Getting there", "Strong"][v - 1] + "</span></label>").join("") + "</div></fieldset>").join("") +
             '<div class="field"><label for="rv-c">One useful sentence</label><textarea id="rv-c" maxlength="400">' + esc(done ? done.c : "") + '</textarea></div><button class="btn" type="submit">Send review</button></form>' : "") + "</li>";
       }).join("") + "</ul>" : '<p class="small muted">' + (subs === null ? "Loading shared projects…" : "Nobody else has shared a project yet.") + "</p>") + "</div>";
+    html += projectChallenges();
     return html;
   }
 
@@ -320,6 +321,12 @@
     if ((m = key.match(/^ex-(m\d+)\.(\w+)$/))) {
       const ex = LX[m[1]].ex.find((x) => x.id === m[2]), k = m[1] + "." + m[2], code = (document.getElementById("code") || {}).value || (codeDoc && codeDoc[k]) || ex.start, res = ui.exres[k];
       return base + "\n\nThe learner is solving a coding exercise. Never give the full solution or more than three lines of corrected code. Point at the specific line or idea that is wrong, explain why and suggest the next step.\n<exercise title=\"" + ex.t + "\" language=\"" + (ex.kind === "sql" ? "SQL" : "Python") + "\">\n" + ex.md + "\n</exercise>\n<their_code>\n" + code + "\n</their_code>\n<last_result>\n" + (res && !res.running ? (res.error ? "Error: " + res.error + "\n" : "") + res.tests.map((t) => (t[1] ? "PASS " : "FAIL ") + t[0] + (t[2] ? ": " + t[2] : "")).join("\n") : "Not run yet") + "\n</last_result>";
+    }
+    if ((m = key.match(/^(lib-\d\d-\d\d)$/)) && L$.lessons[m[1]]) { const L = L$.lessons[m[1]]; return base + "\n\nThe learner is reading this lesson from the Benchwork library (AI Engineering from Scratch):\n<lesson title=\"" + L.t + "\">\n" + L.md.slice(0, 14000) + "\n</lesson>\nAnswer their question about it. Point to the part of the lesson that helps."; }
+    if ((m = key.match(/^prob-([a-z0-9-]+)$/)) && L$.probs[m[1]]) {
+      const P = L$.probs[m[1]], res = ui.probRes && ui.probRes[m[1]], code = (ui.probCode && ui.probCode[m[1]]) || P.starter;
+      const fails = res && res.results ? res.results.filter((x) => x.status !== "pass").slice(0, 5).map((x) => "- " + x.name + ": " + x.message).join("\n") : "(not run yet)";
+      return base + "\n\nThe learner is solving a NumPy coding problem. Never give the full solution or more than three lines of code. Point at the idea that is wrong and the next step.\n<problem title=\"" + P.title + "\">\n" + P.problem.slice(0, 5000) + "\n</problem>\n<their_code>\n" + code.slice(0, 6000) + "\n</their_code>\n<failing_checks>\n" + fails + "\n</failing_checks>";
     }
     if ((m = key.match(/^interview-(m\d+)$/))) {
       const bank = (byId[m[1]].bank || []).map((b) => b.type + ":\n" + b.qs.map((q) => "- " + q[0]).join("\n")).join("\n\n");
