@@ -1,1 +1,133 @@
-{"order":0,"id":"m0","phase":1,"domain":null,"hours":8,"title":"Set up your workshop","why":"Every later module assumes these tools work. One evening of proper setup saves weeks of friction, and the habits you set here (secrets out of Git, a commit every session) carry through the whole route.","outcomes":["Python, uv, VS Code and Git working on your machine","A public GitHub repo with a README that states your goal","An LLM API key stored safely, with a spend limit","A local model running through Ollama, so you can practise for free","Your 15 weekly hours blocked in your calendar"],"lessons":["Install Python 3.12 or newer and uv, then create a project with <code>uv init</code>","Install VS Code with the Python, Pylance and Ruff extensions (on Windows, set up WSL2 first)","Install Git, create a GitHub account and push your first repo","Open an Anthropic or OpenAI API account, set a £10 spend limit, keep the key in a <code>.env</code> file that <code>.gitignore</code> excludes","Install Ollama and run a small local model from the terminal","Block the weekly rhythm in your calendar (Toolkit, Weekly rhythm)"],"resources":[["uv documentation","Astral","Free","https://docs.astral.sh/uv/","The project and package manager used throughout"],["Python in VS Code","Microsoft","Free","https://code.visualstudio.com/docs/python/python-tutorial"],["Introduction to GitHub","GitHub Skills","Free","https://skills.github.com/"],["Pro Git, chapters 1 and 2","Scott Chacon","Free","https://git-scm.com/book/en/v2"],["Ollama","Ollama","Free","https://ollama.com/","Local models, no API spend"]],"method":"Set up once and set up properly. Keep a SETUP.md as you go: the next time a tool breaks, your own notes will be faster than any forum.","build":"A public repo called <strong>ai-engineering-log</strong> with a README stating your goal, your weekly rhythm and the date you started.","quiz":[{"q":"What is the best guard against tutorial hell?","o":["Finishing every course before building anything","Ending each session by committing something you built","Watching tutorials at double speed","Only reading official documentation"],"a":1,"e":"A commit per session forces output. Courses feel productive; shipped code is what counts and what employers see."},{"q":"Why give each project its own virtual environment?","o":["It makes Python run faster","It isolates each project's dependencies so versions don't clash","GitHub requires it","It encrypts your code"],"a":1,"e":"Isolated environments stop one project's package versions breaking another's, and make builds reproducible."},{"q":"Where should an API key live in your project?","o":["Hard-coded at the top of main.py","In the README so others can run it","In a .env file excluded by .gitignore, or a secrets store","In a public GitHub issue"],"a":2,"e":"Keys in Git history get scraped within minutes. Use environment variables locally and the platform's secret store when deployed."},{"q":"What does <code>git push</code> do?","o":["Saves a snapshot locally","Uploads your local commits to the remote repository","Deletes the remote branch","Downloads others' changes"],"a":1,"e":"Commit saves locally; push sends those commits to GitHub."},{"q":"Why run a local model with Ollama while learning?","o":["Local models beat hosted ones","You can practise prompting and pipelines without spending on API calls","Employers require it","It is needed to use Python"],"a":1,"e":"Ollama lets you build and iterate for free, then switch to a hosted model when quality matters."}]}
+{
+ "order": 0,
+ "id": "m0",
+ "phase": 1,
+ "domain": null,
+ "hours": 8,
+ "title": "Set up your workshop",
+ "why": "Every later module assumes these tools work. One evening of proper setup saves weeks of friction, and the habits you set here (secrets out of Git, a commit every session) carry through the whole route.",
+ "outcomes": [
+  "Python, uv, VS Code and Git working on your machine",
+  "A public GitHub repo with a README that states your goal",
+  "An LLM API key stored safely, with a spend limit",
+  "A local model running through Ollama, so you can practise for free",
+  "Your 15 weekly hours blocked in your calendar"
+ ],
+ "lessons": [
+  "Install Python 3.12 or newer and uv, then create a project with <code>uv init</code>",
+  "Install VS Code with the Python, Pylance and Ruff extensions (on Windows, set up WSL2 first)",
+  "Install Git, create a GitHub account and push your first repo",
+  "Open an Anthropic or OpenAI API account, set a £10 spend limit, keep the key in a <code>.env</code> file that <code>.gitignore</code> excludes",
+  "Install Ollama and run a small local model from the terminal",
+  "Block the weekly rhythm in your calendar (Toolkit, Weekly rhythm)"
+ ],
+ "resources": [
+  [
+   "uv documentation",
+   "Astral",
+   "Free",
+   "https://docs.astral.sh/uv/",
+   "The project and package manager used throughout",
+   "reading"
+  ],
+  [
+   "Python in VS Code",
+   "Microsoft",
+   "Free",
+   "https://code.visualstudio.com/docs/python/python-tutorial",
+   "",
+   "reading"
+  ],
+  [
+   "Introduction to GitHub",
+   "GitHub Skills",
+   "Free",
+   "https://skills.github.com/",
+   "",
+   "interactive"
+  ],
+  [
+   "Pro Git, chapters 1 and 2",
+   "Scott Chacon",
+   "Free",
+   "https://git-scm.com/book/en/v2",
+   "",
+   "book"
+  ],
+  [
+   "Ollama",
+   "Ollama",
+   "Free",
+   "https://ollama.com/",
+   "Local models, no API spend",
+   "reading"
+  ],
+  [
+   "Git and GitHub for Beginners: Crash Course",
+   "freeCodeCamp",
+   "Free",
+   "https://www.youtube.com/watch?v=RGOj5yH7evk",
+   "A one-hour walkthrough of commits, branches and pull requests. Watch it alongside Pro Git chapter 2.",
+   "video"
+  ]
+ ],
+ "method": "Set up once and set up properly. Keep a SETUP.md as you go: the next time a tool breaks, your own notes will be faster than any forum.",
+ "build": "A public repo called <strong>ai-engineering-log</strong> with a README stating your goal, your weekly rhythm and the date you started.",
+ "quiz": [
+  {
+   "q": "What is the best guard against tutorial hell?",
+   "o": [
+    "Finishing every course before building anything",
+    "Ending each session by committing something you built",
+    "Watching tutorials at double speed",
+    "Only reading official documentation"
+   ],
+   "a": 1,
+   "e": "A commit per session forces output. Courses feel productive; shipped code is what counts and what employers see."
+  },
+  {
+   "q": "Why give each project its own virtual environment?",
+   "o": [
+    "It makes Python run faster",
+    "It isolates each project's dependencies so versions don't clash",
+    "GitHub requires it",
+    "It encrypts your code"
+   ],
+   "a": 1,
+   "e": "Isolated environments stop one project's package versions breaking another's, and make builds reproducible."
+  },
+  {
+   "q": "Where should an API key live in your project?",
+   "o": [
+    "Hard-coded at the top of main.py",
+    "In the README so others can run it",
+    "In a .env file excluded by .gitignore, or a secrets store",
+    "In a public GitHub issue"
+   ],
+   "a": 2,
+   "e": "Keys in Git history get scraped within minutes. Use environment variables locally and the platform's secret store when deployed."
+  },
+  {
+   "q": "What does <code>git push</code> do?",
+   "o": [
+    "Saves a snapshot locally",
+    "Uploads your local commits to the remote repository",
+    "Deletes the remote branch",
+    "Downloads others' changes"
+   ],
+   "a": 1,
+   "e": "Commit saves locally; push sends those commits to GitHub."
+  },
+  {
+   "q": "Why run a local model with Ollama while learning?",
+   "o": [
+    "Local models beat hosted ones",
+    "You can practise prompting and pipelines without spending on API calls",
+    "Employers require it",
+    "It is needed to use Python"
+   ],
+   "a": 1,
+   "e": "Ollama lets you build and iterate for free, then switch to a hosted model when quality matters."
+  }
+ ]
+}

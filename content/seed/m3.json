@@ -1,1 +1,124 @@
-{"order":3,"id":"m3","phase":2,"domain":"web","hours":25,"title":"APIs and services","why":"AI features ship as services. You'll wrap every model call in an API with validated inputs and outputs, and this is the shape of almost every take-home.","outcomes":["Explain HTTP methods, status codes and JSON bodies","Build a FastAPI service with Pydantic request and response models","Use async endpoints so slow model calls don't block","Manage settings and secrets through environment variables"],"lessons":["HTTP: methods, status codes, headers and JSON bodies","FastAPI tutorial: path, query and body parameters","Pydantic models for request and response validation","Async endpoints that call external APIs without blocking","Settings and secrets with pydantic-settings and .env","Test the API with pytest and TestClient; explore it in Bruno"],"resources":[["An overview of HTTP","MDN","Free","https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview"],["FastAPI tutorial","FastAPI","Free","https://fastapi.tiangolo.com/tutorial/","Read in order, build your own API alongside"],["Pydantic documentation","Pydantic","Free","https://docs.pydantic.dev/latest/"],["Bruno API client","Bruno","Free","https://www.usebruno.com/"]],"method":"Follow the FastAPI tutorial in order, but build your own API next to it rather than copying the tutorial's. Every endpoint gets a test the same day it's written.","build":"A <code>/summarise</code> endpoint that takes text, calls an LLM (or Ollama) and returns validated JSON with a summary and key points.","quiz":[{"q":"Which status code means a resource was created?","o":["200","201","301","404"],"a":1,"e":"201 Created. 200 is a general success."},{"q":"What happens when a request body fails a FastAPI Pydantic model?","o":["The server crashes","FastAPI returns a 422 with details of what failed","The bad fields are dropped silently","It returns 200 anyway"],"a":1,"e":"Validation errors return 422 Unprocessable Entity with field-level messages."},{"q":"When is <code>async def</code> worth it in an endpoint?","o":["For heavy maths","When the endpoint waits on I/O such as an LLM API call","Never","Only for GET requests"],"a":1,"e":"Async lets the server handle other requests while one waits on the network."},{"q":"Which method should never change data on the server?","o":["POST","PUT","GET","DELETE"],"a":2,"e":"GET is safe and idempotent; it reads only."},{"q":"Where does the API key go when the service is deployed?","o":["In the Docker image","In the platform's environment variables or secret store","In the request URL","In the README"],"a":1,"e":"Secrets are injected at runtime by the platform, never baked into images or code."}]}
+{
+ "order": 3,
+ "id": "m3",
+ "phase": 2,
+ "domain": "web",
+ "hours": 25,
+ "title": "APIs and services",
+ "why": "AI features ship as services. You'll wrap every model call in an API with validated inputs and outputs, and this is the shape of almost every take-home.",
+ "outcomes": [
+  "Explain HTTP methods, status codes and JSON bodies",
+  "Build a FastAPI service with Pydantic request and response models",
+  "Use async endpoints so slow model calls don't block",
+  "Manage settings and secrets through environment variables"
+ ],
+ "lessons": [
+  "HTTP: methods, status codes, headers and JSON bodies",
+  "FastAPI tutorial: path, query and body parameters",
+  "Pydantic models for request and response validation",
+  "Async endpoints that call external APIs without blocking",
+  "Settings and secrets with pydantic-settings and .env",
+  "Test the API with pytest and TestClient; explore it in Bruno"
+ ],
+ "resources": [
+  [
+   "An overview of HTTP",
+   "MDN",
+   "Free",
+   "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview",
+   "",
+   "reading"
+  ],
+  [
+   "FastAPI tutorial",
+   "FastAPI",
+   "Free",
+   "https://fastapi.tiangolo.com/tutorial/",
+   "Read in order, build your own API alongside",
+   "reading"
+  ],
+  [
+   "Pydantic documentation",
+   "Pydantic",
+   "Free",
+   "https://docs.pydantic.dev/latest/",
+   "",
+   "reading"
+  ],
+  [
+   "Bruno API client",
+   "Bruno",
+   "Free",
+   "https://www.usebruno.com/",
+   "",
+   "reading"
+  ],
+  [
+   "Python API Development: Comprehensive Course for Beginners",
+   "freeCodeCamp (Sanjeev Thiyagarajan)",
+   "Free",
+   "https://www.youtube.com/watch?v=0sOvCWFmrtA",
+   "A long FastAPI build from first route to database and deployment. Watch the first few hours, then dip in.",
+   "video"
+  ]
+ ],
+ "method": "Follow the FastAPI tutorial in order, but build your own API next to it rather than copying the tutorial's. Every endpoint gets a test the same day it's written.",
+ "build": "A <code>/summarise</code> endpoint that takes text, calls an LLM (or Ollama) and returns validated JSON with a summary and key points.",
+ "quiz": [
+  {
+   "q": "Which status code means a resource was created?",
+   "o": [
+    "200",
+    "201",
+    "301",
+    "404"
+   ],
+   "a": 1,
+   "e": "201 Created. 200 is a general success."
+  },
+  {
+   "q": "What happens when a request body fails a FastAPI Pydantic model?",
+   "o": [
+    "The server crashes",
+    "FastAPI returns a 422 with details of what failed",
+    "The bad fields are dropped silently",
+    "It returns 200 anyway"
+   ],
+   "a": 1,
+   "e": "Validation errors return 422 Unprocessable Entity with field-level messages."
+  },
+  {
+   "q": "When is <code>async def</code> worth it in an endpoint?",
+   "o": [
+    "For heavy maths",
+    "When the endpoint waits on I/O such as an LLM API call",
+    "Never",
+    "Only for GET requests"
+   ],
+   "a": 1,
+   "e": "Async lets the server handle other requests while one waits on the network."
+  },
+  {
+   "q": "Which method should never change data on the server?",
+   "o": [
+    "POST",
+    "PUT",
+    "GET",
+    "DELETE"
+   ],
+   "a": 2,
+   "e": "GET is safe and idempotent; it reads only."
+  },
+  {
+   "q": "Where does the API key go when the service is deployed?",
+   "o": [
+    "In the Docker image",
+    "In the platform's environment variables or secret store",
+    "In the request URL",
+    "In the README"
+   ],
+   "a": 1,
+   "e": "Secrets are injected at runtime by the platform, never baked into images or code."
+  }
+ ]
+}

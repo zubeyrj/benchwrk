@@ -1,1 +1,157 @@
-{"order": 6, "id": "m6", "phase": 3, "domain": "llm", "hours": 24, "title": "LLM fundamentals", "why": "You'll build on models you didn't train. Understand their limits well enough to design around them: cost, context, randomness and making things up.", "outcomes": ["Explain tokens, context windows and temperature", "Write prompts with roles, examples and clear structure", "Get validated structured output and use tool calling", "Estimate cost and latency, and choose between hosted and local models"], "lessons": ["How LLMs work at a working level: tokens, next-token prediction, context window", "Prompt engineering: roles, examples, step-by-step reasoning, XML tags", "Structured output: JSON schema, Pydantic validation, retry on failure", "Tool or function calling end to end", "Cost and latency: count tokens, estimate cost per 1,000 requests, stream responses", "Compare a hosted model with a local Ollama model on the same 10 prompts", "Go deeper: transformers, attention and fine-tuning with Karpathy's Zero to Hero, the Hugging Face LLM course and the paper Attention Is All You Need"], "resources": [["Generative AI with Large Language Models", "DeepLearning.AI and AWS", "Coursera Plus", "https://www.coursera.org/learn/generative-ai-with-llms", "How models work, at the right depth"], ["Prompt engineering interactive tutorial", "Anthropic", "Free", "https://github.com/anthropics/courses"], ["Claude API documentation", "Anthropic", "Free", "https://docs.anthropic.com/"], ["OpenAI Cookbook", "OpenAI", "Free", "https://cookbook.openai.com/"], ["Intro to Large Language Models (talk)", "Andrej Karpathy", "Free", "https://www.youtube.com/watch?v=zjkBMFhNj_g"], ["Short courses", "DeepLearning.AI", "Free", "https://www.deeplearning.ai/short-courses/"], ["Neural Networks: Zero to Hero", "Andrej Karpathy", "Free", "https://karpathy.ai/zero-to-hero.html", "Build a GPT from scratch; the best route into transformers"], ["LLM Course", "Hugging Face", "Free", "https://huggingface.co/learn/llm-course/chapter1/1", "Tokenisers, transformers and fine-tuning in code"], ["Attention Is All You Need", "Vaswani and others, 2017", "Free", "https://arxiv.org/abs/1706.03762", "The transformer paper; read after the videos"]], "method": "Keep a prompt log: prompt, model, output, what you changed and why. It becomes the evidence base for your evaluation work later.", "build": "Add an <code>/extract</code> endpoint that pulls structured fields from a messy document, validated against a schema, with a retry when validation fails.", "quiz": [{"q": "Tokens are:", "o": ["Words, always", "Chunks of text the model reads and writes; cost and limits are counted in them", "Security keys", "Database rows"], "a": 1, "e": "A token is often part of a word. Pricing and context limits are measured in tokens."}, {"q": "Setting temperature to 0 makes output:", "o": ["More creative", "More deterministic", "Longer", "Cheaper"], "a": 1, "e": "Low temperature picks the likeliest tokens, so outputs vary less."}, {"q": "Main benefit of structured output or tool calling:", "o": ["Faster models", "Machine-readable output you can validate against a schema", "No cost", "Better grammar"], "a": 1, "e": "Your code can trust and parse the result, and retry when it doesn't validate."}, {"q": "The context window is:", "o": ["The chat UI", "The most tokens of input and output the model can handle in one call", "A time limit", "A security setting"], "a": 1, "e": "Everything the model sees and writes in one call must fit in it."}, {"q": "The most reliable way to reduce made-up answers:", "o": ["Ask the model to be honest", "Ground answers in retrieved sources, require citations and allow 'I don't know'", "Raise temperature", "Use longer prompts"], "a": 1, "e": "Grounding plus an explicit way out beats instructions alone."}]}
+{
+ "order": 6,
+ "id": "m6",
+ "phase": 3,
+ "domain": "llm",
+ "hours": 24,
+ "title": "LLM fundamentals",
+ "why": "You'll build on models you didn't train. Understand their limits well enough to design around them: cost, context, randomness and making things up.",
+ "outcomes": [
+  "Explain tokens, context windows and temperature",
+  "Write prompts with roles, examples and clear structure",
+  "Get validated structured output and use tool calling",
+  "Estimate cost and latency, and choose between hosted and local models"
+ ],
+ "lessons": [
+  "How LLMs work at a working level: tokens, next-token prediction, context window",
+  "Prompt engineering: roles, examples, step-by-step reasoning, XML tags",
+  "Structured output: JSON schema, Pydantic validation, retry on failure",
+  "Tool or function calling end to end",
+  "Cost and latency: count tokens, estimate cost per 1,000 requests, stream responses",
+  "Compare a hosted model with a local Ollama model on the same 10 prompts",
+  "Go deeper: transformers, attention and fine-tuning with Karpathy's Zero to Hero, the Hugging Face LLM course and the paper Attention Is All You Need"
+ ],
+ "resources": [
+  [
+   "Generative AI with Large Language Models",
+   "DeepLearning.AI and AWS",
+   "Coursera Plus",
+   "https://www.coursera.org/learn/generative-ai-with-llms",
+   "How models work, at the right depth",
+   "video"
+  ],
+  [
+   "Prompt engineering interactive tutorial",
+   "Anthropic",
+   "Free",
+   "https://github.com/anthropics/courses",
+   "",
+   "interactive"
+  ],
+  [
+   "Claude API documentation",
+   "Anthropic",
+   "Free",
+   "https://docs.anthropic.com/",
+   "",
+   "reading"
+  ],
+  [
+   "OpenAI Cookbook",
+   "OpenAI",
+   "Free",
+   "https://cookbook.openai.com/",
+   "",
+   "reading"
+  ],
+  [
+   "Intro to Large Language Models (talk)",
+   "Andrej Karpathy",
+   "Free",
+   "https://www.youtube.com/watch?v=zjkBMFhNj_g",
+   "",
+   "video"
+  ],
+  [
+   "Short courses",
+   "DeepLearning.AI",
+   "Free",
+   "https://www.deeplearning.ai/short-courses/",
+   "",
+   "video+interactive"
+  ],
+  [
+   "Neural Networks: Zero to Hero",
+   "Andrej Karpathy",
+   "Free",
+   "https://karpathy.ai/zero-to-hero.html",
+   "Build a GPT from scratch; the best route into transformers",
+   "video"
+  ],
+  [
+   "LLM Course",
+   "Hugging Face",
+   "Free",
+   "https://huggingface.co/learn/llm-course/chapter1/1",
+   "Tokenisers, transformers and fine-tuning in code",
+   "reading+video"
+  ],
+  [
+   "Attention Is All You Need",
+   "Vaswani and others, 2017",
+   "Free",
+   "https://arxiv.org/abs/1706.03762",
+   "The transformer paper; read after the videos",
+   "reading"
+  ]
+ ],
+ "method": "Keep a prompt log: prompt, model, output, what you changed and why. It becomes the evidence base for your evaluation work later.",
+ "build": "Add an <code>/extract</code> endpoint that pulls structured fields from a messy document, validated against a schema, with a retry when validation fails.",
+ "quiz": [
+  {
+   "q": "Tokens are:",
+   "o": [
+    "Words, always",
+    "Chunks of text the model reads and writes; cost and limits are counted in them",
+    "Security keys",
+    "Database rows"
+   ],
+   "a": 1,
+   "e": "A token is often part of a word. Pricing and context limits are measured in tokens."
+  },
+  {
+   "q": "Setting temperature to 0 makes output:",
+   "o": [
+    "More creative",
+    "More deterministic",
+    "Longer",
+    "Cheaper"
+   ],
+   "a": 1,
+   "e": "Low temperature picks the likeliest tokens, so outputs vary less."
+  },
+  {
+   "q": "Main benefit of structured output or tool calling:",
+   "o": [
+    "Faster models",
+    "Machine-readable output you can validate against a schema",
+    "No cost",
+    "Better grammar"
+   ],
+   "a": 1,
+   "e": "Your code can trust and parse the result, and retry when it doesn't validate."
+  },
+  {
+   "q": "The context window is:",
+   "o": [
+    "The chat UI",
+    "The most tokens of input and output the model can handle in one call",
+    "A time limit",
+    "A security setting"
+   ],
+   "a": 1,
+   "e": "Everything the model sees and writes in one call must fit in it."
+  },
+  {
+   "q": "The most reliable way to reduce made-up answers:",
+   "o": [
+    "Ask the model to be honest",
+    "Ground answers in retrieved sources, require citations and allow 'I don't know'",
+    "Raise temperature",
+    "Use longer prompts"
+   ],
+   "a": 1,
+   "e": "Grounding plus an explicit way out beats instructions alone."
+  }
+ ]
+}

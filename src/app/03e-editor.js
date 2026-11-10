@@ -36,11 +36,11 @@
   function edTab() {
     const E = ui.ed, C = E.C, L = E.L;
     if (E.tab === "details") {
-      const res = (C.resources || []).map((r, i) => '<tr><td><input aria-label="Resource ' + (i + 1) + ' title" value="' + esc(r[0]) + '" data-res="' + i + ':0"></td><td><input aria-label="By" value="' + esc(r[1]) + '" data-res="' + i + ':1"></td><td><input aria-label="Cost" value="' + esc(r[2]) + '" data-res="' + i + ':2" style="width:110px"></td><td><input aria-label="Link" value="' + esc(r[3]) + '" data-res="' + i + ':3"></td><td><button class="link xs" data-act="edresdel" data-i="' + i + '">Remove</button></td></tr>').join("");
+      const res = (C.resources || []).map((r, i) => '<tr><td><input aria-label="Resource ' + (i + 1) + ' title" value="' + esc(r[0]) + '" data-res="' + i + ':0"></td><td><input aria-label="By" value="' + esc(r[1]) + '" data-res="' + i + ':1"></td><td><input aria-label="Cost" value="' + esc(r[2]) + '" data-res="' + i + ':2" style="width:110px"></td><td><input aria-label="Link" value="' + esc(r[3]) + '" data-res="' + i + ':3"></td><td><select aria-label="Format" data-res="' + i + ':5">' + ["video", "reading", "interactive", "book", "video+interactive", "video+reading", "reading+interactive"].map((f) => '<option' + ((r[5] || "reading") === f ? " selected" : "") + ">" + f + "</option>").join("") + '</select></td><td><button class="link xs" data-act="edresdel" data-i="' + i + '">Remove</button></td></tr>').join("");
       return '<div class="two">' + field("ed-title", "Title", C.title, { key: "C.title" }) + field("ed-hours", "Hours", C.hours, { key: "C.hours", type: "number" }) + "</div>" +
         field("ed-why", "Why this course", C.why, { key: "C.why", area: true, rows: 3 }) + field("ed-out", "Outcomes", (C.outcomes || []).join("\n"), { key: "C.outcomes", area: true, rows: 4, hint: "One per line." }) +
         field("ed-method", "How to study it", C.method, { key: "C.method", area: true, rows: 3 }) + field("ed-build", "The build", C.build, { key: "C.build", area: true, rows: 3 }) +
-        '<h3>Resources</h3><div class="tblwrap"><table class="tbl ed-res"><thead><tr><th>Title</th><th>By</th><th>Cost</th><th>Link</th><th></th></tr></thead><tbody>' + res + '</tbody></table></div><button class="btn line sm" data-act="edresadd" style="margin-top:8px">Add a resource</button>';
+        '<h3>Resources</h3><div class="tblwrap"><table class="tbl ed-res"><thead><tr><th>Title</th><th>By</th><th>Cost</th><th>Link</th><th>Format</th><th></th></tr></thead><tbody>' + res + '</tbody></table></div><button class="btn line sm" data-act="edresadd" style="margin-top:8px">Add a resource</button>';
     }
     if (E.tab === "lessons") {
       const x = L.lessons[E.sel];
@@ -140,7 +140,7 @@
     if (a === "edsave") { edSave(); return; }
     if (a === "edreload") { edLoad(E.id); return; }
     if (a === "edpreview") { E.preview = !E.preview; render(); return; }
-    if (a === "edresadd") { E.C.resources = (E.C.resources || []).concat([["", "", "Free", "", ""]]); render(); return; }
+    if (a === "edresadd") { E.C.resources = (E.C.resources || []).concat([["", "", "Free", "", "", "reading"]]); render(); return; }
     if (a === "edresdel") { E.C.resources.splice(Number(b.dataset.i), 1); render(); return; }
     if (a === "edadd") {
       const L = E.L[listKey];
@@ -161,5 +161,6 @@
     const el = e.target; if (!isOwner || !el.dataset) return;
     if (el.dataset.edcourse !== undefined) { if (el.value) edLoad(el.value); return; }
     if (el.dataset.edsel !== undefined) { ui.ed.sel = Number(el.value); ui.ed.preview = false; render(); return; }
+    if (el.dataset.res) { const [i, j] = el.dataset.res.split(":").map(Number); ui.ed.C.resources[i][j] = el.value; return; }
     if (el.dataset.ed && (el.type === "radio" || el.type === "checkbox" || el.tagName === "SELECT")) edSet(el.dataset.ed, el);
   });

@@ -266,11 +266,15 @@
     if (f.id === "signup") {
       if (ui.busy) return;
       const name = document.getElementById("a-name").value.trim();
+      ui.signDraft = { name, hpw: document.getElementById("a-hpw").value, start: document.getElementById("a-start").value };
       const emailEl = document.getElementById("a-email"), email = myEmail || (emailEl ? emailEl.value.trim() : "");
       ui.emailDraft = email;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { ui.emailErr = email ? "That doesn't look like an email address. Check it and try again." : "Enter your email address. Accounts need one."; ui.formErr = name ? "" : "Enter a display name so other members can see who's on the plan."; render(); document.getElementById("a-email").focus(); return; }
       ui.emailErr = "";
       if (!name) { ui.formErr = "Enter a display name so other members can see who's on the plan."; render(); document.getElementById("a-name").focus(); return; }
+      const learn = readLearn("a");
+      if (!learn.formats.length) { ui.learnErr = "Pick at least one way you like to learn."; render(); const lq = document.querySelector('input[name="a-fmt"]'); if (lq) lq.focus(); return; }
+      ui.learnErr = "";
       const invEl = document.getElementById("a-invite"), inv = invEl ? invEl.value.trim().toUpperCase() : "";
       ui.inviteDraft = inv;
       if (inv && !cohortByCode(inv, await loadCohortList())) { ui.inviteErr = "That code doesn't match an open cohort. Check it, or leave it blank and add it later."; render(); document.getElementById("a-invite").focus(); return; }
@@ -281,6 +285,7 @@
       render();
       try {
         if (inv) next.cohort = inv;
+        next.learn = Object.assign(learn, { at: today() });
         await stateRef().set(JSON.parse(JSON.stringify(next)));
         if (window.BW) { window.BW.saveName(name.slice(0, 40)).catch(() => {}); if (window.BW.clearInvite) window.BW.clearInvite(); }
         S = next; lastSaved = JSON.stringify(S); ui.busy = false;

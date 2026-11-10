@@ -1,1 +1,124 @@
-{"order":2,"id":"m2","phase":1,"domain":"eng","hours":20,"title":"Engineering habits","why":"The gap between someone who can code and an engineer is mostly habits: version control, tests, structure and code that others can review. These are what a take-home reviewer looks at first.","outcomes":["Work in branches and pull requests, even solo","Write tests with pytest, including edge cases","Keep code clean with Ruff and a type checker","Lay out a project so a stranger can install, run and test it"],"lessons":["Git beyond basics: branches, pull requests, merge conflicts, clear commit messages","Testing with pytest: fixtures and parametrise, edge cases first","Lint and format with Ruff; type-check with pyright or mypy","Project layout: src layout, pyproject.toml, uv lockfile","Write a README with install, run, test and design notes","Command line fluency: navigation, grep, pipes, environment variables"],"resources":[["The Missing Semester","MIT","Free","https://missing.csail.mit.edu/","Shell, Git, editors, debugging"],["Pro Git","Scott Chacon","Free","https://git-scm.com/book/en/v2"],["pytest documentation","pytest","Free","https://docs.pytest.org/"],["Ruff documentation","Astral","Free","https://docs.astral.sh/ruff/"]],"method":"Work in small loops: write a failing test, make it pass, commit. Open a pull request against your own repo for every feature so review and CI become reflex.","build":"Turn the Python module's tool into a package with tests (80% coverage or more), clean Ruff output and a visible pull-request history.","quiz":[{"q":"A good commit is:","o":["A whole day's work in one go","One logical change with a clear message","Only made before a deadline","As large as possible to save time"],"a":1,"e":"Small, single-purpose commits are easy to review, revert and understand later."},{"q":"By default, pytest discovers tests in:","o":["Any .py file","Files named test_*.py, functions named test_*","Only a tests.txt file","Files ending .pytest"],"a":1,"e":"pytest collects test_*.py (or *_test.py) files and test_ functions."},{"q":"Are Python type hints enforced at runtime?","o":["Yes, always","No, tools like pyright or mypy check them","Only in Python 3.12","Only for classes"],"a":1,"e":"Hints are for checkers and readers. Pydantic is one library that does validate at runtime."},{"q":"Why use a branch and pull request when working alone?","o":["GitHub charges otherwise","It isolates changes, shows a reviewable diff and runs CI before merge","It makes code run faster","No reason"],"a":1,"e":"The PR is your own review gate and a visible record of how you work."},{"q":"Which belongs in .gitignore?","o":["README.md","pyproject.toml",".env and your virtual environment folder","Your tests"],"a":2,"e":"Secrets and generated folders stay out of Git; source, config and tests go in."}]}
+{
+ "order": 2,
+ "id": "m2",
+ "phase": 1,
+ "domain": "eng",
+ "hours": 20,
+ "title": "Engineering habits",
+ "why": "The gap between someone who can code and an engineer is mostly habits: version control, tests, structure and code that others can review. These are what a take-home reviewer looks at first.",
+ "outcomes": [
+  "Work in branches and pull requests, even solo",
+  "Write tests with pytest, including edge cases",
+  "Keep code clean with Ruff and a type checker",
+  "Lay out a project so a stranger can install, run and test it"
+ ],
+ "lessons": [
+  "Git beyond basics: branches, pull requests, merge conflicts, clear commit messages",
+  "Testing with pytest: fixtures and parametrise, edge cases first",
+  "Lint and format with Ruff; type-check with pyright or mypy",
+  "Project layout: src layout, pyproject.toml, uv lockfile",
+  "Write a README with install, run, test and design notes",
+  "Command line fluency: navigation, grep, pipes, environment variables"
+ ],
+ "resources": [
+  [
+   "The Missing Semester",
+   "MIT",
+   "Free",
+   "https://missing.csail.mit.edu/",
+   "Shell, Git, editors, debugging",
+   "video+reading"
+  ],
+  [
+   "Pro Git",
+   "Scott Chacon",
+   "Free",
+   "https://git-scm.com/book/en/v2",
+   "",
+   "book"
+  ],
+  [
+   "pytest documentation",
+   "pytest",
+   "Free",
+   "https://docs.pytest.org/",
+   "",
+   "reading"
+  ],
+  [
+   "Ruff documentation",
+   "Astral",
+   "Free",
+   "https://docs.astral.sh/ruff/",
+   "",
+   "reading"
+  ],
+  [
+   "Pytest Tutorial: How to Test Python Code",
+   "freeCodeCamp",
+   "Free",
+   "https://www.youtube.com/watch?v=cHYq1MRoyI0",
+   "Writing and running tests, fixtures and parametrising, shown in an editor.",
+   "video"
+  ]
+ ],
+ "method": "Work in small loops: write a failing test, make it pass, commit. Open a pull request against your own repo for every feature so review and CI become reflex.",
+ "build": "Turn the Python module's tool into a package with tests (80% coverage or more), clean Ruff output and a visible pull-request history.",
+ "quiz": [
+  {
+   "q": "A good commit is:",
+   "o": [
+    "A whole day's work in one go",
+    "One logical change with a clear message",
+    "Only made before a deadline",
+    "As large as possible to save time"
+   ],
+   "a": 1,
+   "e": "Small, single-purpose commits are easy to review, revert and understand later."
+  },
+  {
+   "q": "By default, pytest discovers tests in:",
+   "o": [
+    "Any .py file",
+    "Files named test_*.py, functions named test_*",
+    "Only a tests.txt file",
+    "Files ending .pytest"
+   ],
+   "a": 1,
+   "e": "pytest collects test_*.py (or *_test.py) files and test_ functions."
+  },
+  {
+   "q": "Are Python type hints enforced at runtime?",
+   "o": [
+    "Yes, always",
+    "No, tools like pyright or mypy check them",
+    "Only in Python 3.12",
+    "Only for classes"
+   ],
+   "a": 1,
+   "e": "Hints are for checkers and readers. Pydantic is one library that does validate at runtime."
+  },
+  {
+   "q": "Why use a branch and pull request when working alone?",
+   "o": [
+    "GitHub charges otherwise",
+    "It isolates changes, shows a reviewable diff and runs CI before merge",
+    "It makes code run faster",
+    "No reason"
+   ],
+   "a": 1,
+   "e": "The PR is your own review gate and a visible record of how you work."
+  },
+  {
+   "q": "Which belongs in .gitignore?",
+   "o": [
+    "README.md",
+    "pyproject.toml",
+    ".env and your virtual environment folder",
+    "Your tests"
+   ],
+   "a": 2,
+   "e": "Secrets and generated folders stay out of Git; source, config and tests go in."
+  }
+ ]
+}

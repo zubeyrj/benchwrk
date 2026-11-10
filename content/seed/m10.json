@@ -1,1 +1,115 @@
-{"order":10,"id":"m10","phase":4,"domain":null,"hours":15,"title":"Production and safety","why":"The questions that separate juniors: what happens when it fails, costs too much or gets attacked? Answering those well is what moves you to mid-level bands.","outcomes":["Recognise and defend against prompt injection","Keep personal data out of logs","Cut cost with caching, routing and shorter context","Set and measure a latency budget"],"lessons":["Read the OWASP Top 10 for LLM applications and map each risk to your projects","Try to prompt-inject your own RAG app; fix what breaks","Redact personal data before logging; set retention","Cut cost: cache repeats, route easy questions to a smaller model, trim context","Set a p95 latency budget and measure against it"],"resources":[["OWASP Top 10 for LLM Applications","OWASP","Free","https://genai.owasp.org/llm-top-10/"],["Claude API documentation (guardrails sections)","Anthropic","Free","https://docs.anthropic.com/"],["AI Engineering (book)","Chip Huyen, O'Reilly","Paid","https://www.oreilly.com/library/view/ai-engineering/9781098166298/","Optional, about £45; the best single book on the field"]],"method":"Attack your own work. A short 'what I broke and how I fixed it' section in each README is strong interview material.","build":"A SECURITY.md and a cost and latency table added to projects 1 and 3.","quiz":[{"q":"Prompt injection is:","o":["A slow prompt","Untrusted content containing instructions that hijack the model","A Python error","A billing issue"],"a":1,"e":"Retrieved pages, emails or user text can carry instructions; the model may follow them."},{"q":"A sound mitigation:","o":["Trust all retrieved text","Treat retrieved text as data, give tools least privilege, require approval for risky actions","Use a bigger model","Hide the system prompt"],"a":1,"e":"Limit what a hijacked model can do; don't rely on it never being hijacked."},{"q":"A good way to reduce cost:","o":["Always use the largest model","Cache repeats and route simple queries to a smaller model","Send more context","Disable logging"],"a":1,"e":"Most traffic is easy; route it cheaply."},{"q":"p95 latency means:","o":["Average time","95% of requests finish within this time","Fastest request","95 milliseconds"],"a":1,"e":"Percentiles show the tail users actually feel; averages hide it."},{"q":"Personal data in logs should be:","o":["Kept forever","Redacted before logging, with a retention period","Emailed weekly","Ignored"],"a":1,"e":"Logs leak. Don't store what you don't need."}]}
+{
+ "order": 10,
+ "id": "m10",
+ "phase": 4,
+ "domain": null,
+ "hours": 15,
+ "title": "Production and safety",
+ "why": "The questions that separate juniors: what happens when it fails, costs too much or gets attacked? Answering those well is what moves you to mid-level bands.",
+ "outcomes": [
+  "Recognise and defend against prompt injection",
+  "Keep personal data out of logs",
+  "Cut cost with caching, routing and shorter context",
+  "Set and measure a latency budget"
+ ],
+ "lessons": [
+  "Read the OWASP Top 10 for LLM applications and map each risk to your projects",
+  "Try to prompt-inject your own RAG app; fix what breaks",
+  "Redact personal data before logging; set retention",
+  "Cut cost: cache repeats, route easy questions to a smaller model, trim context",
+  "Set a p95 latency budget and measure against it"
+ ],
+ "resources": [
+  [
+   "OWASP Top 10 for LLM Applications",
+   "OWASP",
+   "Free",
+   "https://genai.owasp.org/llm-top-10/",
+   "",
+   "reading"
+  ],
+  [
+   "Claude API documentation (guardrails sections)",
+   "Anthropic",
+   "Free",
+   "https://docs.anthropic.com/",
+   "",
+   "reading"
+  ],
+  [
+   "AI Engineering (book)",
+   "Chip Huyen, O'Reilly",
+   "Paid",
+   "https://www.oreilly.com/library/view/ai-engineering/9781098166298/",
+   "Optional, about £45; the best single book on the field",
+   "book"
+  ],
+  [
+   "Red Teaming LLM Applications",
+   "DeepLearning.AI",
+   "Free",
+   "https://www.deeplearning.ai/short-courses/red-teaming-llm-applications/",
+   "Finding prompt injection, data leaks and off-topic answers before your users do.",
+   "video+interactive"
+  ]
+ ],
+ "method": "Attack your own work. A short 'what I broke and how I fixed it' section in each README is strong interview material.",
+ "build": "A SECURITY.md and a cost and latency table added to projects 1 and 3.",
+ "quiz": [
+  {
+   "q": "Prompt injection is:",
+   "o": [
+    "A slow prompt",
+    "Untrusted content containing instructions that hijack the model",
+    "A Python error",
+    "A billing issue"
+   ],
+   "a": 1,
+   "e": "Retrieved pages, emails or user text can carry instructions; the model may follow them."
+  },
+  {
+   "q": "A sound mitigation:",
+   "o": [
+    "Trust all retrieved text",
+    "Treat retrieved text as data, give tools least privilege, require approval for risky actions",
+    "Use a bigger model",
+    "Hide the system prompt"
+   ],
+   "a": 1,
+   "e": "Limit what a hijacked model can do; don't rely on it never being hijacked."
+  },
+  {
+   "q": "A good way to reduce cost:",
+   "o": [
+    "Always use the largest model",
+    "Cache repeats and route simple queries to a smaller model",
+    "Send more context",
+    "Disable logging"
+   ],
+   "a": 1,
+   "e": "Most traffic is easy; route it cheaply."
+  },
+  {
+   "q": "p95 latency means:",
+   "o": [
+    "Average time",
+    "95% of requests finish within this time",
+    "Fastest request",
+    "95 milliseconds"
+   ],
+   "a": 1,
+   "e": "Percentiles show the tail users actually feel; averages hide it."
+  },
+  {
+   "q": "Personal data in logs should be:",
+   "o": [
+    "Kept forever",
+    "Redacted before logging, with a retention period",
+    "Emailed weekly",
+    "Ignored"
+   ],
+   "a": 1,
+   "e": "Logs leak. Don't store what you don't need."
+  }
+ ]
+}

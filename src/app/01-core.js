@@ -109,6 +109,7 @@
     if (!Array.isArray(n.blocked)) n.blocked = [];
     if (typeof n.cohort !== "string") n.cohort = "";
     n.notifSeen = Number(n.notifSeen) || 0;
+    if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
     n.hpw = clampH(n.hpw);
     return n;
   }
@@ -357,7 +358,7 @@
       const docs = {}; snap.docs.forEach((d) => { docs[d.id] = d.data(); });
       const mods = Object.keys(docs).filter((k) => /^m\d+$/.test(k)).map((k) => docs[k]).sort((a, b) => a.order - b.order);
       if (!mods.length || !docs.diag || !docs.toolkit) { phase = "nocontent"; return; }
-      MOD = mods.map((m) => Object.assign({}, m, { resources: (m.resources || []).map((r) => ({ t: r[0], by: r[1], cost: r[2], url: r[3], note: r[4] || "" })) }));
+      MOD = mods.map((m) => Object.assign({}, m, { resources: (m.resources || []).map((r) => ({ t: r[0], by: r[1], cost: r[2], url: r[3], note: r[4] || "", fmt: String(r[5] || "reading").split("+") })) }));
       byId = Object.fromEntries(MOD.map((m) => [m.id, m]));
       CT = { DIAG: docs.diag.items, TK: docs.toolkit, COH: (docs.cohorts && Array.isArray(docs.cohorts.list)) ? docs.cohorts.list : [] };
       notice = docs.notice && docs.notice.text ? docs.notice : null;

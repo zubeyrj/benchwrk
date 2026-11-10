@@ -50,7 +50,15 @@ let BASE = '';
   await p.fill('#a-name', ''); await p.click('#signup button[type=submit]');
   ok('empty name shows error', await p.isVisible('#a-err'));
   ok('verified email shown read-only', (await p.inputValue('#a-email')) === 'z@example.org' && await p.$eval('#a-email', n => n.readOnly));
-  await p.fill('#a-name', 'Z'); await p.click('#signup button[type=submit]'); await p.waitForTimeout(500);
+  await p.fill('#a-name', 'Z'); await p.click('#signup button[type=submit]'); await p.waitForTimeout(200);
+  ok('asks how you learn best', await p.isVisible('#a-learn-err'));
+  await p.check('input[name="a-fmt"][value="video"]'); await p.check('input[name="a-fmt"][value="interactive"]'); await p.check('input[name="a-fmt"][value="reading"]');
+  ok('only two learning styles kept, in tick order', (await p.$$eval('input[name="a-fmt"]:checked', (a) => a.map((x) => x.value))).sort().join(',') === 'interactive,reading' && /2/.test(await p.textContent('input[name="a-fmt"][value="reading"] + span .rank')));
+  await p.uncheck('input[name="a-fmt"][value="reading"]'); await p.check('input[name="a-fmt"][value="video"]');
+  await p.check('input[name="a-budget"][value="free"]');
+  await shot(p, '02a-signup-learn', false);
+  await p.click('#signup button[type=submit]'); await p.waitForTimeout(500);
+  ok('learning preference saved', await p.evaluate(() => { const l = (window.__store.get('data/users/u1/state') || {}).learn; return l && l.formats.join(',') === 'interactive,video' && l.budget === 'free'; }));
   ok('lands on Today, not the quiz', (await p.evaluate(() => location.hash)) === '#home');
   ok('welcome modal shown', await p.isVisible('.welcome-modal'));
   ok('confetti fired', (await p.$$('canvas.confetti')).length === 1);
@@ -202,6 +210,18 @@ let BASE = '';
   ok('cheer emails partner', await p.evaluate(() => window.__api.some((c) => c.path === '/api/nudge' && c.body.to === 'u2' && c.body.kind === 'cheer' && c.body.text)));
 
   // settings extras: account, emails, calendar, data
+  // tailored to how they learn (hands-on first, then video; free only)
+  await go(p, 'course-m14', 600);
+  ok('course resources ordered for the learner', /Ordered for how you learn: hands-on practice, then watching videos/.test(await p.textContent('main')) && /Best for you/.test(await p.textContent('main')));
+  ok('paid items marked outside budget', /Outside your budget/.test(await p.textContent('main')));
+  ok('format chips shown', (await p.$$('.fchip.f-video')).length >= 1);
+  const firstRes = await p.$eval('aside .rl li .ttl', (a) => a.textContent).catch(() => '');
+  ok('top resource is free and hands-on or video', /StatQuest|scikit|Machine Learning Specialization/.test(firstRes) && !/Hands-On Machine Learning/.test(firstRes), firstRes);
+  await go(p, 'lesson-m13-0', 600);
+  ok('lesson nudges hands-on learners to the exercise', /Learn by doing\?/.test(await p.textContent('main')));
+  await go(p, 'toolkit', 400);
+  ok('toolkit shows learning tips', /How you learn best/.test(await p.textContent('main')) && /Start each lesson with its exercise/.test(await p.textContent('main')));
+
   // navigation structure
   await go(p, 'courses', 300);
   ok('Learn tabs on Courses', (await p.$$eval('.subnav a', (a) => a.map((x) => x.textContent))).join(',') === 'Courses,Your plan,Quizzes,Toolkit' && (await p.getAttribute('#nav a[aria-current="page"]', 'data-group')) === 'learn');
@@ -319,6 +339,13 @@ let BASE = '';
   ok('content report saved', await p.evaluate(() => { const r = window.__store.get('reports/u1'); return r && r.items[0].kind === 'content' && /^m13:lesson:1$/.test(r.items[0].ref); }));
 
   await go(p, 'settings', 500);
+  ok('learning preference editable in settings', await p.isChecked('input[name="st-fmt"][value="interactive"]') && await p.isChecked('input[name="st-fmt"][value="video"]'));
+  await p.uncheck('input[name="st-fmt"][value="interactive"]'); await p.uncheck('input[name="st-fmt"][value="video"]'); await p.check('input[name="st-fmt"][value="video"]');
+  await p.check('input[name="st-budget"][value="coursera"]'); await p.click('#learnform button[type=submit]'); await p.waitForTimeout(250);
+  ok('learning preference updated', await p.evaluate(() => { const l = window.__store.get('data/users/u1/state').learn || {}; return l.formats && l.formats.join(',') === 'video' && l.budget === 'coursera'; }) || await p.evaluate(() => JSON.stringify((window.__S || {}).learn || null)));
+  await go(p, 'home', 500);
+  ok('Today suggests a video for the current course', /Best for you this course:/.test(await p.textContent('.hero')) && /video/.test(await p.textContent('.hero .pick')));
+  await go(p, 'settings', 500);
   ok('settings shows account', /Signed in as z@example\.org/.test(await p.textContent('main')));
   ok('email toggles shown', (await p.$$('[data-pref]')).length === 3);
   await p.uncheck('[data-pref="weekly"]'); await p.waitForTimeout(150);
@@ -430,7 +457,7 @@ let BASE = '';
   ok('email required when not provided', await ne.isVisible('#a-email-err'));
   await ne.fill('#a-email', 'not-an-email'); await ne.click('#signup button[type=submit]'); await ne.waitForTimeout(200);
   ok('bad email rejected', /doesn't look like an email/.test(await ne.textContent('#a-email-err')));
-  await ne.fill('#a-email', 'sam@example.org'); await ne.click('#signup button[type=submit]'); await ne.waitForTimeout(500);
+  await ne.fill('#a-email', 'sam@example.org'); await ne.check('input[name="a-fmt"][value="reading"]'); await ne.click('#signup button[type=submit]'); await ne.waitForTimeout(500);
   ok('account created with typed email', await ne.evaluate(() => ((window.__store.get('data/users/u1/state') || {}).account || {}).email === 'sam@example.org'));
   // a member who is not the owner can't see admin
   const mem = await page({ owner: false , state: { account: { name: 'Z' }, tools: rate, placement: { scores: { python: 33 }, at: '2026-11-09' }, hpw: 15, start: '2026-11-09', mods: {}, log: [] }}); await mem.waitForTimeout(600);

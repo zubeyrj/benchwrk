@@ -69,6 +69,7 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   ok("signed in lands on profile step", await p.isVisible("#signup") && (await p.inputValue("#a-email")) === "amira@example.org");
   ok("name carried from sign-up", (await p.inputValue("#a-name")) === "Amira");
   ok("invite code carried through sign-up", (await p.inputValue("#a-invite")) === "SPRING7");
+  await p.check('input[name="a-fmt"][value="reading"]');
   await p.click("#signup button[type=submit]"); await p.waitForTimeout(900);
   ok("account set up, welcome shown", (await p.evaluate(() => location.hash)) === "#home" && await p.isVisible(".welcome-modal"));
   const uid = await p.evaluate(() => window.__fakeSupabase.users && Object.values(window.__fakeSupabase.users)[0].id);

@@ -126,7 +126,7 @@
     const certs = '<div class="tblwrap"><table class="tbl"><thead><tr><th>Certification</th><th>Cost</th><th>Verdict</th></tr></thead><tbody>' + T.certs.map((c, i) => "<tr><td><b>" + esc(c.name) + '</b><div class="xs muted">' + esc(c.by) + ". " + esc(c.note) + '</div></td><td class="n">' + esc(c.cost) + "</td><td>" + (i === 0 ? '<span class="tag testout">' + esc(c.verdict) + "</span>" : '<span class="small">' + esc(c.verdict) + "</span>") + "</td></tr>").join("") + "</tbody></table></div>";
     const budget = '<div class="tblwrap"><table class="tbl"><thead><tr><th>Item</th><th>Cost</th><th>Why</th></tr></thead><tbody>' + T.budget.map((b) => "<tr><td><b>" + esc(b[0]) + '</b></td><td class="n">' + esc(b[1]) + "</td><td>" + esc(b[2]) + "</td></tr>").join("") + "</tbody></table></div>";
     const methods = '<ul class="rl">' + T.methods.map((x) => '<li><span class="grow"><b>' + esc(x[0]) + '</b><div class="small muted">' + esc(x[1]) + "</div></span></li>").join("") + "</ul>";
-    return '<h1>Toolkit</h1><p class="lede">Your weekly rhythm, how to learn, the software to install, which certification to take and what it all costs.</p>' +
+    return '<h1>Toolkit</h1><p class="lede">Your weekly rhythm, how to learn, the software to install, which certification to take and what it all costs.</p>' + learnCard() +
       '<div class="card sec"><h2>Weekly rhythm at ' + S.hpw + " hours</h2>" + stripHtml(rh, { fill: false }) + notes + '</div><div class="card sec"><h2>How to learn on this plan</h2>' + methods + '</div><div class="sec"><h2>Software</h2>' + sw +
       '</div><div class="sec"><h2>Certifications</h2><p class="muted" style="max-width:62ch">Take one. AI-103 maps to applied LLM work and to UK job ads; the rest are here so you can skip them with confidence.</p>' + certs +
       '</div><div class="sec"><h2>Budget</h2><p class="muted">About £150 on top of Coursera Plus.</p>' + budget + "</div>";
@@ -147,7 +147,7 @@
       '<div class="card sec"><h2>Appearance</h2><div class="seg" role="radiogroup" aria-label="Colour theme" style="max-width:360px;grid-template-columns:repeat(3,1fr)">' + [["auto", "Match device"], ["light", "Light"], ["dark", "Dark"]].map((t) => '<label><input type="radio" name="theme" value="' + t[0] + '" data-theme-pick' + (theme === t[0] ? " checked" : "") + "><span>" + t[1] + "</span></label>").join("") + "</div></div>" +
       '<div class="card sec"><h2>Tour</h2><p class="muted">A two-minute walk through every tab.</p><button class="btn line" data-act="tour">Show me around again</button></div>' +
       '<div class="card sec"><h2>Tools and placement</h2><p class="muted">Update your tool ratings or retake the placement when your skills move on. Your progress stays.</p><div class="row"><button class="btn line" data-act="retools">Change my tool ratings</button><a class="btn line" href="#placement" data-act="preset">Retake the placement</a></div></div>' +
-      settingsTrust() + settingsExtras() +
+      settingsLearn() + settingsTrust() + settingsExtras() +
       '<div class="card sec"><h2>Reset</h2><p class="muted">Clears your tool ratings, placement, lessons read, exercises, quiz scores and sessions. Your account stays.</p><button class="btn line" data-act="reset" style="color:var(--fail)">' + (ui.resetArm ? "Click again to erase your progress" : "Reset my progress") + "</button></div></div>";
   }
 
@@ -314,7 +314,7 @@
   }
   function refreshTutors() { if (document.querySelector("[data-tutor][hidden]")) render(); }
   function tutorContext(key) {
-    const base = "You are the tutor inside Benchwork, a course that takes beginners to applied AI engineer roles. Write in British English, plainly, without em dashes. Keep answers under 160 words unless asked for more. Use short code examples in fenced blocks when they help.";
+    const base = "You are the tutor inside Benchwork, a course that takes beginners to applied AI engineer roles. Write in British English, plainly, without em dashes. Keep answers under 160 words unless asked for more. Use short code examples in fenced blocks when they help." + learnForTutor();
     let m;
     if ((m = key.match(/^lesson-(m\d+)-(\d+)$/))) { const L = LX[m[1]].lessons[Number(m[2])]; return base + "\n\nThe learner is reading this lesson from the course " + byId[m[1]].title + ":\n<lesson title=\"" + L.t + "\">\n" + L.md + "\n</lesson>\nAnswer their question about it. If they ask something unrelated to learning, steer them back."; }
     if ((m = key.match(/^ex-(m\d+)\.(\w+)$/))) {
