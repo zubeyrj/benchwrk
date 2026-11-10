@@ -84,16 +84,47 @@ The Interview room's "Find live AI jobs" works straight away with Remotive and A
 
 Benchwork doesn't scrape LinkedIn or Indeed: both forbid it and block it. Members can still paste any advert, or a link to a company careers page, which Benchwork reads.
 
+## 6c. Stop bots signing up (5 minutes, free)
+
+Open sign-up means bots can try to create accounts and use up your tutor budget. Cloudflare Turnstile stops them without making people solve puzzles.
+
+1. Sign up at [dash.cloudflare.com](https://dash.cloudflare.com) (free), open **Turnstile > Add widget**. Name it `Benchwork`, add your Vercel address as the domain, choose **Managed**.
+2. Copy the **site key** into Vercel as `TURNSTILE_SITE_KEY`.
+3. In **Supabase > Authentication > Attack Protection**, switch on **Captcha protection**, choose Turnstile and paste the **secret key**.
+4. Redeploy. Sign-up, sign-in and password resets now check for bots; most people never see a box.
+
 ## 7. First visit
 
 1. Open your site and sign up with the email you used in `set_owner`. Confirm it from your inbox.
 2. You'll see "The course content isn't in the database yet". Click **Load the course content**. This takes a few seconds and happens once.
 3. Finish your profile, and you're in. **Admin** appears in the top bar for you only.
-4. Share the address. Anyone can sign up.
+4. Open **Admin > System check** and click **Run checks**. Every line should say Working (job search and captcha may say Optional). Click **Send me a test email**.
+5. Do the launch checklist below, then share the address. Anyone can sign up.
+
+## Launch checklist
+
+Work through this once, in a private browser window, before sharing the link widely.
+
+- [ ] **Sign up with a second email address** (not your owner one). The confirmation email arrives, the link opens Benchwork, and the welcome screen and tour appear.
+- [ ] **Sign in with Google** in another private window.
+- [ ] **Forgotten password**: the reset email arrives and the new password works.
+- [ ] **Run one Python and one SQL exercise**, and ask the tutor a question.
+- [ ] **Do one mock interview** end to end and check the scorecard reads sensibly.
+- [ ] **Search live jobs** and read one advert from a careers page link.
+- [ ] **Pair your two accounts as partners** and send a cheer: the email arrives at the other address.
+- [ ] **Report something** from the second account; it shows in Admin > Reports.
+- [ ] **Create a cohort** in Admin, open its invite link in a private window and sign up: the new member lands in that cohort.
+- [ ] **Download my data** and **delete the test account** from Settings.
+- [ ] **UK data protection**: check whether you need to pay the ICO data protection fee at [ico.org.uk/fee](https://ico.org.uk/for-organisations/data-protection-fee/self-assessment/) (a short self-assessment; most people running a site like this do need to pay it). Put your contact address in `CONTACT_EMAIL`.
+- [ ] **Have someone read the privacy notice and terms** (`src/pages/`). I wrote them from a template for a free UK site; they aren't legal advice.
+- [ ] **Read the courses**. The lessons and quizzes were written with AI help and the exercises are machine-checked, but a person who knows the field should read them. Members' "Report a problem" notes land in Admin > Reports, and the weekly link check opens a GitHub issue when a resource link breaks.
 
 ---
 
 ## Day to day
+
+- **Problems**: Admin > Reports lists members' reports (people and content). You can remove a review, a shared project or partner messages, and suspend a member, which signs them out and hides them.
+- **Errors**: crashes in members' browsers and in the server are listed in Admin > Errors, and you get an email for the first one each hour.
 
 - **Change a course**: edit it in Admin > Content editor, or edit `content/` in the repo, run `npm run content`, push, then click **Reload all courses from the repo** in Admin.
 - **Email a learner**: Admin > Members > Email.

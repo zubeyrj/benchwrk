@@ -16,6 +16,9 @@ peer review, accountability partners, XP and streaks, and an AI tutor.
 | Interview room | `src/app/03b-interview.js`, `api/interviewer.js`, `api/jobs.js`, `api/job-fetch.js` | Job advert decode, live job search, AI mock interviews (one question at a time, follow-ups), self-reflection, five-dimension scorecards, a STAR storybank |
 | API | `api/*.js` (Vercel functions) | Tutor (Claude), data export and deletion, partner emails, owner emails, content loading, public certificates, unsubscribe |
 | Scheduled emails | `api/cron/*.js` | Sunday progress email, streak-at-risk and come-back reminders |
+| Career | `src/app/03d-career.js` | Applications tracker with dates and calendar files, CV review, "tell me about yourself" pitch, real-interview debrief, comparing adverts |
+| Community safety | `src/app/03c-trust.js`, `api/admin-moderate.js` | Cohorts and invite codes, report and block, notifications, the owner's reports queue, suspensions, errors and system check |
+| Course editor | `src/app/03e-editor.js` | Form-based editing of courses, lessons, exercises and the quiz bank; exercises are run before saving |
 | Database | `supabase/schema.sql` | Documents table with row-level security, profiles, certificates, tutor usage, email log |
 | Course content | `content/seed`, `content/seedx` | Courses, lessons, exercises and question pools, bundled into `api/_content.js` |
 

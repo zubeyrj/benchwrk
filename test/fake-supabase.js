@@ -3,7 +3,7 @@
 (function (root) {
   function makeFakeSupabase(opts) {
     opts = opts || {};
-    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [] };
+    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [], errors: [] };
     const users = {}; // id -> { id, email, password, confirmed, user_metadata, app_metadata, created_at }
     const tokens = {}; // access token -> user id
     const listeners = [];
@@ -19,6 +19,7 @@
       if (t === "certs" && !row.id) row.id = Math.random().toString(16).slice(2, 10) + Math.random().toString(16).slice(2, 10);
       if (t === "certs" && !row.issued) row.issued = today();
       if (t === "email_log" && !row.sent_at) row.sent_at = new Date().toISOString();
+      if (t === "errors") { row.at = row.at || new Date().toISOString(); row.id = row.id || ++seq; if (row.resolved === undefined) row.resolved = false; }
       if (t === "profiles" && !row.prefs) row.prefs = { weekly: true, streak: true, partner: true };
       return row;
     }
@@ -32,6 +33,7 @@
         in(c, vs) { st.filters.push((r) => vs.indexOf(r[c]) >= 0); return b; },
         like(c, p) { const re = likeRe(p); st.filters.push((r) => re.test(String(r[c]))); return b; },
         gte(c, v) { st.filters.push((r) => r[c] >= v); return b; },
+        lt(c, v) { st.filters.push((r) => r[c] < v); return b; },
         order(c) { st.order = c; return b; },
         limit(n) { st.limit = n; return b; },
         insert(rows) { st.op = "insert"; st.payload = [].concat(rows); return b; },

@@ -1,11 +1,11 @@
 // POST /api/tutor  { messages: [{ role, content }] }  ->  streamed plain text
 // Calls Claude with the site's API key. Each member gets a daily allowance, and the whole
 // site has a daily ceiling, so spend can't run away.
-import { bumpAi, env, fail, readJson, requireUser, siteUsageToday, usageToday } from "./_lib.js";
+import { bumpAi, env, fail, readJson, requireUser, siteUsageToday, usageToday, withErrors } from "./_lib.js";
 
 const MAX_TURNS = 40, MAX_CHARS = 60000;
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "POST") return fail(res, 405, "Use POST.");
   const user = await requireUser(req, res); if (!user) return;
   const key = env("ANTHROPIC_API_KEY");
@@ -61,4 +61,4 @@ export default async function handler(req, res) {
     res.end();
     await bumpAi(user.id, "tutor", inTok, outTok);
   }
-}
+});

@@ -31,6 +31,7 @@
     if (!ivReady()) return '<div class="narrow"><h1>Interview room</h1><p class="lede">Mock interviews run on the Benchwork website. Open Benchwork in your browser to use them.</p></div>';
     if (r.sub === "new") return vIvNew();
     if (r.sub === "stories") return vIvStories();
+    if (r.sub === "compare") return vIvCompare();
     if (r.sub === "job") return ivJob(r.key) ? vIvJob(ivJob(r.key)) : vIvHub();
     if (r.sub === "run") return ivSess(r.key) ? vIvRun(ivSess(r.key)) : vIvHub();
     if (r.sub === "report") { const x = ivSess(r.key); return x && x.score ? vIvReport(x) : x ? vIvRun(x) : vIvHub(); }
@@ -48,7 +49,7 @@
     }).join("");
     const jobs = S.iv.jobs.slice().reverse().map((j) => '<a class="iv-row" href="#iv-job-' + j.id + '"><div><b>' + esc(j.title || "Untitled job") + "</b>" + (j.company ? '<span class="muted"> at ' + esc(j.company) + "</span>" : "") + '<div class="xs muted">' + esc(j.source || "Pasted") + (j.location ? " · " + esc(j.location) : "") + "</div></div>" + (j.decoded && j.decoded.fit ? '<span class="tag ' + (VERDICT[j.decoded.fit.verdict] || "") + '">' + esc(j.decoded.fit.verdict) + "</span>" : "<span></span>") + "<span></span></a>").join("");
     return '<section class="banner iv-banner"><div><p class="crumb">Interview room</p><h1>Practise the interview before it counts</h1><p class="lede">Bring a real job advert, or find one here. Benchwork decodes what the employer wants, an AI interviewer asks one question at a time, and you get a scorecard on five dimensions with a stronger version of each answer.</p>' +
-      '<div class="row" style="margin-top:18px"><a class="btn lg" href="#iv-new">Start a mock interview</a><a class="btn line lg on-dark" href="#iv-stories">Your stories (' + S.iv.stories.length + ")</a></div></div></section>" +
+      '<div class="row" style="margin-top:18px"><a class="btn lg" href="#iv-new">Start a mock interview</a><a class="btn line lg on-dark" href="#iv-stories">Your stories (' + S.iv.stories.length + ")</a>" + (S.iv.jobs.length >= 2 ? '<a class="btn line lg on-dark" href="#iv-compare">Compare saved jobs</a>' : "") + "</div></div></section>" +
       '<div class="cols"><div>' +
       (ses.length ? '<div class="card sec"><div class="row between"><h2 style="margin:0">Your interviews</h2><span class="xs muted">' + plural(scored.length, "scored interview") + "</span></div>" + trend + '<div class="iv-list">' + rows + "</div></div>"
         : '<div class="card sec"><h2>How it works</h2><ol class="iv-steps"><li><b>Pick a job.</b> Paste an advert or a link, or search live AI roles.</li><li><b>Read the decode.</b> What they really want, how you fit and the gaps to frame.</li><li><b>Do the interview.</b> Type or speak your answers. The interviewer follows up when an answer is vague.</li><li><b>Reflect, then get scored.</b> Rate yourself first, then see Substance, Structure, Relevance, Credibility and Differentiation, with a stronger answer for each question.</li></ol></div>') +
@@ -59,7 +60,7 @@
 
   function vIvNew() {
     const F = ui.iv.find, tab = ui.iv.tab, busy = ui.iv.busy, err = ui.iv.err;
-    const tabs = '<div class="seg iv-tabs" role="tablist" style="grid-template-columns:repeat(2,1fr);max-width:420px">' + [["paste", "Paste a job"], ["find", "Find live AI jobs"]].map((t) => '<label><input type="radio" name="ivtab" value="' + t[0] + '" data-ivtab' + (tab === t[0] ? " checked" : "") + "><span>" + t[1] + "</span></label>").join("") + "</div>";
+    const tabs = '<div class="seg iv-tabs" role="radiogroup" aria-label="How to add the job" style="grid-template-columns:repeat(2,1fr);max-width:420px">' + [["paste", "Paste a job"], ["find", "Find live AI jobs"]].map((t) => '<label><input type="radio" name="ivtab" value="' + t[0] + '" data-ivtab' + (tab === t[0] ? " checked" : "") + "><span>" + t[1] + "</span></label>").join("") + "</div>";
     let body;
     if (tab === "paste") {
       const d = ui.iv.draft || (ui.iv.draft = { url: "", title: "", company: "", text: "" });
@@ -108,7 +109,7 @@
       ("speechSynthesis" in window ? '<label class="iv-remote" style="margin:0 0 16px"><input type="checkbox" id="iv-voice"' + (st.voice ? " checked" : "") + "> Read questions aloud</label>" : "") +
       '<div class="row"><button class="btn lg" type="submit">Start the interview</button><span class="xs muted">About ' + (st.count * 4) + " minutes. Your answers stay private.</span></div></form>" : "";
     return '<p class="crumb"><a href="#interview">Interview room</a> / Job</p><div class="row between" style="align-items:flex-end"><div><h1 style="margin-bottom:4px">' + esc(j.title || "Untitled job") + '</h1><p class="muted" style="margin:0">' + esc([j.company, j.location, j.source].filter(Boolean).join(" · ")) + (j.url ? ' · <a href="' + esc(j.url) + '" target="_blank" rel="noopener">Original advert</a>' : "") + "</p></div>" +
-      '<button class="link small" data-iv="deljob" data-id="' + j.id + '" style="color:var(--fail)">' + (ui.iv.delArm === j.id ? "Click again to delete" : "Delete job") + "</button></div>" +
+      '<div class="row"><button class="btn line sm" data-act="trackjob" data-id="' + j.id + '">' + (S.apps.some((a) => a.jobId === j.id) ? "Tracked in Applications" : "Track this application") + '</button><button class="link small" data-iv="deljob" data-id="' + j.id + '" style="color:var(--fail)">' + (ui.iv.delArm === j.id ? "Click again to delete" : "Delete job") + "</button></div></div>" +
       '<div class="cols"><div>' + dec + setup + '</div><aside><details class="card sec"><summary><b>The advert</b> <span class="xs muted">' + Math.round(j.text.length / 6) + " words</span></summary><div class=\"iv-jd small\">" + esc(j.text).replace(/\n/g, "<br>") + "</div></details></aside></div>";
   }
 

@@ -1,7 +1,7 @@
 // Vercel cron, daily 17:00 UTC.
 // Friday and Saturday: "your streak ends Sunday" for members short of this week's target.
 // Any day: a gentle come-back note after 10 quiet days (at most every 14 days, 3 in total).
-import { SITE, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, weekHours } from "../_lib.js";
+import { SITE, adminClient, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, weekHours, withErrors } from "../_lib.js";
 import { loadMembers } from "./_members.js";
 
 const r1 = (n) => Math.round(Number(n || 0) * 10) / 10;
@@ -20,7 +20,7 @@ export function comebackEmail(m, days) {
   return { subject, html: layout({ preheader: lead, heading: "Your bench is waiting, " + name, body: p(esc(lead)) + p("Twenty minutes is enough to get going again."), cta: "Continue " + cur, ctaHref: SITE() + "/#home", footer: footerFor(m.profile, "streak", "reminders") }), text: subject + "\n\n" + lead + "\n\n" + SITE() };
 }
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (!requireCron(req, res)) return;
   const now = new Date(), monday = mondayOf(now), ref = isoDay(monday), dow = now.getUTCDay();
   let streak = 0, comeback = 0, failed = 0;
@@ -38,5 +38,7 @@ export default async function handler(req, res) {
       }
     } catch (err) { failed++; console.error("daily", m.profile.id, err.message); }
   }
+  // Housekeeping: error reports are kept for 90 days (see the privacy notice).
+  await adminClient().from("errors").delete().lt("at", new Date(Date.now() - 90 * 864e5).toISOString());
   send(res, 200, { streak, comeback, failed });
-}
+});

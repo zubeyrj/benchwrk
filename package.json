@@ -5,8 +5,10 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "content": "node scripts/gen-content.mjs",
-    "test": "node test/rls.test.mjs && node test/api.test.mjs && node test/auth.test.cjs && node test/app.test.cjs",
-    "test:db": "node test/rls.test.mjs"
+    "test": "node test/rls.test.mjs && node test/api.test.mjs && node test/auth.test.cjs && node test/app.test.cjs && node test/a11y.test.cjs",
+    "test:db": "node test/rls.test.mjs",
+    "links": "node scripts/check-links.mjs",
+    "test:a11y": "node test/a11y.test.cjs"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.7",
+    "axe-core": "^4.11.3",
     "esbuild": "^0.25.10"
   },
   "private": true,

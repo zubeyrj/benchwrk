@@ -1,11 +1,11 @@
 // GET /c/<id> (rewritten to /api/cert?id=<id>) -> a public page anyone can use to verify a certificate.
 // Carries Open Graph tags so the link previews well on LinkedIn.
-import { SITE, adminClient, esc } from "./_lib.js";
+import { SITE, adminClient, esc, withErrors } from "./_lib.js";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const longDate = (iso) => { const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear(); };
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   const id = new URL(req.url, "http://x").searchParams.get("id") || "";
   let c = null;
   if (/^[0-9a-f]{16}$/.test(id)) { const { data } = await adminClient().from("certs").select("id, name, course_title, hours, issued").eq("id", id).maybeSingle(); c = data; }
@@ -51,4 +51,4 @@ h1{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-size:clamp(34px,7vw
 </article>
 <p class="foot">Benchwork takes people from zero to AI engineer. <a href="${esc(site)}">Start free</a></p>
 </main></body></html>`);
-}
+});

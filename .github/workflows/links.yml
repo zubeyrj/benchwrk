@@ -1,0 +1,27 @@
+name: Weekly link check
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check course links
+        id: check
+        run: node scripts/check-links.mjs > report.md || echo "broken=1" >> "$GITHUB_OUTPUT"
+      - name: Open or update an issue when links are broken
+        if: steps.check.outputs.broken == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          n=$(gh issue list --label broken-links --state open --json number --jq '.[0].number')
+          gh label create broken-links --color d93f0b --description "Found by the weekly link check" 2>/dev/null || true
+          if [ -n "$n" ]; then gh issue comment "$n" --body-file report.md; else gh issue create --title "Broken links in course content" --label broken-links --body-file report.md; fi

@@ -21,6 +21,10 @@ globalThis.fetch = async (url, init) => {
     let text;
     if (/decoding a job/.test(sys)) text = anthropicMode === "notjob" ? '{"is_job":false}' : 'Here you go:\n```json\n' + JSON.stringify({ is_job: true, title: "AI Engineer", company: "Acme", seniority: "early", summary: "Build RAG features.", competencies: [{ name: "RAG", why: "core of the role", quote: "build retrieval pipelines" }], must_haves: ["Python"], nice_to_haves: ["AWS"], fit: { verdict: "Investable Stretch", confidence: "Medium", signals: ["Shipped a RAG project"], frameable_gaps: ["No commercial AI work"], structural_gaps: [] }, likely_rounds: [{ format: "technical", why: "they list a take-home" }], prep: [{ action: "Finish evals", course: "Evaluating LLM apps" }], red_flags: [] }) + "\n```";
     else if (/interviewer for this job/.test(sys)) text = anthropicMode === "badtag" ? "Tell me about yourself." : "[[QUESTION 1]]\nHello, I'm the hiring manager. Walk me through your RAG project.";
+    else if (/CV coach/.test(sys)) text = JSON.stringify({ overall: "Needs work", ats: "Ready", recruiter_scan: "Analyst moving into AI", strengths: ["SQL"], top_fixes: ["Add numbers"], summary_rewrite: "Data analyst...", bullets: [{ before: "Did reports", after: "Built 12 reports [add a number]", why: "Specific" }], missing_keywords: ["RAG"], transition_note: "Frame analytics as data work" });
+    else if (/tell me about yourself/.test(sys)) text = JSON.stringify({ hook: "I turn messy data into decisions.", short: "s", medium: "m", long: "l", differentiator: "d", avoid: ["a"], follow_ups: ["f"] });
+    else if (/debriefing a REAL interview/.test(sys)) text = JSON.stringify({ summary: "Went fine", confidence: "Medium", scores: { substance: 3, structure: 3, relevance: 4, credibility: 3, differentiation: 2 }, signals: ["Asked follow-ups"], questions: [{ question: "Tell me about RAG", competency: "RAG", landed: "x", gap: "y", stronger_answer: "z" }], patterns: [], next_round_prep: ["Prepare evals"], thank_you: "Thanks for...", stories_to_add: [] });
+    else if (/which of several job adverts/.test(sys)) text = JSON.stringify({ ranking: [{ id: "a", rank: 1, verdict: "Strong Fit", why: "w", prep_effort: "Low", first_step: "f" }, { id: "b", rank: 2, verdict: "Weak Fit", why: "w", prep_effort: "High", first_step: "f" }], recommendation: "Start with a", skip: [] });
     else if (/scoring a mock interview/.test(sys)) text = JSON.stringify({ band: "Early career", confidence: "Medium", hire_signal: "Mixed", scores: { substance: 3, structure: 3.5, relevance: 4, credibility: 2.5, differentiation: 2 }, self_delta: "over", questions: [{ n: 1, question: "q", heard: "h", scores: { substance: 3, structure: 3.5, relevance: 4, credibility: 2.5, differentiation: 2 }, note: "n", stronger_answer: "s" }] });
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage }), { status: 200 });
   }
@@ -114,6 +118,11 @@ sb.tables.profiles.find((p) => p.id === amira.id).prefs = { partner: false };
 r = await call(nudge, { token: T.ben, body: { to: amira.id, kind: "cheer" } });
 ok("partner emails respect preference", r.json.emailed === false && r.json.reason === "off");
 sb.tables.profiles.find((p) => p.id === amira.id).prefs = { weekly: true, streak: true, partner: true };
+sb.tables.email_log = sb.tables.email_log.filter((l) => l.kind !== "partner");
+sb._doc("data/users/" + ben.id + "/state", { account: { name: "Ben" }, blocked: [amira.id] }); await new Promise((r2) => setTimeout(r2, 5));
+r = await call(nudge, { token: T.amira, body: { to: ben.id, kind: "cheer" } });
+ok("blocked member can't email you", r.json.emailed === false);
+sb._doc("data/users/" + ben.id + "/state", { account: { name: "Ben" }, blocked: [] }); await new Promise((r2) => setTimeout(r2, 5));
 
 // ---- admin email ----
 const adminEmail = await load("admin-email.js");
@@ -173,6 +182,9 @@ r = await call(daily, { method: "GET", headers: { authorization: "Bearer cron-se
 ok("daily cron sends come-back to quiet member", r.json.comeback === 1 && sent[sent.length - 1].to[0] === "ben@example.org");
 r = await call(daily, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
 ok("come-back not repeated within 14 days", r.json.comeback === 0);
+sb.tables.errors.push({ id: 999, at: "2026-01-01T00:00:00Z", source: "client", message: "old", fingerprint: "o" });
+await call(daily, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+ok("errors older than 90 days deleted", !sb.tables.errors.some((e) => e.id === 999));
 
 // ---- delete ----
 const del = await load("me-delete.js");
@@ -220,6 +232,53 @@ ok("interview usage tracked separately", sb.tables.ai_usage.some((u) => u.user_i
 process.env.INTERVIEW_DAILY_CALLS = "2";
 ok("interview daily allowance", (await call(iv, { token: T.ben, body: { mode: "decode", job: JOB } })).json.code === "daily_cap");
 delete process.env.INTERVIEW_DAILY_CALLS;
+
+// ---- career tools ----
+const CV = ("Data analyst with four years in retail analytics. Built SQL pipelines and Power BI dashboards. ").repeat(8);
+r = await call(iv, { token: T.owner, body: { mode: "cv", cv: CV, job: JOB } });
+ok("CV review", r.status === 200 && r.json.bullets[0].after.includes("[add a number]") && /<cv>/.test(ivCalls[ivCalls.length - 1].messages[0].content) && /<job /.test(ivCalls[ivCalls.length - 1].messages[0].content));
+ok("CV too short refused", (await call(iv, { token: T.owner, body: { mode: "cv", cv: "short cv" } })).status === 400);
+r = await call(iv, { token: T.owner, body: { mode: "cv", cv: CV } });
+ok("CV review without a job", r.status === 200 && !/<job /.test(ivCalls[ivCalls.length - 1].messages[0].content));
+r = await call(iv, { token: T.owner, body: { mode: "pitch", answers: { past: "Four years as a data analyst in retail.", why: "I built a chatbot and loved it." }, audience: "recruiter" } });
+ok("pitch", r.status === 200 && r.json.hook && /recruiter on a first call/.test(ivCalls[ivCalls.length - 1].system));
+ok("pitch needs an answer", (await call(iv, { token: T.owner, body: { mode: "pitch", answers: { past: "" } } })).status === 400);
+r = await call(iv, { token: T.owner, body: { mode: "debrief", notes: "Q: Tell me about RAG. Me: talked about my demo but forgot numbers. Q: Why us? Me: rambled a bit about the mission and the team.", round: "Technical", feeling: "rushed" } });
+ok("debrief", r.status === 200 && r.json.thank_you && /round="Technical"/.test(ivCalls[ivCalls.length - 1].messages[0].content));
+ok("debrief needs notes", (await call(iv, { token: T.owner, body: { mode: "debrief", notes: "too short" } })).status === 400);
+r = await call(iv, { token: T.owner, body: { mode: "compare", jobs: [Object.assign({ id: "a" }, JOB), Object.assign({ id: "b" }, JOB, { title: "ML Ops" })] } });
+ok("compare", r.status === 200 && r.json.ranking.length === 2 && /<job id="b" title="ML Ops"/.test(ivCalls[ivCalls.length - 1].messages[0].content));
+ok("compare needs 2 to 5", (await call(iv, { token: T.owner, body: { mode: "compare", jobs: [Object.assign({ id: "a" }, JOB)] } })).status === 400);
+ok("unknown mode refused", (await call(iv, { token: T.owner, body: { mode: "chat", job: JOB } })).status === 400);
+
+// ---- errors, moderation, health ----
+const rep = await load("report-error.js");
+r = await call(rep, { body: { message: "TypeError: x is undefined", url: "https://benchwork.test/#home" }, headers: { "user-agent": "test" } });
+ok("browser error recorded", r.status === 200 && sb.tables.errors.length === 1 && sb.tables.errors[0].source === "client");
+const alerts = sent.filter((m) => /something went wrong/i.test(m.subject)).length;
+ok("owner alerted by email", alerts === 1 && sent[sent.length - 1].to[0] === "owner@example.org");
+await call(rep, { body: { message: "TypeError: x is undefined" } });
+ok("same error not repeated within a minute", sb.tables.errors.length === 1);
+await call(rep, { body: { message: "RangeError: other" } });
+ok("second error recorded, no second email within the hour", sb.tables.errors.length === 2 && sent.filter((m) => /something went wrong/i.test(m.subject)).length === 1);
+const { withErrors } = await import("../api/_lib.js");
+r = await call(withErrors(async () => { throw new Error("boom in route"); }), { url: "/api/x" });
+ok("server crash caught and recorded", r.status === 500 && /reported/.test(r.json.error) && sb.tables.errors.some((e) => e.source === "server" && e.message === "boom in route"));
+const mod = await load("admin-moderate.js");
+let banned = null; sb.auth.admin.updateUserById = async (id, o) => { banned = [id, o.ban_duration]; return { error: null }; };
+ok("members can't suspend", (await call(mod, { token: T.ben, body: { action: "suspend", uid: owner.id } })).status === 403);
+r = await call(mod, { token: T.owner, body: { action: "suspend", uid: ben.id } });
+ok("owner suspends", r.status === 200 && banned[0] === ben.id && banned[1] === "876000h" && sb.tables.docs.find((d) => d.path === "learners/" + ben.id).data.suspended === true);
+await call(mod, { token: T.owner, body: { action: "restore", uid: ben.id } });
+ok("owner restores", banned[1] === "none" && sb.tables.docs.find((d) => d.path === "learners/" + ben.id).data.suspended === false);
+ok("owner can't suspend self", (await call(mod, { token: T.owner, body: { action: "suspend", uid: owner.id } })).status === 400);
+const health = await load("health.js");
+ok("health is owner-only", (await call(health, { method: "GET", token: T.ben })).status === 403);
+r = await call(health, { method: "GET", token: T.owner, headers: { host: "benchwork.test" } });
+ok("health runs every check", r.status === 200 && r.json.checks.length === 8 && r.json.checks.find((c) => c.name === "Database").ok && r.json.checks.find((c) => c.name === "Site address").ok);
+ok("health flags missing captcha as optional", r.json.checks.find((c) => c.name === "Sign-up protection").warn === true);
+r = await call(health, { token: T.owner, body: { test: "email" } });
+ok("test email", r.status === 200 && sent[sent.length - 1].subject === "Benchwork test email");
 
 // ---- jobs ----
 const jobs = await load("jobs.js");

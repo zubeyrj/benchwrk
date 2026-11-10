@@ -1,7 +1,7 @@
 // GET /api/me-export -> every record Benchwork holds about the signed-in member (UK GDPR access request).
-import { adminClient, fail, requireUser, send } from "./_lib.js";
+import { adminClient, fail, requireUser, send, withErrors } from "./_lib.js";
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "GET") return fail(res, 405, "Use GET.");
   const user = await requireUser(req, res); if (!user) return;
   const db = adminClient(), id = user.id;
@@ -21,4 +21,4 @@ export default async function handler(req, res) {
     certificates: certs.data || [], ai_usage: usage.data || [], emails_sent: emails.data || [],
     note: "Tutor conversations are not stored on Benchwork's servers; they are sent to Anthropic to generate each answer. Mock interviews you keep are in private_records.",
   });
-}
+});

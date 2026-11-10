@@ -1,5 +1,5 @@
 // Vercel cron, Sunday 18:00 UTC: each member's week in one email.
-import { SITE, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, stats, weekHours } from "../_lib.js";
+import { SITE, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, stats, weekHours, withErrors } from "../_lib.js";
 import { loadMembers } from "./_members.js";
 
 const r1 = (n) => Math.round(Number(n || 0) * 10) / 10;
@@ -27,7 +27,7 @@ export function weeklyEmail(m, monday) {
   };
 }
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (!requireCron(req, res)) return;
   const monday = mondayOf(new Date()), ref = isoDay(monday), since = new Date(Date.now() - 6 * 864e5).toISOString();
   let sent = 0, skipped = 0, failed = 0;
@@ -37,4 +37,4 @@ export default async function handler(req, res) {
     catch (err) { failed++; console.error("weekly", m.profile.id, err.message); }
   }
   send(res, 200, { sent, skipped, failed });
-}
+});

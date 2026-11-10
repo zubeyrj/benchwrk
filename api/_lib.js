@@ -163,3 +163,41 @@ export function parseJsonReply(text) {
   if (a < 0 || b < a) return null;
   try { return JSON.parse(text.slice(a, b + 1)); } catch (e) { return null; }
 }
+
+// ---------- errors and owner alerts ----------
+const fp = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0).toString(36); };
+export async function ownerProfile() {
+  const db = adminClient();
+  const { data: a } = await db.from("admins").select("user_id").limit(1);
+  if (!a || !a.length) return null;
+  const { data } = await db.from("profiles").select("id, email, name").eq("id", a[0].user_id).maybeSingle();
+  return data;
+}
+// Records an error, at most once a minute per distinct message, and emails the owner at most once an hour.
+export async function logError({ source, message, detail, url, ua, user_id }) {
+  try {
+    const db = adminClient(), msg = String(message || "Unknown error").slice(0, 500), f = fp(source + "|" + msg.replace(/\d+/g, "#"));
+    const recent = await db.from("errors").select("id", { count: "exact", head: true }).eq("fingerprint", f).gte("at", new Date(Date.now() - 60e3).toISOString());
+    if (recent.count) return;
+    const today = await db.from("errors").select("id", { count: "exact", head: true }).gte("at", new Date(Date.now() - 864e5).toISOString());
+    if ((today.count || 0) > Number(env("ERROR_DAILY_MAX", 500))) return;
+    await db.from("errors").insert({ source, message: msg, detail: String(detail || "").slice(0, 4000), url: String(url || "").slice(0, 500), ua: String(ua || "").slice(0, 300), user_id: user_id || null, fingerprint: f });
+    const owner = await ownerProfile();
+    if (!owner || !owner.email) return;
+    if (await sentSince(owner.id, "error-alert", new Date(Date.now() - 3600e3).toISOString())) return;
+    await sendEmail({ to: owner.email, subject: "Benchwork: something went wrong", text: "A " + source + " error was recorded:\n\n" + msg + "\n\n" + (url || "") + "\n\nSee Admin > Errors: " + SITE() + "/#admin",
+      html: layout({ preheader: msg, heading: "Something went wrong on Benchwork", body: p("A " + esc(source) + " error was recorded" + (url ? " on " + esc(url) : "") + ":") + '<pre style="white-space:pre-wrap;background:#f7f4ef;border-radius:10px;padding:12px;font-size:13px">' + esc(msg) + "</pre>" + p("You'll get at most one of these an hour. Later errors are listed in Admin."), cta: "Open Admin", ctaHref: SITE() + "/#admin", footer: "Sent to the Benchwork owner." }) });
+    await logEmail(owner.id, "error-alert", f);
+  } catch (e) { console.error("logError failed", e && e.message); }
+}
+// Wraps an API route so any crash is recorded and the caller gets a clean 500.
+export function withErrors(handler) {
+  return async function (req, res) {
+    try { return await handler(req, res); }
+    catch (e) {
+      console.error(e);
+      await logError({ source: "server", message: (e && e.message) || String(e), detail: e && e.stack, url: req.url, ua: req.headers && req.headers["user-agent"] });
+      if (!res.writableEnded) { try { if (!res.headersSent) fail(res, 500, "Something went wrong on our side. It's been reported."); else res.end(); } catch (x) { /* ignore */ } }
+    }
+  };
+}

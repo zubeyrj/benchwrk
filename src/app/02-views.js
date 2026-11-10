@@ -1,6 +1,6 @@
 
   /* ---------- router ---------- */
-  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "interview", "log", "cohort", "toolkit", "placement", "settings", "admin"];
+  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "log", "cohort", "toolkit", "placement", "settings", "admin"];
   function route() {
     let h = decodeURIComponent((location.hash || "#home").slice(1));
     if (h === "roadmap") h = "plan";
@@ -11,7 +11,8 @@
     if ((m = h.match(/^cert-(m\d+)$/))) return { name: "cert", id: m[1] };
     if ((m = h.match(/^lesson-(m\d+)-(\d+)$/))) return { name: "lesson", id: m[1], i: Number(m[2]) };
     if ((m = h.match(/^ex-(m\d+)-([a-z0-9]+)$/))) return { name: "ex", id: m[1], ex: m[2] };
-    if (h === "iv-new" || h === "iv-stories") return { name: "interview", sub: h.slice(3) };
+    if (h === "iv-new" || h === "iv-stories" || h === "iv-compare") return { name: "interview", sub: h.slice(3) };
+    if ((m = h.match(/^career-(cv|pitch|debrief)$/))) return { name: "career", sub: m[1] };
     if ((m = h.match(/^iv-(job|run|report)-([a-z0-9]+)$/))) return { name: "interview", sub: m[1], key: m[2] };
     return { name: SIMPLE.indexOf(h) >= 0 ? h : "home" };
   }
@@ -33,6 +34,7 @@
   const GICON = {
     today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
     learn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>',
+    career: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 13h20"/></svg>',
     practise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
     projects: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>',
     cohort: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -42,7 +44,7 @@
     document.getElementById("nav").innerHTML = GROUPS.map((x) => '<a href="#' + x.pages[0][0] + '" data-group="' + x.id + '"' + (g && g.id === x.id ? ' aria-current="page"' : "") + ">" + GICON[x.id] + "<span>" + x.label + "</span></a>").join("");
     if (!S.account) { document.getElementById("me").innerHTML = ""; return; }
     const xp = points(), L = levelInfo(xp), st = streak();
-    document.getElementById("me").innerHTML = '<span class="chip" title="Weekly streak">' + '<span style="color:#ff8a5c">' + SVG.fire + '</span><span class="n">' + st + '</span></span><span class="chip lvl" title="' + L.into + " of " + L.need + ' XP to the next level"><span style="color:var(--xp)">' + SVG.bolt + '</span><span class="n">Lv ' + L.level + " · " + xp + ' XP</span></span><details class="acct"><summary class="avatar" aria-label="Account menu for ' + esc(S.account.name) + '">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + '</summary><div class="acct-menu" role="menu"><div class="acct-who"><b>' + esc(S.account.name) + "</b>" + (myEmail ? '<span>' + esc(myEmail) + "</span>" : "") + '</div><a role="menuitem" href="#settings"' + (active === "settings" ? ' aria-current="page"' : "") + ">Settings</a>" + (isOwner ? '<a role="menuitem" href="#admin"' + (active === "admin" ? ' aria-current="page"' : "") + ">Admin</a>" : "") + (window.BW ? '<button role="menuitem" data-act="signout">Sign out</button>' : "") + "</div></details>";
+    document.getElementById("me").innerHTML = '<span class="chip" title="Weekly streak">' + '<span style="color:#ff8a5c">' + SVG.fire + '</span><span class="n">' + st + '</span></span><span class="chip lvl" title="' + L.into + " of " + L.need + ' XP to the next level"><span style="color:var(--xp)">' + SVG.bolt + '</span><span class="n">Lv ' + L.level + " · " + xp + ' XP</span></span>' + bellHtml() + '<details class="acct"><summary class="avatar" aria-label="Account menu for ' + esc(S.account.name) + '">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + '</summary><div class="acct-menu" role="menu"><div class="acct-who"><b>' + esc(S.account.name) + "</b>" + (myEmail ? '<span>' + esc(myEmail) + "</span>" : "") + '</div><a role="menuitem" href="#settings"' + (active === "settings" ? ' aria-current="page"' : "") + ">Settings</a>" + (isOwner ? '<a role="menuitem" href="#admin"' + (active === "admin" ? ' aria-current="page"' : "") + ">Admin</a>" : "") + (window.BW ? '<button role="menuitem" data-act="signout">Sign out</button>' : "") + "</div></details>";
   }
   const NAVOF = { course: "courses", lesson: "courses", ex: "courses", quiz: "courses", cert: "courses", placement: "home" };
   function render() {
@@ -57,10 +59,10 @@
       else {
         const r = route();
         renderNav(NAVOF[r.name] || r.name);
-        const V = { interview: vInterview, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
+        const V = { interview: vInterview, applications: vApplications, career: vCareer, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
-        else html = V[r.name](r);
+        else html = V[r.name](r) + pageFooter(r);
         const G = groupOf(r.name);
         if (G && G.pages.length > 1 && !r.sub && !r.id) html = '<nav class="subnav" aria-label="' + G.label + '">' + G.pages.map((p) => '<a href="#' + p[0] + '"' + (p[0] === r.name ? ' aria-current="page"' : "") + ">" + p[1] + "</a>").join("") + "</nav>" + html;
       }
@@ -155,6 +157,7 @@
         '<fieldset><legend>What are you aiming for first?</legend><div class="choice">' +
         '<label><input type="radio" name="a-goal" value="engineer"' + (S.goal !== "adjacent" ? " checked" : "") + '><span><b>AI engineer</b><br><span class="small muted">Apply once all three projects are live.</span></span></label>' +
         '<label><input type="radio" name="a-goal" value="adjacent"' + (S.goal === "adjacent" ? " checked" : "") + '><span><b>An AI-adjacent role first</b><br><span class="small muted">AI-enabled data or automation work. Apply after project 2.</span></span></label></div></fieldset>' +
+        '<div class="field"><label for="a-invite">Invite code <span class="muted">(optional)</span></label><input id="a-invite" maxlength="12" autocomplete="off" style="text-transform:uppercase;max-width:220px" value="' + esc(ui.inviteDraft != null ? ui.inviteDraft : (window.BW && window.BW.invite) || "") + '"' + (ui.inviteErr ? ' aria-invalid="true" aria-describedby="a-invite-err"' : "") + '><p class="hint">From whoever invited you. It puts you in their cohort; you can add one later in Settings.</p>' + (ui.inviteErr ? '<p class="err" id="a-invite-err">' + esc(ui.inviteErr) + "</p>" : "") + "</div>" +
         '<button class="btn lg wide" type="submit"' + (ui.busy ? ' aria-busy="true" disabled' : "") + ">" + (ui.busy ? "Creating your account…" : "Create my account") + "</button></form>";
     }
     return '<section class="auth">' + side + '<div class="auth-main">' + form + "</div></section>";
@@ -224,7 +227,7 @@
     return hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your week</h2><div class="row"><button class="btn line sm" data-act="qlog" data-h="1">Log 1 hour</button><button class="btn line sm" data-act="qlog" data-h="2">Log 2 hours</button></div></div><div style="margin-top:14px">' + stripHtml(thisWeekDays()) + "</div></div>" +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your path</h2><a class="link small" href="#plan">See the dated plan</a></div>' + pathHtml(p, 5) + "</div></div>" +
-      "<aside>" + partnerCard() + questHtml + review + "</aside></div>";
+      "<aside>" + homeCareerCard() + partnerCard() + questHtml + review + "</aside></div>";
   }
   function pathHtml(p, around) {
     const rows = p.rows, cur = currentRow(p), ci = cur ? rows.indexOf(cur) : rows.length;
@@ -242,7 +245,7 @@
     const P = partnerInfo();
     if (pairs === null) return '<div class="card"><h2>Accountability partner</h2><div class="sk" style="height:40px"></div></div>';
     if (!P) {
-      const me = myPairDoc(), inc = (pairs || []).filter((x) => x.req === uid && x.id !== uid);
+      const me = myPairDoc(), inc = (pairs || []).filter((x) => x.req === uid && x.id !== uid && !isBlocked(x.id));
       return '<div class="card"><h2>Accountability partner</h2><p class="small muted">People who tell someone their weekly goal are far more likely to hit it. Pair with one member, set a commitment each week and check in.</p>' +
         (inc.length ? inc.map((x) => '<div class="row between" style="margin-top:10px"><span><b>' + esc(x.name || "A member") + '</b> <span class="xs muted">wants to pair</span></span><button class="btn sm" data-act="pairaccept" data-id="' + esc(x.id) + '">Accept</button></div>').join("") : "") +
         (me && me.req ? '<p class="xs muted" style="margin-top:10px">Request sent to ' + esc(((cohort || []).find((c) => c.id === me.req) || {}).name || "a member") + '. <button class="link" data-act="paircancel">Cancel</button></p>' : '<a class="btn line sm" style="margin-top:6px" href="#cohort">Find a partner</a>') + "</div>";
@@ -256,7 +259,7 @@
       '<div class="pp"><span class="avatar">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + '</span><div style="flex:1"><b>You</b><div class="xs muted">' + (myC ? "Committed to " + myC.hours + " h" + (myC.text ? ": " + esc(myC.text) : "") : "Set this week's commitment") + '</div><span class="bar ok thin" style="margin-top:6px"><i style="--f:' + (myC ? Math.min(1, thisWeekHours() / myC.hours) : 0).toFixed(3) + '"></i></span></div></div>' +
       (myC ? "" : '<form data-commit class="row" style="gap:8px"><input type="number" id="c-h" min="1" max="40" value="' + S.hpw + '" style="width:76px" aria-label="Hours this week"><input type="text" id="c-t" maxlength="80" placeholder="And I will… (optional)" style="flex:1;min-width:120px" aria-label="Your goal this week"><button class="btn sm" type="submit">Commit</button></form>') +
       (msgs.length ? '<div class="msgs-mini">' + msgs.map((m) => "<div><b>" + esc(m.from) + ":</b> " + esc(m.text) + "</div>").join("") + "</div>" : "") +
-      '<div class="row"><button class="btn line sm" data-act="cheer">Send a cheer</button><button class="btn line sm" data-act="nudge">Send a nudge</button></div></div>';
+      '<div class="row"><button class="btn line sm" data-act="cheer">Send a cheer</button><button class="btn line sm" data-act="nudge">Send a nudge</button>' + moreMenu(P.id, P.doc.name, "message") + "</div></div>";
   }
 
   /* ---------- Plan ---------- */

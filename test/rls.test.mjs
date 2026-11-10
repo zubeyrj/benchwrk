@@ -24,6 +24,7 @@ await db.exec(`grant usage on schema public to anon, authenticated;
   grant select, insert, update, delete on all tables in schema public to anon, authenticated;
   grant execute on all functions in schema public to anon, authenticated;
   revoke update on public.profiles from authenticated; grant update (name, prefs, last_seen) on public.profiles to authenticated;
+  revoke insert on public.errors from anon, authenticated;
   revoke execute on function public.bump_ai(uuid, text, int, int), public.set_owner(text) from anon, authenticated;`);
 
 const OWNER = "11111111-1111-1111-1111-111111111111", A = "22222222-2222-2222-2222-222222222222", B = "33333333-3333-3333-3333-333333333333";
@@ -64,6 +65,16 @@ ok("member writes own private state", !(await write(A, `data/users/${A}/state`, 
 ok("other member cannot read private state", !(await read(B, `data/users/${A}/state`)));
 ok("admin cannot read private state", !(await read(OWNER, `data/users/${A}/state`)));
 ok("member cannot write another's private state", !!(await write(B, `data/users/${A}/state`)).err);
+ok("member files own report", !(await write(A, "reports/" + A, { items: [{ kind: "review", target: B }] })).err);
+ok("member can't file as someone else", !!(await write(A, "reports/" + B)).err);
+ok("reported member can't read the report", !(await read(B, "reports/" + A)));
+ok("admin reads reports", !!(await read(OWNER, "reports/" + A)));
+ok("reporter reads own report", !!(await read(A, "reports/" + A)));
+ok("members see only their own reports in a list", (await as(B, "select path from docs where parent = 'reports'")).rows.length === 0);
+await db.query(`insert into errors (source, message, fingerprint) values ('client', 'x', 'f')`);
+ok("members can't read errors", ((await as(A, "select * from errors")).rows || []).length === 0);
+ok("admin reads errors", (await as(OWNER, "select * from errors")).rows.length === 1);
+ok("members can't write errors", !!(await as(A, "insert into errors (source, message, fingerprint) values ('client','y','g')")).err || ((await db.query("select count(*)::int c from errors")).rows[0].c === 1));
 ok("unknown collections refused", !!(await write(A, "misc/" + A)).err);
 const del = await as(A, "delete from docs where path = $1", ["content/m1"]);
 ok("member cannot delete content", (await read(OWNER, "content/m1")) && !del.err);

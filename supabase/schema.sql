@@ -25,11 +25,13 @@ $$;
 -- Who may read a path. Shared cohort data needs a signed-in member; a member's
 -- private folder (data/users/<uid>/...) is readable by that member only, not even the admin.
 create or replace function public.doc_read_ok(p text) returns boolean
-language sql stable as $$
+language sql stable security definer set search_path = public as $$
   select case
     when auth.uid() is null then false
     when split_part(p, '/', 1) = 'data' then split_part(p, '/', 2) = 'users' and split_part(p, '/', 3) = auth.uid()::text
     when split_part(p, '/', 1) in ('content', 'lessons', 'learners', 'subs', 'reviews', 'pairs') then true
+    -- Reports (abuse and content problems): the reporter and the admin only.
+    when split_part(p, '/', 1) = 'reports' then split_part(p, '/', 2) = auth.uid()::text or public.is_admin()
     else false
   end;
 $$;
@@ -42,7 +44,7 @@ language sql stable security definer set search_path = public as $$
     when auth.uid() is null then false
     when split_part(p, '/', 1) = 'data' then split_part(p, '/', 2) = 'users' and split_part(p, '/', 3) = auth.uid()::text
     when split_part(p, '/', 1) in ('content', 'lessons') then public.is_admin()
-    when split_part(p, '/', 1) in ('learners', 'subs', 'reviews', 'pairs') and p !~ '^[^/]+/[^/]+/' then
+    when split_part(p, '/', 1) in ('learners', 'subs', 'reviews', 'pairs', 'reports') and p !~ '^[^/]+/[^/]+/' then
       split_part(p, '/', 2) = auth.uid()::text or public.is_admin()
     else false
   end;
@@ -186,3 +188,27 @@ begin
   insert into public.admins (user_id) select id from auth.users where lower(email) = lower(owner_email);
 end $$;
 revoke execute on function public.set_owner(text) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Errors from the site and the API, for the owner's alerts. Written by the API only.
+-- ---------------------------------------------------------------------------
+create table if not exists public.errors (
+  id          bigint generated always as identity primary key,
+  at          timestamptz not null default now(),
+  user_id     uuid references auth.users (id) on delete set null,
+  source      text not null check (source in ('client', 'server')),
+  message     text not null,
+  detail      text,
+  url         text,
+  ua          text,
+  fingerprint text not null,
+  resolved    boolean not null default false
+);
+create index if not exists errors_at_idx on public.errors (at desc);
+create index if not exists errors_fp_idx on public.errors (fingerprint, at desc);
+alter table public.errors enable row level security;
+drop policy if exists errors_select on public.errors;
+drop policy if exists errors_update on public.errors;
+create policy errors_select on public.errors for select using (public.is_admin());
+create policy errors_update on public.errors for update using (public.is_admin()) with check (public.is_admin());
+revoke insert, delete on public.errors from anon, authenticated;

@@ -1,7 +1,7 @@
 // POST /api/me-delete { confirm: "DELETE" } -> erases the member's account and everything tied to it.
-import { adminClient, fail, isAdmin, readJson, requireUser, send } from "./_lib.js";
+import { adminClient, fail, isAdmin, readJson, requireUser, send, withErrors } from "./_lib.js";
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "POST") return fail(res, 405, "Use POST.");
   const user = await requireUser(req, res); if (!user) return;
   const { confirm } = await readJson(req);
@@ -14,4 +14,4 @@ export default async function handler(req, res) {
   const { error } = await db.auth.admin.deleteUser(id);
   if (error) return fail(res, 500, "Couldn't delete the account. Try again, or email the site owner.");
   send(res, 200, { deleted: true });
-}
+});

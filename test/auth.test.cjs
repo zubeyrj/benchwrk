@@ -24,6 +24,7 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
       if (setup === "none") return;
       const sb = window.makeFakeSupabase({ ownerEmail: "owner@example.org" });
       Object.entries(content).forEach(([k, v]) => sb._doc(k, v));
+      sb._doc("content/cohorts", { list: [{ code: "SPRING7", name: "Spring 2027", open: true }] });
       if (setup === "confirmed") sb._addUser("amira@example.org", "correct-horse", { full_name: "Amira Khan" }, true);
       if (setup === "session") { sb._addUser("amira@example.org", "correct-horse", { full_name: "Amira Khan" }, true); sb._signInAs("amira@example.org"); }
       window.__fakeSupabase = sb;
@@ -38,7 +39,7 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   const calls = (p) => p.evaluate(() => window.__fakeSupabase.calls.filter((c) => c.t === "auth"));
 
   // 1. Sign-up, then the confirmation screen
-  let p = await page("fresh");
+  let p = await page("fresh", "/?invite=spring7");
   ok("sign-up is the default", /Create your free account/.test(await text(p)));
   ok("Google button", await p.isVisible('[data-auth="google"]'));
   ok("legal links", (await p.$$('a[href="privacy.html"]')).length === 1 && (await p.$$('a[href="terms.html"]')).length === 1);
@@ -67,12 +68,14 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   await p.fill("#au-pass", "correct-horse"); await p.click('[data-form="signin"] button[type=submit]'); await p.waitForTimeout(1200);
   ok("signed in lands on profile step", await p.isVisible("#signup") && (await p.inputValue("#a-email")) === "amira@example.org");
   ok("name carried from sign-up", (await p.inputValue("#a-name")) === "Amira");
+  ok("invite code carried through sign-up", (await p.inputValue("#a-invite")) === "SPRING7");
   await p.click("#signup button[type=submit]"); await p.waitForTimeout(900);
   ok("account set up, welcome shown", (await p.evaluate(() => location.hash)) === "#home" && await p.isVisible(".welcome-modal"));
   const uid = await p.evaluate(() => window.__fakeSupabase.users && Object.values(window.__fakeSupabase.users)[0].id);
   ok("state saved to the member's private path", await p.evaluate((uid) => window.__fakeSupabase.tables.docs.some((d) => d.path === "data/users/" + uid + "/state" && d.data.account.name === "Amira"), uid));
   ok("cohort summary saved", await p.evaluate((uid) => window.__fakeSupabase.tables.docs.some((d) => d.path === "learners/" + uid), uid));
   ok("profile name saved", await p.evaluate(() => window.__fakeSupabase.tables.profiles[0].name === "Amira"));
+  ok("joined the invited cohort", await p.evaluate((uid) => { const st = window.__fakeSupabase.tables.docs.find((d) => d.path === "data/users/" + uid + "/state"); const l = window.__fakeSupabase.tables.docs.find((d) => d.path === "learners/" + uid); return st.data.cohort === "SPRING7" && l && l.data.co === "SPRING7"; }, uid));
   ok("not admin", !/Admin/.test(await p.textContent("#nav")) && !/Admin/.test(await p.textContent("#me")));
   await p.click('.welcome-modal [data-act="welcomedone"]').catch(() => {}); await p.waitForTimeout(200);
   await p.evaluate(() => location.hash = "course-m13"); await p.waitForTimeout(500);

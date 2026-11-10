@@ -100,6 +100,10 @@ async function bootstrap() {
   if (!sb) { ui.mode = "setup"; render(); return; }
   const site = cfg.siteUrl || location.origin;
   let started = false;
+  // An invite link (?invite=CODE) is remembered through sign-up and email confirmation.
+  const invite = (new URLSearchParams(location.search).get("invite") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+  if (invite) { try { localStorage.setItem("bw-invite", invite); } catch (e) { /* storage blocked */ } }
+  const captcha = makeCaptcha(cfg.turnstileSiteKey);
 
   const params = new URLSearchParams(location.search);
   if (params.get("signin") !== null) ui.mode = "signin";
@@ -125,9 +129,12 @@ async function bootstrap() {
       return out;
     };
     const rt = makeRuntime(sb, session, { api });
+    const reportError = window.__fakeSupabase ? () => {} : watchErrors(async () => { const { data } = await sb.auth.getSession(); return data && data.session ? data.session.access_token : ""; });
     window.claude = { use: rt.use };
     window.BW = {
-      client: sb, api, site, email: session.user.email,
+      client: sb, api, site, email: session.user.email, reportError,
+      invite: ((session.user.user_metadata || {}).invite || storedInvite() || "").toUpperCase(),
+      clearInvite: () => { try { localStorage.removeItem("bw-invite"); } catch (e) { /* ignore */ } },
       provider: (session.user.app_metadata && session.user.app_metadata.provider) || "email",
       signOut: async () => { try { await sb.auth.signOut(); } finally { location.href = "/?signin"; } },
       prefs: async () => (await rt._profile()).prefs,
@@ -180,18 +187,18 @@ async function bootstrap() {
     ui.busy = true; render();
     try {
       if (kind === "signup") {
-        const { data: d, error } = await sb.auth.signUp({ email: ui.email, password: pass, options: { emailRedirectTo: site, data: { full_name: ui.name } } });
+        const { data: d, error } = await sb.auth.signUp({ email: ui.email, password: pass, options: { emailRedirectTo: site, captchaToken: await captcha.token(), data: { full_name: ui.name, invite: storedInvite() || undefined } } });
         if (error) throw error;
         if (d && d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) throw new Error("already registered");
         if (!d.session) ui.mode = "sent";
       } else if (kind === "signin") {
-        const { error } = await sb.auth.signInWithPassword({ email: ui.email, password: pass });
+        const { error } = await sb.auth.signInWithPassword({ email: ui.email, password: pass, options: { captchaToken: await captcha.token() } });
         if (error) {
           if (/not confirmed/i.test(error.message)) { ui.mode = "sent"; ui.info = "Confirm your email first. We can send the link again."; }
           else throw error;
         }
       } else if (kind === "forgot") {
-        const { error } = await sb.auth.resetPasswordForEmail(ui.email, { redirectTo: site.replace(/\/$/, "") + "/?reset=1" });
+        const { error } = await sb.auth.resetPasswordForEmail(ui.email, { redirectTo: site.replace(/\/$/, "") + "/?reset=1", captchaToken: await captcha.token() });
         if (error) throw error;
         ui.mode = "sent-reset";
       } else if (kind === "reset") {
@@ -203,9 +210,45 @@ async function bootstrap() {
         ui.mode = "signin"; ui.info = "Password changed. Sign in with it now.";
       }
     } catch (x) { ui.err = friendly(x); }
+    captcha.reset();
     ui.busy = false;
     if (!started) render();
   });
+}
+
+function storedInvite() { try { return localStorage.getItem("bw-invite") || ""; } catch (e) { return ""; } }
+
+// Cloudflare Turnstile, invisible unless it needs the person to tick a box. Off when no site key is set.
+function makeCaptcha(siteKey) {
+  if (!siteKey) return { token: async () => undefined, reset() {} };
+  let id = null, waiting = null, loading = null;
+  const load = () => loading || (loading = new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; sc.async = true; sc.onload = res; sc.onerror = () => rej(new Error("The security check didn't load. Check your connection and try again.")); document.head.appendChild(sc); }));
+  return {
+    async token() {
+      await load();
+      let box = document.getElementById("bw-captcha");
+      if (!box) { box = document.createElement("div"); box.id = "bw-captcha"; box.className = "bw-captcha"; document.body.appendChild(box); }
+      return new Promise((resolve, reject) => {
+        waiting = { resolve, reject };
+        const cb = { callback: (t) => { if (waiting) { waiting.resolve(t); waiting = null; } }, "error-callback": () => { if (waiting) { waiting.reject(new Error("The security check failed. Try again.")); waiting = null; } } };
+        if (id === null) id = window.turnstile.render(box, Object.assign({ sitekey: siteKey, appearance: "interaction-only", execution: "execute" }, cb));
+        window.turnstile.execute(box);
+      });
+    },
+    reset() { try { if (id !== null) window.turnstile.reset(id); } catch (e) { /* not ready */ } },
+  };
+}
+
+// Sends uncaught browser errors to /api/report-error (a few per page load at most).
+function watchErrors(getToken) {
+  let sent = 0;
+  const report = async (message, detail) => {
+    if (sent >= 5 || !message || /ResizeObserver|Script error\.?$/.test(message)) return; sent++;
+    try { const t = await getToken(); fetch("/api/report-error", { method: "POST", headers: Object.assign({ "content-type": "application/json" }, t ? { authorization: "Bearer " + t } : {}), body: JSON.stringify({ message: String(message).slice(0, 500), detail: String(detail || "").slice(0, 3000), url: location.href.split("?")[0] }) }).catch(() => {}); } catch (e) { /* ignore */ }
+  };
+  window.addEventListener("error", (e) => report(e.message, e.error && e.error.stack));
+  window.addEventListener("unhandledrejection", (e) => { const r = e.reason || {}; if (r.code) return; report(r.message || String(r), r.stack); });
+  return report;
 }
 
 function loadApp() {

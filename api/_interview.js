@@ -115,3 +115,52 @@ export function scorePrompt({ job, decoded, profile, setup, transcript, self }) 
     "\n\n<transcript>\n" + convo + "\n</transcript>\n\n<self_assessment>\nStrongest answer: Q" + (self.best || "?") + "\nWeakest answer: Q" + (self.worst || "?") + "\nSelf-rating overall: " + (self.rating || "?") + " out of 5\nTheir reflection: " + clip(self.note, 1000) + "\n</self_assessment>\n\nScore this interview." }];
   return { system, messages };
 }
+
+// ---------- career tools ----------
+export function cvPrompt({ cv, job, profile }) {
+  return {
+    system: "You are an expert CV coach for people moving into applied AI engineering, reviewing a CV" + (job ? " against a specific job advert" : "") + ". " + STYLE + "\n\n" +
+      "Rules:\n- Judge it as a recruiter skimming for 30 seconds and as an applicant tracking system would.\n- Only use facts in the CV or the candidate profile. Never invent employers, titles, dates or numbers; mark missing numbers as [add a number].\n" +
+      "- Rewrite at most 6 bullets: the ones with the most to gain. Lead with the action and the result.\n- Flag career-change framing: how their past roles show skills an AI engineering employer wants.\n" +
+      "- UK conventions: no photo, no date of birth, two pages at most, British spelling.\n" +
+      (job ? "- missing_keywords are skills or terms the advert asks for that the CV lacks, only where the candidate plausibly has them (from the profile).\n" : "- missing_keywords: common applied AI engineering terms the CV lacks that the profile shows they know.\n") +
+      "\nReply with only a JSON object:\n" +
+      '{"overall":"Strong|Needs work|Weak","ats":"Ready|Risky|Broken","ats_note":"","recruiter_scan":"what a recruiter takes away in 30 seconds","strengths":[""],"top_fixes":[""],"summary_rewrite":"a 2 to 3 line profile at the top of the CV","bullets":[{"before":"","after":"","why":""}],"missing_keywords":[""],"transition_note":"how to frame the move into AI engineering"}',
+    messages: [{ role: "user", content: (job ? jobBlock(job) + "\n\n" : "") + profileBlock(profile) + "\n\n<cv>\n" + clip(cv, 15000) + "\n</cv>\n\nReview this CV." }],
+  };
+}
+
+export function pitchPrompt({ answers, audience, profile }) {
+  return {
+    system: "You are an interview coach writing a candidate's 'tell me about yourself' answer for applied AI engineering roles. " + STYLE + "\n\n" +
+      "Rules:\n- Use only what the candidate wrote and their profile. Never invent achievements.\n- Structure: a hook that creates curiosity, where they've come from, the bridge into AI engineering, proof (a project or result), why this kind of role next.\n" +
+      "- Make it sound spoken, in the first person, with contractions. No buzzwords.\n- Build it around their earned insight if they gave one: that's what makes them memorable.\n" +
+      "- Audience: " + ({ recruiter: "a recruiter on a first call: plain language, motivation and fit.", manager: "a hiring manager: more technical proof and judgement.", networking: "a networking chat or meetup: lighter, ends with a question back." }[audience] || "a hiring manager.") + "\n\n" +
+      "Reply with only a JSON object:\n" +
+      '{"hook":"one line, about 10 seconds","short":"about 30 seconds (75 words)","medium":"about 60 seconds (150 words)","long":"about 90 seconds (220 words)","differentiator":"one sentence: what makes them different","avoid":["things to cut or not say"],"follow_ups":["questions an interviewer will ask next"]}',
+    messages: [{ role: "user", content: profileBlock(profile) + "\n\n<their_notes>\n" + clip(JSON.stringify(answers, null, 1), 6000) + "\n</their_notes>\n\nWrite the pitch." }],
+  };
+}
+
+export function debriefPrompt({ notes, round, feeling, job, profile, directness }) {
+  return {
+    system: "You are an expert interview coach debriefing a REAL interview the candidate has just had, from their notes or a transcript. " + STYLE + "\n\n" +
+      "Rules:\n- Separate what they recall from what you infer. Notes are partial, so confidence is usually Medium or Low.\n- For each question asked: the competency it tested, what landed, the gap, and a stronger answer outline using only their facts.\n" +
+      "- Score the interview overall on Substance, Structure, Relevance, Credibility and Differentiation (1 to 5), as an estimate from recall.\n" +
+      "- Read the signals honestly (follow-ups, time, interviewer reactions they mention) without promising an outcome.\n- Draft a short thank-you email (no subject line) that references one specific thing from the conversation.\n" +
+      (DIRECT[directness] || DIRECT[3]) + "\n\n" +
+      "Reply with only a JSON object:\n" +
+      '{"summary":"","confidence":"High|Medium|Low","scores":{"substance":0,"structure":0,"relevance":0,"credibility":0,"differentiation":0},"signals":[""],"questions":[{"question":"","competency":"","landed":"","gap":"","stronger_answer":""}],"patterns":[""],"next_round_prep":[""],"thank_you":"","stories_to_add":[""]}',
+    messages: [{ role: "user", content: (job ? jobBlock(job) + "\n\n" : "") + profileBlock(profile) + "\n\n<interview round=\"" + clip(round, 60).replace(/"/g, "'") + "\">\n" + clip(notes, 15000) + "\n</interview>\n\nHow it felt to them: " + clip(feeling, 500) + "\n\nDebrief this interview." }],
+  };
+}
+
+export function comparePrompt({ jobs, profile }) {
+  return {
+    system: "You are an interview coach helping a candidate decide which of several job adverts to apply for first. " + STYLE + "\n\n" +
+      "Rules:\n- Compare fit (profile against requirements), stretch, what each would teach them, and effort to prepare.\n- Fit verdicts: Strong Fit, Investable Stretch, Long-Shot Stretch, Weak Fit.\n- Rank them; ties are allowed only if genuinely equal. Use the ids given.\n- Only claim what the adverts and profile show.\n\n" +
+      "Reply with only a JSON object:\n" +
+      '{"ranking":[{"id":"","rank":1,"verdict":"","why":"","prep_effort":"Low|Medium|High","first_step":""}],"recommendation":"two or three sentences on where to start and why","skip":["ids not worth applying to, with a reason, or empty"]}',
+    messages: [{ role: "user", content: profileBlock(profile) + "\n\n" + jobs.map((j) => "<job id=\"" + clip(j.id, 40) + "\" title=\"" + clip(j.title, 140).replace(/"/g, "'") + "\" company=\"" + clip(j.company, 120).replace(/"/g, "'") + "\">\n" + clip(j.text, 5000) + "\n</job>").join("\n\n") + "\n\nCompare and rank these jobs for this candidate." }],
+  };
+}

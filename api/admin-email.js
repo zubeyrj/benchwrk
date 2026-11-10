@@ -1,7 +1,7 @@
 // POST /api/admin-email { to: uid, subject, body } -> the site owner emails one learner.
-import { adminClient, esc, fail, isAdmin, layout, logEmail, p, readJson, requireUser, send, sendEmail } from "./_lib.js";
+import { adminClient, esc, fail, isAdmin, layout, logEmail, p, readJson, requireUser, send, sendEmail, withErrors } from "./_lib.js";
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "POST") return fail(res, 405, "Use POST.");
   const user = await requireUser(req, res); if (!user) return;
   if (!(await isAdmin(user.id))) return fail(res, 403, "Only the site owner can do that.");
@@ -17,4 +17,4 @@ export default async function handler(req, res) {
   });
   await logEmail(to, "admin", user.id);
   send(res, 200, { sent: true });
-}
+});

@@ -14,7 +14,7 @@ await build({ entryPoints: [path.join(root, "src/platform/index.js")], bundle: t
 
 const env = (k) => process.env[k] || "";
 const site = env("SITE_URL") || (env("VERCEL_PROJECT_PRODUCTION_URL") ? "https://" + env("VERCEL_PROJECT_PRODUCTION_URL") : "");
-fs.writeFileSync(pub("config.js"), "window.BW_CONFIG = Object.assign(" + JSON.stringify({ supabaseUrl: env("SUPABASE_URL"), supabaseAnonKey: env("SUPABASE_ANON_KEY"), siteUrl: site }) + ", window.BW_CONFIG || {});\n");
+fs.writeFileSync(pub("config.js"), "window.BW_CONFIG = Object.assign(" + JSON.stringify({ supabaseUrl: env("SUPABASE_URL"), supabaseAnonKey: env("SUPABASE_ANON_KEY"), siteUrl: site, turnstileSiteKey: env("TURNSTILE_SITE_KEY") }) + ", window.BW_CONFIG || {});\n");
 
 // Legal pages carry the owner's contact address from CONTACT_EMAIL, so it stays out of the repo.
 for (const f of ["privacy.html", "terms.html"]) {

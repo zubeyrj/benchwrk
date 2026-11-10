@@ -271,13 +271,18 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { ui.emailErr = email ? "That doesn't look like an email address. Check it and try again." : "Enter your email address. Accounts need one."; ui.formErr = name ? "" : "Enter a display name so other members can see who's on the plan."; render(); document.getElementById("a-email").focus(); return; }
       ui.emailErr = "";
       if (!name) { ui.formErr = "Enter a display name so other members can see who's on the plan."; render(); document.getElementById("a-name").focus(); return; }
+      const invEl = document.getElementById("a-invite"), inv = invEl ? invEl.value.trim().toUpperCase() : "";
+      ui.inviteDraft = inv;
+      if (inv && !cohortByCode(inv, await loadCohortList())) { ui.inviteErr = "That code doesn't match an open cohort. Check it, or leave it blank and add it later."; render(); document.getElementById("a-invite").focus(); return; }
+      ui.inviteErr = "";
       ui.formErr = ""; ui.busy = true;
       const g = f.querySelector('input[name="a-goal"]:checked');
       const next = normalize(Object.assign({}, S, { account: Object.assign({ name: name.slice(0, 40), created: today() }, myEmail ? { verified: true } : { email: email.slice(0, 120) }), hpw: clampH(document.getElementById("a-hpw").value), goal: g ? g.value : "engineer", start: document.getElementById("a-start").value || S.start }));
       render();
       try {
+        if (inv) next.cohort = inv;
         await stateRef().set(JSON.parse(JSON.stringify(next)));
-        if (window.BW) window.BW.saveName(name.slice(0, 40)).catch(() => {});
+        if (window.BW) { window.BW.saveName(name.slice(0, 40)).catch(() => {}); if (window.BW.clearInvite) window.BW.clearInvite(); }
         S = next; lastSaved = JSON.stringify(S); ui.busy = false;
         phase = "loading-content"; render();
         await loadContent();

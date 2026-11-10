@@ -1,9 +1,9 @@
 // POST /api/nudge { to, kind: "cheer" | "nudge", text } -> emails your accountability partner.
 // Only between two members who have both accepted the pairing, at most 3 a day, and only if
 // the partner hasn't switched partner emails off.
-import { SITE, adminClient, esc, fail, footerFor, unsubLink, getDoc, layout, logEmail, p, readJson, requireUser, send, sendEmail, sentSince } from "./_lib.js";
+import { SITE, adminClient, esc, fail, footerFor, unsubLink, getDoc, layout, logEmail, p, readJson, requireUser, send, sendEmail, sentSince, withErrors } from "./_lib.js";
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "POST") return fail(res, 405, "Use POST.");
   const user = await requireUser(req, res); if (!user) return;
   const { to, kind, text } = await readJson(req);
@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   const [mine, theirs] = await Promise.all([getDoc("pairs/" + user.id), getDoc("pairs/" + to)]);
   const paired = mine && theirs && mine.partner === to && (theirs.partner === user.id || theirs.req === user.id);
   if (!paired) return fail(res, 403, "You can only message your accountability partner.", "not_partner");
+  const theirState = await getDoc("data/users/" + to + "/state");
+  if (theirState && Array.isArray(theirState.blocked) && theirState.blocked.indexOf(user.id) >= 0) return send(res, 200, { emailed: false, reason: "off" });
   const since = new Date(Date.now() - 864e5).toISOString();
   if ((await sentSince(user.id, "partner", since)) >= 3) return send(res, 200, { emailed: false, reason: "limit" });
   const { data: profile } = await adminClient().from("profiles").select("email, name, prefs, unsub_token").eq("id", to).maybeSingle();
@@ -29,4 +31,4 @@ export default async function handler(req, res) {
   await sendEmail({ to: profile.email, subject, html, unsubscribe: unsubLink(profile, "partner"), text: subject + (note ? '\n\n"' + note + '"' : "") + "\n\n" + SITE() });
   await logEmail(user.id, "partner", to);
   send(res, 200, { emailed: true });
-}
+});

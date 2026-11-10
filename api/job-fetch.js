@@ -3,7 +3,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
 import { extractJob } from "./_html.js";
-import { bumpAi, env, fail, readJson, requireUser, send, usageToday } from "./_lib.js";
+import { bumpAi, env, fail, readJson, requireUser, send, usageToday, withErrors } from "./_lib.js";
 
 function privateIp(ip) {
   if (net.isIPv4(ip)) {
@@ -42,7 +42,7 @@ async function fetchPage(url) {
   return { status: 400 };
 }
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "POST") return fail(res, 405, "Use POST.");
   const user = await requireUser(req, res); if (!user) return;
   const { url } = await readJson(req);
@@ -57,4 +57,4 @@ export default async function handler(req, res) {
   if (job.text.length < 200) return fail(res, 422, "Couldn't find a job description on that page. Copy the description and paste it in instead.", "no_text");
   job.text = job.text.slice(0, 15000);
   send(res, 200, job);
-}
+});

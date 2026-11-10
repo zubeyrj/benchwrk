@@ -2,7 +2,7 @@
 // Uses Adzuna and Reed when their free keys are set, plus Remotive and Arbeitnow, which need none.
 // (Scraping LinkedIn or Indeed breaks their terms, so Benchwork only reads feeds that are offered for this.)
 import { htmlToText } from "./_html.js";
-import { env, fail, requireUser, send } from "./_lib.js";
+import { env, fail, requireUser, send, withErrors } from "./_lib.js";
 
 const cache = new Map(); // key -> { at, body }
 const TTL = 20 * 60 * 1000;
@@ -60,7 +60,7 @@ export async function searchJobs(q, where, remote) {
   return body;
 }
 
-export default async function handler(req, res) {
+export default withErrors(async function handler(req, res) {
   if (req.method !== "GET") return fail(res, 405, "Use GET.");
   const user = await requireUser(req, res); if (!user) return;
   const p = new URL(req.url, "http://x").searchParams;
@@ -77,4 +77,4 @@ export default async function handler(req, res) {
   }
   try { send(res, 200, await searchJobs(q, where, remote)); }
   catch (e) { fail(res, 502, "Job search is unavailable right now. Paste a job advert instead."); }
-}
+});

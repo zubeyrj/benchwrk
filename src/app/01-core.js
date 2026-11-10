@@ -32,9 +32,9 @@
   // Five sections in the top bar; the pages inside each appear as tabs at the top of the section.
   const GROUPS = [
     { id: "today", label: "Today", pages: [["home", "Overview"], ["log", "Study log"]] },
-    { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["plan", "Your plan"], ["toolkit", "Toolkit"]] },
-    { id: "practise", label: "Practise", pages: [["practice", "Quizzes"], ["interview", "Interview room"]] },
+    { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["plan", "Your plan"], ["practice", "Quizzes"], ["toolkit", "Toolkit"]] },
     { id: "projects", label: "Projects", pages: [["projects", "Projects"]] },
+    { id: "career", label: "Career", pages: [["interview", "Interview room"], ["applications", "Applications"], ["career", "CV and pitch"]] },
     { id: "cohort", label: "Cohort", pages: [["cohort", "Cohort"]] },
   ];
   const NAV = GROUPS.reduce((a, g) => a.concat(g.pages), []);
@@ -93,7 +93,7 @@
   document.addEventListener("input", (e) => { const t = e.target; if (t.dataset && t.dataset.words) { const el = document.getElementById(t.dataset.words); if (el) el.textContent = dateWords(t.value); } });
 
   /* ---------- state ---------- */
-  function blank() { return { v: 4, account: null, tools: null, placement: null, hpw: 15, goal: "engineer", start: isoDate(mondayOf(new Date())), mods: {}, log: [], miss: {}, revs: 0, quests: {}, qxp: 0, onboarded: null, iv: { jobs: [], sessions: [], stories: [] } }; }
+  function blank() { return { v: 4, account: null, tools: null, placement: null, hpw: 15, goal: "engineer", start: isoDate(mondayOf(new Date())), mods: {}, log: [], miss: {}, revs: 0, quests: {}, qxp: 0, onboarded: null, iv: { jobs: [], sessions: [], stories: [] }, apps: [], career: { cv: null, pitch: null, debriefs: [] }, blocked: [], cohort: "", notifSeen: 0 }; }
   function normalize(o) {
     const n = Object.assign(blank(), o && typeof o === "object" ? o : {});
     if (!n.mods || typeof n.mods !== "object") n.mods = {};
@@ -103,6 +103,12 @@
     n.qxp = Number(n.qxp) || 0;
     if (!n.iv || typeof n.iv !== "object") n.iv = {};
     ["jobs", "sessions", "stories"].forEach((k) => { if (!Array.isArray(n.iv[k])) n.iv[k] = []; });
+    if (!Array.isArray(n.apps)) n.apps = [];
+    if (!n.career || typeof n.career !== "object") n.career = {};
+    if (!Array.isArray(n.career.debriefs)) n.career.debriefs = [];
+    if (!Array.isArray(n.blocked)) n.blocked = [];
+    if (typeof n.cohort !== "string") n.cohort = "";
+    n.notifSeen = Number(n.notifSeen) || 0;
     n.hpw = clampH(n.hpw);
     return n;
   }
@@ -291,7 +297,7 @@
   function persist() { clearTimeout(saveT); saveT = setTimeout(flush, 600); }
   function summary() {
     const c = counts();
-    const out = { lvl: levelInfo(points()).level, name: (S.account && S.account.name) || "", goal: S.goal, hours: r1(totalHours()), week: r1(thisWeekHours()), at: today(), pts: points(), streak: streak(), qp: c.quiz, xs: c.ex + c.exSol, ls: c.lessons, last: S.log.length ? S.log[0].d : "" };
+    const out = { lvl: levelInfo(points()).level, name: (S.account && S.account.name) || "", goal: S.goal, hours: r1(totalHours()), week: r1(thisWeekHours()), at: today(), pts: points(), streak: streak(), qp: c.quiz, xs: c.ex + c.exSol, ls: c.lessons, last: S.log.length ? S.log[0].d : "", co: S.cohort || "" };
     if (MOD.length && S.placement) {
       const pr = progress(), cur = currentRow(pr.p); out.pct = pr.pct; out.cur = cur ? cur.m.title : "Race day reached";
       out.behind = cur && cur.ed < parseDate(today()) ? Math.ceil((parseDate(today()) - cur.ed) / DAY) : 0;
@@ -351,11 +357,13 @@
       if (!mods.length || !docs.diag || !docs.toolkit) { phase = "nocontent"; return; }
       MOD = mods.map((m) => Object.assign({}, m, { resources: (m.resources || []).map((r) => ({ t: r[0], by: r[1], cost: r[2], url: r[3], note: r[4] || "" })) }));
       byId = Object.fromEntries(MOD.map((m) => [m.id, m]));
-      CT = { DIAG: docs.diag.items, TK: docs.toolkit };
+      CT = { DIAG: docs.diag.items, TK: docs.toolkit, COH: (docs.cohorts && Array.isArray(docs.cohorts.list)) ? docs.cohorts.list : [] };
       notice = docs.notice && docs.notice.text ? docs.notice : null;
       phase = "ready";
       subscribeCohort();
       subscribePairs();
+      subscribeShared();
+      loadMyReports();
       flush();
     } catch (e) { phase = "nocontent"; }
   }
@@ -384,7 +392,7 @@
       const me = myPairDoc(), mate = me && me.req ? pairs.find((x) => x.id === me.req) : null;
       if (me && mate && mate.partner === uid && me.partner !== mate.id) savePair({ partner: mate.id, req: null });
       if (me && me.partner) { const p = pairs.find((x) => x.id === me.partner); if (p && p.partner && p.partner !== uid) savePair({ partner: null }); }
-      if (["home", "cohort"].includes(route().name)) render();
+      if (["home", "cohort"].includes(route().name)) render(); else refreshNav();
     }, () => { pairs = pairs || []; });
   }
   const myPairDoc = () => (pairs || []).find((x) => x.id === uid) || null;
@@ -401,7 +409,7 @@
   }
   function subscribeShared() {
     if (sharedSubbed) return; sharedSubbed = true;
-    const rr = () => { if (["projects", "admin"].includes(route().name)) render(); };
+    const rr = () => { if (["projects", "admin"].includes(route().name)) render(); else refreshNav(); };
     db.collection("subs").onSnapshot((s) => { subs = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); rr(); }, () => { subs = subs || []; rr(); });
     db.collection("reviews").onSnapshot((s) => { reviews = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); rr(); }, () => { reviews = reviews || []; rr(); });
   }
