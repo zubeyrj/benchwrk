@@ -41,7 +41,7 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   let p = await page("fresh");
   ok("sign-up is the default", /Create your free account/.test(await text(p)));
   ok("Google button", await p.isVisible('[data-auth="google"]'));
-  ok("legal links", (await p.$$('a[href="/privacy.html"]')).length === 1 && (await p.$$('a[href="/terms.html"]')).length === 1);
+  ok("legal links", (await p.$$('a[href="privacy.html"]')).length === 1 && (await p.$$('a[href="terms.html"]')).length === 1);
   await shot(p, "a1-signup");
   await p.click('[data-form="signup"] button[type=submit]'); await p.waitForTimeout(150);
   ok("empty form shows three errors", (await p.$$('[aria-invalid="true"]')).length === 3);
