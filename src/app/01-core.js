@@ -29,7 +29,16 @@
   const PROJECTS = ["m7", "m8", "m9"];
   const PTS = { lesson: 10, ex: 25, exSol: 10, quiz: 50, hour: 5, cp: 20, sub: 100, rev: 30, iv: 75 };
   const DAY = 864e5;
-  const NAV = [["home", "Today"], ["courses", "Courses"], ["plan", "Plan"], ["practice", "Practice"], ["projects", "Projects"], ["interview", "Interview"], ["cohort", "Cohort"], ["log", "Log"], ["toolkit", "Toolkit"]];
+  // Five sections in the top bar; the pages inside each appear as tabs at the top of the section.
+  const GROUPS = [
+    { id: "today", label: "Today", pages: [["home", "Overview"], ["log", "Study log"]] },
+    { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["plan", "Your plan"], ["toolkit", "Toolkit"]] },
+    { id: "practise", label: "Practise", pages: [["practice", "Quizzes"], ["interview", "Interview room"]] },
+    { id: "projects", label: "Projects", pages: [["projects", "Projects"]] },
+    { id: "cohort", label: "Cohort", pages: [["cohort", "Cohort"]] },
+  ];
+  const NAV = GROUPS.reduce((a, g) => a.concat(g.pages), []);
+  const groupOf = (page) => GROUPS.find((g) => g.pages.some((p) => p[0] === page)) || null;
   const LEVELS = ["Starter", "Tinkerer", "Builder", "Maker", "Engineer", "Shipper", "Architect"];
   const QUESTS = [["hours", "Log your weekly hours", 100], ["lessons", "Read 3 lessons", 50], ["ex", "Solve 3 exercises", 75], ["quiz", "Pass or review a quiz", 50]];
   const $app = document.getElementById("app");

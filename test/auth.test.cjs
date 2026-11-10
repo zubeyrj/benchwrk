@@ -73,7 +73,7 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   ok("state saved to the member's private path", await p.evaluate((uid) => window.__fakeSupabase.tables.docs.some((d) => d.path === "data/users/" + uid + "/state" && d.data.account.name === "Amira"), uid));
   ok("cohort summary saved", await p.evaluate((uid) => window.__fakeSupabase.tables.docs.some((d) => d.path === "learners/" + uid), uid));
   ok("profile name saved", await p.evaluate(() => window.__fakeSupabase.tables.profiles[0].name === "Amira"));
-  ok("not admin", !/Admin/.test(await p.textContent("#nav")));
+  ok("not admin", !/Admin/.test(await p.textContent("#nav")) && !/Admin/.test(await p.textContent("#me")));
   await p.click('.welcome-modal [data-act="welcomedone"]').catch(() => {}); await p.waitForTimeout(200);
   await p.evaluate(() => location.hash = "course-m13"); await p.waitForTimeout(500);
   ok("course content loads through the runtime", /Programming from zero/.test(await text(p)));

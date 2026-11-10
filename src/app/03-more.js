@@ -84,7 +84,7 @@
     const opts = MOD.filter((m) => inPlan(m.id)).map((m) => '<option value="' + m.id + '"' + (cur && cur.m.id === m.id ? " selected" : "") + ">" + esc(m.title) + "</option>").join("");
     const list = S.log.length ? '<ul class="rl">' + S.log.slice(0, 60).map((e) => '<li><span class="state n" style="width:60px;color:var(--ink)">' + fmt(parseDate(e.d)) + '</span><span class="n" style="width:56px"><b>' + r1(e.h) + ' h</b></span><span class="grow">' + esc(byId[e.m] ? byId[e.m].title : "General") + (e.n ? '<br><span class="xs muted">' + esc(e.n) + "</span>" : "") + '</span><button class="link xs" data-act="dellog" data-id="' + esc(e.id) + '">Delete</button></li>').join("") + "</ul>"
       : '<div class="empty"><h3>No sessions yet</h3><p>Log tonight\'s session with the form. Your plan fills cell by cell as you go.</p></div>';
-    return '<h1>Log</h1><p class="lede"><span class="n">' + r1(totalHours()) + "</span> hours logged, " + (streak() ? plural(streak(), "week") + " streak" : "no streak yet") + ". Logging takes ten seconds and keeps your dates honest.</p>" +
+    return '<h1>Study log</h1><p class="lede"><span class="n">' + r1(totalHours()) + "</span> hours logged, " + (streak() ? plural(streak(), "week") + " streak" : "no streak yet") + ". Logging takes ten seconds and keeps your dates honest.</p>" +
       '<div class="cols sec" style="margin-top:24px"><div class="stack"><div class="card"><h2>Weekly hours</h2>' + chart + '<p class="xs muted" style="margin:0">Green weeks hit your target. This week is in orange.</p></div><div class="card"><h2>Sessions</h2>' + list + "</div></div>" +
       '<aside><form id="logform" class="card"><h2>Log a session</h2>' +
       '<div class="two"><div class="field"><label for="l-d">Date</label><input id="l-d" type="date" value="' + today() + '" required></div>' +
@@ -374,23 +374,19 @@
     setTimeout(() => { const b = el.querySelector("[data-act=tour]"); if (b) b.focus(); }, 50);
   }
   const TOUR = [
-    ["home", "Today", "Your home base. Your next step, a countdown to your finish line, this week's quests and your partner all live here."],
-    ["courses", "Courses", "15 courses in four tracks. Each has short lessons, coding exercises that run in your browser, a quiz and a build."],
-    ["plan", "Plan", "Your dated week-by-week plan at your hours, from today to race day: your first offer."],
-    ["practice", "Practice", "Ten-question rounds with instant feedback. Anything you miss comes back until it sticks."],
+    ["today", "Today", "Your home base: your next step, the countdown to your finish line, this week's quests and your partner. Your study log lives here too; log a session in ten seconds and everything updates."],
+    ["learn", "Learn", "15 courses in four tracks, each with short lessons, coding exercises that run in your browser, a quiz and a build. Your dated plan and the toolkit sit alongside."],
+    ["practise", "Practise", "Ten-question quiz rounds that bring back what you miss, and the Interview room: mock interviews built from a real job advert, with a scorecard."],
     ["projects", "Projects", "Three real projects with checkpoints. Share them for peer review and review others for XP."],
-    ["interview", "Interview", "Mock interviews with an AI interviewer, built from a real job advert you paste or find here. One question at a time, then a scorecard."],
     ["cohort", "Cohort", "The club table, and where you pick an accountability partner to keep each other on track."],
-    ["log", "Log", "Log a study session in ten seconds. Your streak, countdowns and dates all update from it."],
-    ["toolkit", "Toolkit", "Your weekly rhythm, the software to install and which certification is worth paying for."],
-    ["me", "Your streak, level and settings", "Streaks count weeks you hit 60% of your hours. XP comes from real work. Tap your initial for settings."],
+    ["me", "Your streak, level and account", "Streaks count weeks you hit 60% of your hours. XP comes from real work. Tap your initial for settings."],
     ["start", "Last thing: your plan", "Two short steps build your plan: rate the tools you've used, then a quick placement. Do it now or after a look around."],
   ];
   let tourI = -1;
   function tourTarget(key) {
     if (key === "me") return document.getElementById("me");
     if (key === "start") return document.querySelector('.hero a.btn[href="#placement"]') || document.querySelector(".hero");
-    return document.querySelector('#nav a[href="#' + key + '"]');
+    return document.querySelector('#nav a[data-group="' + key + '"]');
   }
   function endTour() {
     tourI = -1; document.querySelectorAll(".tour-dim,.tour-pop,.tour-ring,.welcome-modal").forEach((x) => x.remove());

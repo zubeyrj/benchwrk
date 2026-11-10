@@ -37,6 +37,9 @@
     ui.prac = { mode, qs: shuffle(qs), i: 0, ans: {}, res: [] };
     render(); scrollTop();
   }
+  // Close the account menu on any click outside it, and on Escape.
+  document.addEventListener("click", (e) => { const m = document.querySelector("details.acct[open]"); if (m && !m.contains(e.target)) m.removeAttribute("open"); }, true);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const m = document.querySelector("details.acct[open]"); if (m) { m.removeAttribute("open"); m.querySelector("summary").focus(); } } });
   document.addEventListener("click", (e) => {
     const sk = e.target.closest(".skip"); if (sk) { e.preventDefault(); $app.focus(); return; }
     const b = e.target.closest("[data-act]");

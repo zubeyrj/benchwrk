@@ -30,12 +30,19 @@
     const r = 24, c = 2 * Math.PI * r, s = size || 56;
     return '<svg class="ring" style="--s:' + s + 'px;--c:' + (color || "var(--accent)") + '" viewBox="0 0 56 56" role="img" aria-label="' + esc(label || Math.round(f * 100) + "%") + '"><circle class="tr" cx="28" cy="28" r="' + r + '"/><circle class="fg" cx="28" cy="28" r="' + r + '" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - Math.max(0, Math.min(1, f)))).toFixed(1) + '" transform="rotate(-90 28 28)"/></svg>';
   }
+  const GICON = {
+    today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    learn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>',
+    practise: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+    projects: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>',
+    cohort: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  };
   function renderNav(active) {
-    const items = NAV.concat(isOwner ? [["admin", "Admin"]] : []);
-    document.getElementById("nav").innerHTML = items.map((n) => '<a href="#' + n[0] + '"' + (n[0] === active ? ' aria-current="page"' : "") + ">" + n[1] + "</a>").join("");
+    const g = groupOf(active);
+    document.getElementById("nav").innerHTML = GROUPS.map((x) => '<a href="#' + x.pages[0][0] + '" data-group="' + x.id + '"' + (g && g.id === x.id ? ' aria-current="page"' : "") + ">" + GICON[x.id] + "<span>" + x.label + "</span></a>").join("");
     if (!S.account) { document.getElementById("me").innerHTML = ""; return; }
     const xp = points(), L = levelInfo(xp), st = streak();
-    document.getElementById("me").innerHTML = '<span class="chip" title="Weekly streak">' + '<span style="color:#ff8a5c">' + SVG.fire + '</span><span class="n">' + st + '</span></span><span class="chip lvl" title="' + L.into + " of " + L.need + ' XP to the next level"><span style="color:var(--xp)">' + SVG.bolt + '</span><span class="n">Lv ' + L.level + " · " + xp + ' XP</span></span><a class="avatar" href="#settings" aria-label="Settings for ' + esc(S.account.name) + '">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + "</a>";
+    document.getElementById("me").innerHTML = '<span class="chip" title="Weekly streak">' + '<span style="color:#ff8a5c">' + SVG.fire + '</span><span class="n">' + st + '</span></span><span class="chip lvl" title="' + L.into + " of " + L.need + ' XP to the next level"><span style="color:var(--xp)">' + SVG.bolt + '</span><span class="n">Lv ' + L.level + " · " + xp + ' XP</span></span><details class="acct"><summary class="avatar" aria-label="Account menu for ' + esc(S.account.name) + '">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + '</summary><div class="acct-menu" role="menu"><div class="acct-who"><b>' + esc(S.account.name) + "</b>" + (myEmail ? '<span>' + esc(myEmail) + "</span>" : "") + '</div><a role="menuitem" href="#settings"' + (active === "settings" ? ' aria-current="page"' : "") + ">Settings</a>" + (isOwner ? '<a role="menuitem" href="#admin"' + (active === "admin" ? ' aria-current="page"' : "") + ">Admin</a>" : "") + (window.BW ? '<button role="menuitem" data-act="signout">Sign out</button>' : "") + "</div></details>";
   }
   const NAVOF = { course: "courses", lesson: "courses", ex: "courses", quiz: "courses", cert: "courses", placement: "home" };
   function render() {
@@ -54,6 +61,8 @@
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
         else html = V[r.name](r);
+        const G = groupOf(r.name);
+        if (G && G.pages.length > 1 && !r.sub && !r.id) html = '<nav class="subnav" aria-label="' + G.label + '">' + G.pages.map((p) => '<a href="#' + p[0] + '"' + (p[0] === r.name ? ' aria-current="page"' : "") + ">" + p[1] + "</a>").join("") + "</nav>" + html;
       }
     } catch (e) { console.error(e); html = '<div class="empty"><h3>This page didn\'t load</h3><p>Reload the portal. Your progress is saved.</p></div>'; }
     $app.innerHTML = html;
@@ -290,7 +299,7 @@
       list.forEach((m) => {
         const r = p.rows.find((x) => x.m.id === m.id), lx = LX[m.id], f = courseFrac(m.id), cur = currentRow(p);
         html += '<a class="card node" style="display:block;padding:18px" href="#course-' + m.id + '"><div class="row between" style="margin-bottom:10px">' + (r ? lvTag(r.lv, r.done) || '<span class="tag">Core</span>' : '<span class="tag skip">Skipped by placement</span>') + (cur && cur.m.id === m.id ? '<span class="tag" style="--c:var(--accent);background:var(--accent-soft);color:var(--accent-text)">Current</span>' : "") + "</div>" +
-          '<h3 style="font-size:18px">' + esc(m.title) + '</h3><p class="xs muted" style="margin:0 0 12px">' + m.lessons.length + " lessons" + (lx ? " · " + lx.ex.length + " exercises" : "") + (r ? " · " + r.hours + " h · " + weekRange(p, r) : "") + '</p><span class="bar' + (f >= 1 ? " ok" : "") + '"><i style="--f:' + f.toFixed(3) + '"></i></span><p class="xs muted" style="margin:6px 0 0">' + Math.round(f * 100) + "% complete" + (quizInfo(m.id).attempts ? " · quiz best " + quizInfo(m.id).best + "%" : "") + "</p></a>";
+          '<h3 style="font-size:18px">' + esc(m.title) + '</h3><p class="xs muted" style="margin:0 0 12px">' + plural(m.lessons.length, "lesson") + (lx ? " · " + plural(lx.ex.length, "exercise") : "") + (r ? " · " + r.hours + " h · " + weekRange(p, r) : "") + '</p><span class="bar' + (f >= 1 ? " ok" : "") + '"><i style="--f:' + f.toFixed(3) + '"></i></span><p class="xs muted" style="margin:6px 0 0">' + Math.round(f * 100) + "% complete" + (quizInfo(m.id).attempts ? " · quiz best " + quizInfo(m.id).best + "%" : "") + "</p></a>";
       });
       html += "</div></div>";
     });

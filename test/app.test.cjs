@@ -58,7 +58,7 @@ let BASE = '';
   await p.click('.welcome-modal [data-act="tour"]'); await p.waitForTimeout(300);
   ok('tour starts', await p.isVisible('.tour-pop'));
   await shot(p, '02c-tour', false);
-  for (let i = 0; i < 10; i++) { await p.click('.tour-pop [data-act="tournext"]'); await p.waitForTimeout(120); if (i === 4) await shot(p, '02d-tour-mid', false); }
+  for (let i = 0; i < 6; i++) { await p.click('.tour-pop [data-act="tournext"]'); await p.waitForTimeout(120); if (i === 1) await shot(p, '02d-tour-mid', false); }
   await shot(p, '02e-tour-end', false);
   await p.click('.tour-pop [data-act="tournext"]'); await p.waitForTimeout(150);
   ok('tour ends', !(await p.isVisible('.tour-pop')) && await p.evaluate(() => !!(window.__store.get('data/users/u1/state') || {}).onboarded || true));
@@ -202,9 +202,23 @@ let BASE = '';
   ok('cheer emails partner', await p.evaluate(() => window.__api.some((c) => c.path === '/api/nudge' && c.body.to === 'u2' && c.body.kind === 'cheer' && c.body.text)));
 
   // settings extras: account, emails, calendar, data
+  // navigation structure
+  await go(p, 'courses', 300);
+  ok('Learn tabs on Courses', (await p.$$eval('.subnav a', (a) => a.map((x) => x.textContent))).join(',') === 'Courses,Your plan,Toolkit' && (await p.getAttribute('#nav a[aria-current="page"]', 'data-group')) === 'learn');
+  await go(p, 'course-m13', 300);
+  ok('deep pages keep the section lit, no tabs', (await p.getAttribute('#nav a[aria-current="page"]', 'data-group')) === 'learn' && (await p.$$('.subnav')).length === 0);
+  await go(p, 'log', 300);
+  ok('Study log sits under Today', (await p.getAttribute('#nav a[aria-current="page"]', 'data-group')) === 'today' && /Overview/.test(await p.textContent('.subnav')));
+  await p.click('.acct summary'); await p.waitForTimeout(100);
+  ok('account menu has settings and admin for the owner', await p.isVisible('.acct-menu a[href="#settings"]') && await p.isVisible('.acct-menu a[href="#admin"]') && await p.isVisible('.acct-menu [data-act="signout"]'));
+  await shot(p, '29-acct-menu', false);
+  await p.click('main'); await p.waitForTimeout(80);
+  ok('account menu closes on outside click', !(await p.isVisible('.acct-menu')));
+
   // interview room
   await go(p, 'interview', 400);
-  ok('interview room in nav', /Interview/.test(await p.textContent('#nav')) && /Practise the interview before it counts/.test(await p.textContent('main')));
+  ok('five sections in the top bar', (await p.$$eval('#nav a', (a) => a.map((x) => x.textContent.trim()))).join(',') === 'Today,Learn,Practise,Projects,Cohort');
+  ok('interview room under Practise', (await p.getAttribute('#nav a[aria-current="page"]', 'data-group')) === 'practise' && /Quizzes/.test(await p.textContent('.subnav')) && (await p.getAttribute('.subnav a[aria-current="page"]', 'href')) === '#interview' && /Practise the interview before it counts/.test(await p.textContent('main')));
   await shot(p, '30-iv-hub');
   await p.click('a[href="#iv-stories"]'); await p.waitForTimeout(250);
   await p.fill('#st-title', 'Weekend RAG demo'); await p.fill('#st-a', 'I built retrieval over 200 policy PDFs.'); await p.fill('#st-r', 'Answers went from 40% to 85% correct on my eval set.');
@@ -270,7 +284,7 @@ let BASE = '';
   await p.fill('#del-confirm', 'delete'); await p.click('#delform button[type=submit]'); await p.waitForTimeout(120);
   ok('delete needs DELETE in capitals', await p.isVisible('#del-err') && !(await p.evaluate(() => window.__api.some((c) => c.path === '/api/me-delete'))));
   await p.click('[data-act="delcancel"]'); await p.waitForTimeout(100);
-  await p.click('[data-act="signout"]'); await p.waitForTimeout(100);
+  await p.click('main [data-act="signout"]'); await p.waitForTimeout(100);
   ok('sign out', await p.evaluate(() => window.__signedOut === true));
   await shot(p, '24-home-partner');
   // admin
@@ -296,6 +310,8 @@ let BASE = '';
   // 11. phone
   const mob = await page({state: { account: { name: 'Z', created: '2026-11-09' }, tools: rate, placement: { scores: { python: 33, eng: 0, web: 50, sql: 100, cloud: 0, llm: 0 }, at: '2026-11-09' }, hpw: 15, goal: 'engineer', start: '2026-11-09', mods: {}, log: [], miss: {} }}, { width: 390, height: 844 }); await mob.waitForTimeout(800);
   await shot(mob, '30-m-home'); await overflow(mob, 'phone home');
+  ok('phone: sections become a bottom tab bar', await mob.$eval('#nav', (n) => { const r = n.getBoundingClientRect(); return getComputedStyle(n).position === 'fixed' && Math.abs(r.bottom - innerHeight) < 2 && n.children.length === 5; }));
+  ok('phone: tab bar targets are big enough', await mob.$$eval('#nav a', (a) => a.every((x) => x.getBoundingClientRect().height >= 44 && x.getBoundingClientRect().width >= 60)));
   for (const [h, n] of [['lesson-m13-2', '31-m-lesson'], ['ex-m13-z3', '32-m-ex'], ['plan', '33-m-plan'], ['practice', '34-m-practice'], ['cohort', '35-m-cohort']]) { await go(mob, h, 600); await shot(mob, n); await overflow(mob, 'phone ' + h); }
   // 12. dark
   const dk = await page({state: { account: { name: 'Z', created: '2026-11-09' }, tools: rate, placement: { scores: { python: 33, eng: 0, web: 50, sql: 100, cloud: 0, llm: 0 }, at: '2026-11-09' }, hpw: 15, goal: 'engineer', start: '2026-11-09', mods: { m13: { checks: { 0: 1 } } }, log: [{ id: 'a', d: new Date().toISOString().slice(0, 10), h: 1, m: 'm13' }], miss: {} }}, { width: 1366, height: 900 }, 'dark'); await dk.waitForTimeout(800); await shot(dk, '40-d-home', false);
@@ -314,7 +330,7 @@ let BASE = '';
   ok('account created with typed email', await ne.evaluate(() => ((window.__store.get('data/users/u1/state') || {}).account || {}).email === 'sam@example.org'));
   // a member who is not the owner can't see admin
   const mem = await page({ owner: false , state: { account: { name: 'Z' }, tools: rate, placement: { scores: { python: 33 }, at: '2026-11-09' }, hpw: 15, start: '2026-11-09', mods: {}, log: [] }}); await mem.waitForTimeout(600);
-  ok('no admin link for members', !(/Admin/.test(await mem.textContent('#nav'))));
+  ok('no admin link for members', !(/Admin/.test(await mem.textContent('#nav'))) && !(/Admin/.test(await mem.textContent('#me'))));
   await go(mem, 'admin', 300); ok('admin route blocked for members', !/Content editor/.test(await mem.textContent('main')));
 
   await browser.close(); server.close();
