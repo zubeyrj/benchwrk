@@ -15,6 +15,9 @@ peer review, accountability partners, XP and streaks, and an AI tutor.
 | Python and SQL in the browser | `public/runner.js`, `public/harness.txt` | Pyodide and sql.js in a Web Worker, with tests per exercise |
 | Interview room | `src/app/03b-interview.js`, `api/interviewer.js`, `api/jobs.js`, `api/job-fetch.js` | Job advert decode, live job search, AI mock interviews (one question at a time, follow-ups), self-reflection, five-dimension scorecards, a STAR storybank |
 | API | `api/*.js` (Vercel functions) | Tutor (Claude), data export and deletion, partner emails, owner emails, content loading, public certificates, unsubscribe |
+| Leagues | `api/_league.js`, `api/cron/league.js`, `src/app/03j-league.js` | Weekly leagues of up to 20 in six tiers, settled every Monday; one pool for everyone |
+| Portfolios | `api/portfolio.js`, `src/app/03k-portfolio.js` | Public page per member at `/p/<name>` with projects, peer reviews and certificates |
+| Backups | `api/backup.js`, `api/_backup.js`, `scripts/restore.mjs` | Encrypted weekly backup emailed to the owner, download on demand, restore script |
 | Reminders | `api/cron/*.js`, `api/_nudge.js`, `.github/workflows/nudge.yml` | Sunday progress email; Duolingo-style reminders at four strengths, by phone or browser notification or email, checked hourly in each member's time zone |
 | Career | `src/app/03d-career.js` | Applications tracker with dates and calendar files, CV review, "tell me about yourself" pitch, real-interview debrief, comparing adverts |
 | Community safety | `src/app/03c-trust.js`, `api/admin-moderate.js` | Cohorts and invite codes, report and block, notifications, the owner's reports queue, suspensions, errors and system check |

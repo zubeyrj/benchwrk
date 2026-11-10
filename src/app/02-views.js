@@ -1,6 +1,6 @@
 
   /* ---------- router ---------- */
-  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "library", "problems", "glossary", "routes", "log", "cohort", "toolkit", "placement", "settings", "admin"];
+  const SIMPLE = ["league", "portfolio", "home", "plan", "courses", "practice", "projects", "interview", "applications", "career", "library", "problems", "glossary", "routes", "log", "cohort", "toolkit", "placement", "settings", "admin"];
   function route() {
     let h = decodeURIComponent((location.hash || "#home").slice(1));
     if (h === "roadmap") h = "plan";
@@ -66,7 +66,7 @@
       else {
         const r = route();
         renderNav(NAVOF[r.name] || r.name);
-        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
+        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, league: vLeague, portfolio: vPortfolio, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
         else html = V[r.name](r) + pageFooter(r);
@@ -84,14 +84,28 @@
     if (phase === "ready" && lastLevel === null) lastLevel = levelInfo(points()).level;
     if (phase === "ready" && S.placement) { const fresh = claimQuests(); if (fresh.length) setTimeout(() => celebrate("Quest complete: " + fresh[0].title, "+" + fresh.reduce((a, q) => a + q.xp, 0) + " XP"), 250); }
   }
-  window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
+  // On a page change: name the tab after the page and move focus to its heading, so a screen reader
+  // starts reading the new page instead of staying on a link that no longer exists.
+  function pageTitle() {
+    const r = route(), h = $app.querySelector("h1"), p = NAV.find((x) => x[0] === r.name);
+    const t = (h && h.textContent.trim()) || (p && p[1]) || "";
+    document.title = (t ? t.slice(0, 60) + " · " : "") + "Benchwork";
+  }
+  window.addEventListener("hashchange", () => {
+    render(); window.scrollTo(0, 0);
+    if (phase !== "ready") return;
+    pageTitle();
+    const h = $app.querySelector("h1"), a = document.activeElement;
+    if (a && a !== document.body && $app.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); } else $app.focus({ preventScroll: true });
+  });
 
   /* ---------- rewards: a short, specific moment when something real was finished ---------- */
   let rewardT, lastLevel = null;
   function celebrate(title, sub) {
     const xp = points(), L = levelInfo(xp), up = lastLevel !== null && L.level > lastLevel; lastLevel = L.level;
     document.querySelectorAll(".reward").forEach((x) => x.remove());
-    const el = document.createElement("div"); el.className = "reward"; el.setAttribute("role", "status");
+    const el = document.createElement("div"); el.className = "reward"; el.setAttribute("aria-hidden", "true"); announce((up ? "Level " + L.level + ": " + L.title + ". " : "") + title + ". " + (sub || ""));
     el.innerHTML = '<span class="ico">' + SVG.bolt + "</span><div><b>" + esc(up ? "Level " + L.level + ": " + L.title : title) + "</b><span>" + esc(up ? title + ". " + (sub || "") : sub || "") + '</span><span class="bar xp thin"><i style="--f:' + L.f.toFixed(3) + '"></i></span></div>';
     document.body.appendChild(el);
     clearTimeout(rewardT); rewardT = setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 220); }, 3200);
@@ -236,7 +250,7 @@
     return remindBanner() + hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your week</h2><div class="row"><button class="btn line sm" data-act="qlog" data-h="1">Log 1 hour</button><button class="btn line sm" data-act="qlog" data-h="2">Log 2 hours</button></div></div><div style="margin-top:14px">' + stripHtml(thisWeekDays()) + "</div></div>" +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your path</h2><a class="link small" href="#plan">See the dated plan</a></div>' + pathHtml(p, 5) + "</div></div>" +
-      "<aside>" + remindAskCard() + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
+      "<aside>" + remindAskCard() + homeLeagueCard() + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
   }
   function pathHtml(p, around) {
     const rows = p.rows, cur = currentRow(p), ci = cur ? rows.indexOf(cur) : rows.length;

@@ -23,6 +23,7 @@ export function localParts(now, tz) {
 }
 
 const daysBetween = (a, b) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 864e5);
+const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
 function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 // What the member's week looks like right now, in their own time zone.
@@ -62,6 +63,9 @@ const C = {
     ["Your streak is looking nervous", "{left} to go before Sunday. It's counting on you."]],
   partner: [["{p} is beating you this week", "{p} has logged {ph}. You've logged {have}. Just saying."],
     ["{p} studied. Did you?", "{p} is on {ph} this week. Your turn."]],
+  ldown: [["You're about to drop out of {tier}", "You're {lr} of {ln}. Earn some XP before Sunday night or you go down a league."],
+    ["Relegation zone", "{lr} of {ln} in the {tier} league. One lesson moves you up the table."]],
+  lnear: [["{gap} XP from promotion", "You're {lr} in the {tier} league. The top {k} go up on Monday."]],
   d1: [["Your bench is getting cold", "No session yet today. Twenty minutes on {cur} counts."],
     ["Still waiting", "Today's lesson is ready when you are. It's been ready for a while."],
     ["Quick one?", "One exercise from {cur}. Ten minutes. We'll stop asking today."]],
@@ -78,6 +82,8 @@ export function pickCopy(s, slot, seed) {
   let pool;
   if (s.atRisk && s.sunday) pool = C.last;
   else if (s.atRisk && (s.quiet < 4 || slot === "eve")) pool = C.risk;
+  else if (s.league && s.league.zone === "down" && s.L && [5, 6, 0].indexOf(s.L.dow) >= 0) pool = C.ldown;
+  else if (s.league && s.league.gapUp && s.league.rank === s.league.k + 1 && s.quiet < 15) pool = C.lnear;
   else if (s.partner && s.partner.hours > s.have && s.quiet < 15 && (hash(seed + "p") % 3 === 0)) pool = C.partner;
   else if (s.quiet > 14) pool = C.d15;
   else if (s.quiet >= 7) pool = C.d7;
@@ -86,6 +92,7 @@ export function pickCopy(s, slot, seed) {
   else pool = C.d1;
   const [t, b] = pool[hash(seed) % pool.length];
   const fill = (x) => x.replace(/\{w\}/g, s.weeks).replace(/\{left\}/g, hrs(s.left)).replace(/\{have\}/g, hrs(s.have)).replace(/\{need\}/g, hrs(s.need))
-    .replace(/\{q\}/g, s.quiet).replace(/\{cur\}/g, s.cur).replace(/\{p\}/g, s.partner ? s.partner.name : "Your partner").replace(/\{ph\}/g, s.partner ? hrs(s.partner.hours) : "");
+    .replace(/\{q\}/g, s.quiet).replace(/\{cur\}/g, s.cur).replace(/\{p\}/g, s.partner ? s.partner.name : "Your partner").replace(/\{ph\}/g, s.partner ? hrs(s.partner.hours) : "")
+    .replace(/\{tier\}/g, s.league ? s.league.tier : "").replace(/\{lr\}/g, s.league ? ordinal(s.league.rank) : "").replace(/\{ln\}/g, s.league ? s.league.n : "").replace(/\{gap\}/g, s.league ? s.league.gapUp : "").replace(/\{k\}/g, s.league ? s.league.k : "");
   return { title: fill(t), body: fill(b) };
 }

@@ -9,8 +9,17 @@
     const u = sb._addUser("you@gmail.com", "x", { full_name: "Preview User" }, true, "google");
     const s = sb._signInAs("you@gmail.com"); setTimeout(() => window.__previewEmit && window.__previewEmit("SIGNED_IN", s), 300); return { error: null };
   };
+  // Sample members for the league table. Whoever signs in joins their Bronze group.
+  const wk = (() => { const d = new Date(), x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();
+  const RIVALS = [["Amira", 410, 4, "Python for engineers"], ["Tom", 265, 3, "SQL and data"], ["Priya", 190, 3, "Calling LLM APIs"], ["Kwame", 120, 2, "Programming from zero"], ["Sofia", 75, 2, "Python for engineers"], ["Dan", 30, 1, "Programming from zero"], ["Lena", 0, 1, "Rating their tools"]];
+  const league = { wk, tier: {}, group: {}, last: {}, kept: {} };
+  RIVALS.forEach((r, i) => { const id = "sample-" + i; sb._doc("learners/" + id, { name: r[0], wk, wxp: r[1], lvl: r[2], cur: r[3], at: new Date().toISOString().slice(0, 10), pts: r[1] * 3, hours: r[2] * 6, week: Math.round(r[1] / 40), streak: r[2] - 1, pct: r[2] * 7, goal: "engineer", behind: 0 }); league.tier[id] = 0; league.group[id] = "0-0"; });
+  sb._doc("content/league", league);
   const on = sb.auth.onAuthStateChange;
-  sb.auth.onAuthStateChange = (fn) => { window.__previewEmit = fn; return on(fn); };
+  sb.auth.onAuthStateChange = (fn) => {
+    const wrap = (ev, s) => { if (s && s.user && !league.group[s.user.id]) { league.tier[s.user.id] = 0; league.group[s.user.id] = "0-0"; sb._doc("content/league", league); } fn(ev, s); };
+    window.__previewEmit = wrap; return on(wrap);
+  };
   sb.auth.resetPasswordForEmail = async () => ({ error: null });
   window.__fakeSupabase = sb;
   window.BW_CONFIG = { siteUrl: SITE };
@@ -87,6 +96,8 @@
     if (u === "/api/interviewer") { await wait(b.mode === "score" ? 1200 : 400); return json(b.mode === "decode" ? decode(b) : b.mode === "ask" ? ask(b) : score(b)); }
     if (u === "/api/health") { if (b.test) return json({ error: "The preview can't send email." }, 400); return json({ checks: [{ name: "Database", ok: true, note: "Preview: in-memory" }, { name: "Tutor and interviewer (Claude)", ok: false, note: "The preview uses sample answers" }, { name: "Email", ok: false, note: "Not connected in the preview" }, { name: "Live job search", ok: true, warn: true, note: "Sample jobs only" }, { name: "Sign-up protection", ok: true, warn: true, note: "Off in the preview" }] }); }
     if (u === "/api/admin-moderate") return json({ ok: true });
+    if (u === "/api/backup") return json({ error: "The preview has no database to back up. On the live site this downloads an encrypted copy." }, 503);
+    if (u === "/api/push") return json({ error: "Notifications work on the live site." }, 503);
     if (u === "/api/report-error") return json({ ok: true });
     if (u.indexOf("/api/jobs") === 0) return json({ jobs: JOBS, sources: [{ name: "remotive", ok: true, count: 2 }] });
     if (u === "/api/job-fetch") return json({ error: "The preview can't open other websites. Paste the advert text instead." }, 422);

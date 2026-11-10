@@ -47,6 +47,7 @@ window.__mock = function (seed, opts) {
         return { ok: true }; },
       prefs: async () => Object.assign({}, prefs), savePrefs: async (p) => { window.__prefs = p; }, saveName: async (n) => { window.__savedName = n; },
       issueCert: async (c) => { window.__cert = c; return "https://benchwork.test/c/0123456789abcdef"; },
+      portfolio: (() => { let row = opts.portfolio || null; window.__pf = () => row; return { url: (s) => "https://benchwork.test/p/" + s, get: async () => row, save: async (p) => { if (p.slug === "taken-name") throw Object.assign(new Error("dup"), { code: "taken" }); row = Object.assign({}, row || {}, p); }, list: async () => (row && row.published ? [Object.assign({ user_id: "u1" }, row)] : []) }; })(),
       push: (() => { let on = false; window.__push = { calls: [] }; return { support: () => (opts.pushSupport || "ready"), on: async () => on, enable: async () => { window.__push.calls.push("enable"); if (opts.pushDeny) return { ok: false, reason: "blocked" }; on = true; return { ok: true }; }, disable: async () => { window.__push.calls.push("disable"); on = false; }, test: async () => { window.__push.calls.push("test"); return { sent: 1 }; } }; })(),
       tutorUsage: async () => [{ user_id: "u1", day: "2026-11-09", calls: 12, in_tokens: 40000, out_tokens: 9000 }],
       signOut: async () => { window.__signedOut = true; },

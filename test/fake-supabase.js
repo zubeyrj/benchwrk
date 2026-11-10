@@ -3,7 +3,7 @@
 (function (root) {
   function makeFakeSupabase(opts) {
     opts = opts || {};
-    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [], errors: [], push_subs: [] };
+    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [], errors: [], push_subs: [], portfolios: [], app_settings: [] };
     const users = {}; // id -> { id, email, password, confirmed, user_metadata, app_metadata, created_at }
     const tokens = {}; // access token -> user id
     const listeners = [];
@@ -12,7 +12,7 @@
     const clone = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
     const uuid = () => { seq++; return ("00000000-0000-4000-8000-" + String(seq).padStart(12, "0")); };
     const today = () => new Date().toISOString().slice(0, 10);
-    const keyOf = { docs: ["path"], profiles: ["id"], admins: ["user_id"], certs: ["user_id", "course"], ai_usage: ["user_id", "day", "kind"] };
+    const keyOf = { docs: ["path"], profiles: ["id"], admins: ["user_id"], certs: ["user_id", "course"], ai_usage: ["user_id", "day", "kind"], portfolios: ["user_id"] };
 
     function decorate(t, row) {
       if (t === "docs") { row.parent = row.path.replace(/\/[^/]+$/, ""); row.updated_at = new Date().toISOString(); }
@@ -37,6 +37,7 @@
         lt(c, v) { st.filters.push((r) => r[c] < v); return b; },
         order(c) { st.order = c; return b; },
         limit(n) { st.limit = n; return b; },
+        range(a, z) { st.range = [a, z]; return b; },
         insert(rows) { st.op = "insert"; st.payload = [].concat(rows); return b; },
         upsert(rows, o) { st.op = "upsert"; st.payload = [].concat(rows); st.conflict = o && o.onConflict ? o.onConflict.split(",") : keyOf[t]; return b; },
         update(obj) { st.op = "update"; st.payload = obj; return b; },
@@ -58,6 +59,7 @@
           let out = rows.filter(match);
           if (st.order) out = out.slice().sort((a, b) => (a[st.order] < b[st.order] ? -1 : 1));
           if (st.limit) out = out.slice(0, st.limit);
+          if (st.range) out = out.slice(st.range[0], st.range[1] + 1);
           return { data: st.head ? null : out.map(pick), count: out.length, error: null };
         }
         if (st.op === "insert") { const added = st.payload.map((r) => decorate(t, clone(r))); added.forEach((r) => rows.push(r)); return { data: st.returning ? added.map(clone) : null, error: null }; }
@@ -116,7 +118,7 @@
       async updateUser(o) { if (!session) return { error: { message: "no session" } }; users[session.user.id].password = o.password; return { data: {}, error: null }; },
       async signOut() { session = null; emit("SIGNED_OUT", null); return { error: null }; },
       async getUser(token) { const id = tokens[token]; return id && users[id] ? { data: { user: publicUser(users[id]) }, error: null } : { data: { user: null }, error: { message: "bad token" } }; },
-      admin: { async deleteUser(id) { delete users[id]; for (const t of ["profiles", "certs", "ai_usage", "email_log", "admins", "push_subs"]) tables[t] = tables[t].filter((r) => (r.id || r.user_id) !== id && r.user_id !== id); return { error: null }; } },
+      admin: { async listUsers({ page, perPage }) { const all = Object.values(users).map(publicUser); return { data: { users: all.slice((page - 1) * perPage, page * perPage) }, error: null }; }, async deleteUser(id) { delete users[id]; for (const t of ["profiles", "certs", "ai_usage", "email_log", "admins", "push_subs", "portfolios"]) tables[t] = tables[t].filter((r) => (r.id || r.user_id) !== id && r.user_id !== id); return { error: null }; } },
     };
 
     const client = {

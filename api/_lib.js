@@ -54,6 +54,15 @@ export async function getDoc(path) {
 
 export const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+// Runs fn over items, n at a time, and stops starting new ones once budgetMs has passed, so a
+// scheduled job finishes inside the hosting time limit. Returns how many were left for the next run.
+export async function pool(items, n, fn, budgetMs) {
+  const start = Date.now(); let i = 0, left = 0;
+  async function worker() { while (i < items.length) { if (budgetMs && Date.now() - start > budgetMs) { left = items.length - i; return; } const it = items[i++]; await fn(it); } }
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, worker));
+  return left;
+}
+
 // ---------- dates (Mondays, in UTC to match the app's week keys closely enough for emails) ----------
 export const isoDay = (d) => d.toISOString().slice(0, 10);
 export function mondayOf(d) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x; }
@@ -73,7 +82,7 @@ async function smtpTransport() {
     : nodemailer.createTransport({ host: env("SMTP_HOST"), port: Number(env("SMTP_PORT", 465)), secure: Number(env("SMTP_PORT", 465)) === 465, auth: { user: env("SMTP_USER"), pass: env("SMTP_PASS") } });
   return smtp;
 }
-export async function sendEmail({ to, subject, html, text, unsubscribe, replyTo }) {
+export async function sendEmail({ to, subject, html, text, unsubscribe, replyTo, attachments }) {
   const headers = {};
   if (unsubscribe) { headers["List-Unsubscribe"] = "<" + unsubscribe + ">"; headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"; }
   const from = env("EMAIL_FROM", env("SMTP_USER") ? "Benchwork <" + env("SMTP_USER") + ">" : "Benchwork <onboarding@resend.dev>");
@@ -82,14 +91,14 @@ export async function sendEmail({ to, subject, html, text, unsubscribe, replyTo 
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: "Bearer " + key, "content-type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject, html, text, headers, reply_to: replyTo || undefined }),
+      body: JSON.stringify({ from, to: [to], subject, html, text, headers, reply_to: replyTo || undefined, attachments: attachments ? attachments.map((a) => ({ filename: a.filename, content: a.content.toString("base64") })) : undefined }),
     });
     if (!r.ok) throw new Error("Email failed: " + r.status + " " + (await r.text()).slice(0, 200));
     return r.json();
   }
   if (env("SMTP_HOST")) {
     const t = await smtpTransport();
-    const info = await t.sendMail({ from, to, subject, html, text, headers, replyTo: replyTo || undefined });
+    const info = await t.sendMail({ from, to, subject, html, text, headers, replyTo: replyTo || undefined, attachments: attachments ? attachments.map((a) => ({ filename: a.filename, content: a.content })) : undefined });
     if (globalThis.__smtpSent) globalThis.__smtpSent.push(info);
     return info;
   }

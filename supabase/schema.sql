@@ -232,3 +232,31 @@ drop policy if exists push_subs_delete on public.push_subs;
 create policy push_subs_select on public.push_subs for select using (user_id = auth.uid());
 create policy push_subs_insert on public.push_subs for insert with check (user_id = auth.uid());
 create policy push_subs_delete on public.push_subs for delete using (user_id = auth.uid());
+
+-- ---------------------------------------------------------------------------
+-- Portfolios: a public page per member at /p/<slug>, shown only once they publish it.
+-- The server renders it with the service key; members manage their own row; the owner hides one through /api/admin-moderate.
+-- ---------------------------------------------------------------------------
+create table if not exists public.portfolios (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  slug       text not null unique check (slug ~ '^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$'),
+  published  boolean not null default false,
+  headline   text not null default '' check (char_length(headline) <= 120),
+  about      text not null default '' check (char_length(about) <= 700),
+  links      jsonb not null default '{}'::jsonb,
+  show       jsonb not null default '{"projects": true, "certs": true, "stats": true, "reviews": true, "index": false}'::jsonb,
+  hidden     boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+alter table public.portfolios enable row level security;
+drop policy if exists portfolios_select on public.portfolios;
+drop policy if exists portfolios_insert on public.portfolios;
+drop policy if exists portfolios_update on public.portfolios;
+drop policy if exists portfolios_delete on public.portfolios;
+create policy portfolios_select on public.portfolios for select using (user_id = auth.uid() or public.is_admin());
+create policy portfolios_insert on public.portfolios for insert with check (user_id = auth.uid() and hidden = false);
+create policy portfolios_update on public.portfolios for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy portfolios_delete on public.portfolios for delete using (user_id = auth.uid());
+-- Members can't un-hide a page the owner hid.
+revoke update on public.portfolios from authenticated;
+grant update (slug, published, headline, about, links, show, updated_at) on public.portfolios to authenticated;

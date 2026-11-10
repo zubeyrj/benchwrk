@@ -106,7 +106,7 @@
       '<div class="iv-setrow"><div class="field"><label for="iv-count">Questions</label><select id="iv-count">' + [4, 5, 6].map((n) => "<option" + (st.count === n ? " selected" : "") + ">" + n + "</option>").join("") + '</select></div>' +
       '<div class="field"><label for="iv-band">Your experience</label><select id="iv-band">' + [["early", "Early career (0 to 3 years)"], ["mid", "Mid-career (4 to 8 years)"], ["senior", "Senior (8+ years)"]].map((b) => '<option value="' + b[0] + '"' + (st.band === b[0] ? " selected" : "") + ">" + b[1] + "</option>").join("") + "</select></div>" +
       '<div class="field"><label for="iv-direct">Feedback style</label><select id="iv-direct">' + [[1, "Encouraging"], [2, "Gentle"], [3, "Balanced"], [4, "Direct"], [5, "No softening"]].map((d) => '<option value="' + d[0] + '"' + (Number(st.directness) === d[0] ? " selected" : "") + ">" + d[1] + "</option>").join("") + "</select></div></div>" +
-      ("speechSynthesis" in window ? '<label class="iv-remote" style="margin:0 0 16px"><input type="checkbox" id="iv-voice"' + (st.voice ? " checked" : "") + "> Read questions aloud</label>" : "") +
+      ("speechSynthesis" in window ? '<label class="iv-remote iv-voiceopt" style="margin:0 0 16px"><input type="checkbox" id="iv-voice"' + (st.voice ? " checked" : "") + '><span><b>Spoken interview</b><br><span class="small muted">' + (SR ? "The interviewer reads each question aloud and you answer out loud. Benchwork writes down what you say and tracks your pace and filler words." : "The interviewer reads each question aloud. This browser can't write down speech, so you'll type answers; Chrome, Edge and Safari can.") + "</span></span></label>" : "") +
       '<div class="row"><button class="btn lg" type="submit">Start the interview</button><span class="xs muted">About ' + (st.count * 4) + " minutes. Your answers stay private.</span></div></form>" : "";
     return '<p class="crumb"><a href="#interview">Interview room</a> / Job</p><div class="row between" style="align-items:flex-end"><div><h1 style="margin-bottom:4px">' + esc(j.title || "Untitled job") + '</h1><p class="muted" style="margin:0">' + esc([j.company, j.location, j.source].filter(Boolean).join(" · ")) + (j.url ? ' · <a href="' + esc(j.url) + '" target="_blank" rel="noopener">Original advert</a>' : "") + "</p></div>" +
       '<div class="row"><button class="btn line sm" data-act="trackjob" data-id="' + j.id + '">' + (S.apps.some((a) => a.jobId === j.id) ? "Tracked in Applications" : "Track this application") + '</button><button class="link small" data-iv="deljob" data-id="' + j.id + '" style="color:var(--fail)">' + (ui.iv.delArm === j.id ? "Click again to delete" : "Delete job") + "</button></div></div>" +
@@ -118,7 +118,8 @@
     const mains = T.filter((t) => t.role === "interviewer" && t.kind === "question").length;
     const last = T[T.length - 1], ended = x.ended || (last && last.role === "interviewer" && last.kind === "end");
     const busy = ui.iv.busy["run" + x.id], err = ui.iv.err["run" + x.id];
-    const bubbles = T.map((t) => '<div class="iv-msg ' + (t.role === "candidate" ? "you" : "them") + '"><span class="who">' + (t.role === "candidate" ? "You" : t.kind === "followup" ? "Interviewer · follow-up" : t.kind === "end" ? "Interviewer" : "Interviewer · question " + t.n) + "</span>" + (t.role === "candidate" ? "<p>" + esc(t.text).replace(/\n/g, "<br>") + "</p>" : md(t.text)) + "</div>").join("");
+    const lastQ = T.map((t, i) => (t.role === "interviewer" ? i : -1)).filter((i) => i >= 0).pop();
+    const bubbles = T.map((t, i) => '<div class="iv-msg ' + (t.role === "candidate" ? "you" : "them") + '"><span class="who">' + (t.role === "candidate" ? "You" : t.kind === "followup" ? "Interviewer · follow-up" : t.kind === "end" ? "Interviewer" : "Interviewer · question " + t.n) + "</span>" + (t.role === "candidate" ? "<p>" + esc(t.text).replace(/\n/g, "<br>") + "</p>" + (t.dl && t.dl.w > 5 ? '<span class="dl-chip">' + t.dl.wpm + " words a minute · " + t.dl.f + " filler" + (t.dl.f === 1 ? "" : "s") + "</span>" : "") : md(t.text) + (x.setup.voice && i === lastQ && !ended && "speechSynthesis" in window ? '<button type="button" class="link small" data-iv="replay" data-id="' + x.id + '">Hear it again</button>' : "")) + "</div>").join("");
     let foot;
     if (busy) foot = '<div class="iv-msg them"><span class="who">Interviewer</span><p class="thinking">' + (busy === "score" ? "Scoring your interview. This takes about 20 seconds…" : "Thinking…") + "</p></div>";
     else if (err) foot = '<p class="err">' + esc(err) + '</p><button class="btn line" data-iv="' + (ended ? "score" : "ask") + '" data-id="' + x.id + '">Try again</button>';
@@ -133,13 +134,13 @@
     } else {
       const draft = (ui.iv.drafts && ui.iv.drafts[x.id]) || "";
       foot = '<form id="ivanswer" class="iv-answer" data-id="' + x.id + '"><label for="iv-ans" class="sr">Your answer</label><textarea id="iv-ans" rows="6" maxlength="5000" placeholder="Answer as you would out loud. Situation, what you did, the result.">' + esc(draft) + "</textarea>" +
-        '<div class="row between"><div class="row">' + (SR ? '<button type="button" class="btn line sm" data-iv="mic" aria-pressed="' + (ui.iv.rec ? "true" : "false") + '">' + (ui.iv.rec ? "Stop listening" : "Speak my answer") + "</button>" : "") +
-        '<span class="xs muted" id="iv-timer" aria-live="off"></span></div><div class="row"><button type="button" class="link small" data-iv="skip" data-id="' + x.id + '">Skip</button><button type="button" class="link small" data-iv="endearly" data-id="' + x.id + '">End here</button><button class="btn" type="submit">Send answer</button></div></div></form>';
+        '<div class="row between"><div class="row">' + (SR ? '<button type="button" class="btn ' + (x.setup.voice ? "" : "line ") + 'sm" data-iv="mic" aria-pressed="' + (ui.iv.rec ? "true" : "false") + '">' + (ui.iv.rec ? "Stop listening" : x.setup.voice ? "Start answering" : "Speak my answer") + "</button>" : "") +
+        '<span class="xs muted" id="iv-timer" aria-live="off"></span></div><div class="row"><button type="button" class="link small" data-iv="skip" data-id="' + x.id + '">Skip</button><button type="button" class="link small" data-iv="endearly" data-id="' + x.id + '">End here</button><button class="btn" type="submit">Send answer</button></div></div>' + (SR && x.setup.voice ? '<p class="xs muted dl-live" id="iv-live" aria-live="off">' + (ui.iv.rec ? "Listening…" : "Press Start answering, or just type.") + "</p>" : "") + "</form>";
     }
     const pct = Math.min(1, (ended ? N : Math.max(0, mains - 1)) / N);
     return '<p class="crumb"><a href="#interview">Interview room</a> / <a href="#iv-job-' + (x.jobId || "") + '">' + esc(j.title || "Job") + "</a> / Interview</p>" +
       '<div class="iv-runhead"><div><h1 style="margin:0">' + esc(IVF[x.setup.format]) + '</h1><p class="muted" style="margin:4px 0 0">' + esc(j.title || "") + (j.company ? " at " + esc(j.company) : "") + '</p></div><div class="iv-prog"><span class="xs muted">' + (ended ? "Finished" : "Question " + Math.max(1, mains) + " of " + N) + '</span><span class="bar"><i style="--f:' + pct.toFixed(3) + '"></i></span></div></div>' +
-      '<div class="iv-room" aria-live="polite">' + bubbles + foot + "</div>";
+      '<div class="iv-room">' + bubbles + foot + "</div>";
   }
 
   function scoreBars(sc) {
@@ -157,7 +158,7 @@
       '<div class="iv-big">' + ring(avg / 5, 96, avg >= 4 ? "var(--ok)" : avg >= 3 ? "var(--xp)" : "var(--accent)", "Average " + avg + " out of 5") + "<b>" + avg + '</b><span class="xs">out of 5</span></div></div></section>' +
       '<div class="cols"><div>' +
       '<div class="card sec"><h2>Scorecard</h2>' + scoreBars(R.scores || {}) + '<p class="small muted" style="margin-top:12px"><b>Confidence: ' + esc(R.confidence || "") + ".</b> " + esc(R.confidence_reason || "") + "</p>" + (selfTxt ? '<p class="small"><b>' + esc(selfTxt) + "</b> " + esc(R.self_note || "") + "</p>" : "") + (R.scope_note ? '<p class="xs muted">' + esc(R.scope_note) + "</p>" : "") + "</div>" +
-      '<div class="card sec"><h2>What I heard</h2><p>' + esc(R.what_i_heard || "") + '</p><div class="two"><div><h3>What is working</h3>' + list(R.what_is_working) + "</div><div><h3>Gaps to close</h3>" + list(R.gaps_to_close) + "</div></div></div>" +
+      deliveryCard(x) + '<div class="card sec"><h2>What I heard</h2><p>' + esc(R.what_i_heard || "") + '</p><div class="two"><div><h3>What is working</h3>' + list(R.what_is_working) + "</div><div><h3>Gaps to close</h3>" + list(R.gaps_to_close) + "</div></div></div>" +
       '<div class="sec"><h2>Question by question</h2>' + qs + "</div></div>" +
       '<aside><div class="card sec iv-priority"><h2>Priority move</h2><p>' + esc(R.priority_move || "") + '</p><h3>Next step</h3><p class="small">' + esc(R.next_step || "") + '</p><div class="row"><button class="btn" data-iv="again" data-id="' + x.id + '">Practise again</button><a class="btn line" href="#interview">Interview room</a></div></div>' +
       (ideas.length ? '<div class="card sec"><h2>Stories to add</h2>' + ideas.map((s, i) => '<p class="small">' + esc(s) + '</p><button class="btn line sm" data-iv="storyfrom" data-id="' + x.id + '" data-i="' + i + '">Add as a story</button>').join('<hr class="soft">') + "</div>" : "") +
@@ -194,9 +195,17 @@
     } catch (e) { ui.iv.err["dec" + j.id] = ivErr(e); }
     ui.iv.busy["dec" + j.id] = false; if (route().key === j.id) render();
   }
-  function speak(text) {
-    try { if (!window.speechSynthesis) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(String(text).replace(/[*_#`]/g, "")); u.lang = "en-GB"; u.rate = 1; speechSynthesis.speak(u); } catch (e) { /* not supported */ }
+  function speak(text, done) {
+    try {
+      if (!window.speechSynthesis) { if (done) done(); return; }
+      speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(String(text).replace(/[*_#`]/g, "")); u.lang = "en-GB"; u.rate = 1;
+      const v = speechSynthesis.getVoices().find((x) => /en-GB/i.test(x.lang)); if (v) u.voice = v;
+      if (done) { let fired = false; const once = () => { if (!fired) { fired = true; done(); } }; u.onend = once; u.onerror = once; }
+      speechSynthesis.speak(u);
+    } catch (e) { if (done) done(); }
   }
+  // In a spoken interview the microphone opens by itself once the question has been read out.
+  function listenAfter(x) { return () => { if (!SR || !x.setup.voice || ui.iv.rec || route().key !== x.id) return; const b = document.querySelector('[data-iv="mic"]'); if (b) b.click(); }; }
   let ivTimer = null, ivQAt = 0;
   function startTimer() {
     clearInterval(ivTimer); ivQAt = Date.now();
@@ -209,7 +218,8 @@
       if (!x.bank) { x.bank = await bankFor(x.setup); persist(); }
       const turn = await ivCall({ mode: "ask", job: jobPayload(j), decoded: j.decoded, setup: x.setup, transcript: x.transcript, bank: x.bank });
       x.transcript.push(Object.assign({ role: "interviewer" }, turn)); persist();
-      if (x.setup.voice) speak(turn.text);
+      if (x.setup.voice) { ui.iv.voice = { id: x.id, talk: 0, t0: 0 }; speak(turn.text, turn.kind === "end" ? null : listenAfter(x)); }
+      else announce("Interviewer: " + String(turn.text).replace(/[*_#`]/g, ""));
     } catch (e) { ui.iv.err["run" + x.id] = ivErr(e); }
     ui.iv.busy["run" + x.id] = false;
     if (route().key === x.id) { render(); const ta = document.getElementById("iv-ans"); if (ta) { ta.focus(); startTimer(); } }
@@ -227,7 +237,7 @@
     } catch (e) { ui.iv.err["run" + x.id] = ivErr(e); }
     ui.iv.busy["run" + x.id] = false; if (route().key === x.id) render();
   }
-  function stopMic() { if (ui.iv.rec) { try { ui.iv.rec.stop(); } catch (e) { /* ignore */ } ui.iv.rec = null; } }
+  function stopMic() { const V = ui.iv.voice; if (V && V.t0) { V.talk += Date.now() - V.t0; V.t0 = 0; } if (ui.iv.rec) { try { ui.iv.rec.stop(); } catch (e) { /* ignore */ } ui.iv.rec = null; } }
 
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-iv]"); if (!b || phase !== "ready") return;
@@ -264,15 +274,19 @@
       if (!x.transcript.some((t) => t.role === "candidate")) { toast("Answer at least one question first."); return; }
       x.ended = true; persist(); render(); return;
     }
+    if (a === "replay") { const x = ivSess(id); if (!x) return; const q = x.transcript.filter((t) => t.role === "interviewer").pop(); stopMic(); if (q) speak(q.text, listenAfter(x)); return; }
     if (a === "mic") {
       if (ui.iv.rec) { stopMic(); render(); return; }
       if (!SR) return;
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (x2) { /* ignore */ }
+      const runId = route().key;
+      if (!ui.iv.voice || ui.iv.voice.id !== runId) ui.iv.voice = { id: runId, talk: 0, t0: 0 };
       const rec = new SR(); rec.lang = "en-GB"; rec.continuous = true; rec.interimResults = true;
       const ta = document.getElementById("iv-ans"), base = ta.value ? ta.value.replace(/\s*$/, " ") : "";
-      rec.onresult = (ev) => { let t = ""; for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript; const el = document.getElementById("iv-ans"); if (el) el.value = base + t; };
+      rec.onresult = (ev) => { let t = ""; for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript; const el = document.getElementById("iv-ans"); if (el) { el.value = base + t; ui.iv.drafts = ui.iv.drafts || {}; ui.iv.drafts[runId] = el.value; } ui.iv.voice.spoke = true; liveDelivery(); };
       rec.onerror = () => { stopMic(); render(); toast("The microphone didn't start. Check your browser allowed it."); };
-      rec.onend = () => { if (ui.iv.rec === rec) { ui.iv.rec = null; const el = document.getElementById("iv-ans"), v = el && el.value; render(); const n = document.getElementById("iv-ans"); if (n && v) n.value = v; } };
-      try { rec.start(); ui.iv.rec = rec; b.textContent = "Stop listening"; b.setAttribute("aria-pressed", "true"); } catch (err) { toast("The microphone didn't start."); }
+      rec.onend = () => { if (ui.iv.rec === rec) { stopMic(); const el = document.getElementById("iv-ans"), v = el && el.value; render(); const n = document.getElementById("iv-ans"); if (n && v) n.value = v; } };
+      try { rec.start(); ui.iv.rec = rec; ui.iv.voice.t0 = Date.now(); b.textContent = "Stop listening"; b.setAttribute("aria-pressed", "true"); const lv = document.getElementById("iv-live"); if (lv) lv.textContent = "Listening…"; } catch (err) { toast("The microphone didn't start."); }
       return;
     }
     if (a === "again") {
@@ -331,7 +345,9 @@
       const x = ivSess(f.dataset.id); if (!x) return;
       const v = document.getElementById("iv-ans").value.trim(); stopMic();
       if (!v) { toast("Type or speak your answer, or press Skip."); return; }
-      x.transcript.push({ role: "candidate", text: v.slice(0, 5000), secs: Math.round((Date.now() - ivQAt) / 1000) }); if (ui.iv.drafts) delete ui.iv.drafts[x.id];
+      const V = ui.iv.voice, spoke = V && V.id === x.id && V.spoke && V.talk > 3000;
+      x.transcript.push(Object.assign({ role: "candidate", text: v.slice(0, 5000), secs: Math.round((Date.now() - ivQAt) / 1000) }, spoke ? { dl: delivery(v, V.talk / 1000) } : {})); if (ui.iv.drafts) delete ui.iv.drafts[x.id];
+      ui.iv.voice = null;
       persist(); askNext(x); return;
     }
     if (f.id === "ivself") {

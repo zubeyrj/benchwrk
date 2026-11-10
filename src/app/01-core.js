@@ -34,8 +34,8 @@
     { id: "today", label: "Today", pages: [["home", "Overview"], ["log", "Study log"]] },
     { id: "learn", label: "Learn", pages: [["courses", "Courses"], ["library", "Library"], ["plan", "Your plan"], ["practice", "Practice"], ["toolkit", "Toolkit"]] },
     { id: "projects", label: "Projects", pages: [["projects", "Projects"]] },
-    { id: "career", label: "Career", pages: [["interview", "Interview room"], ["applications", "Applications"], ["career", "CV and pitch"], ["routes", "Specialisms"]] },
-    { id: "cohort", label: "Cohort", pages: [["cohort", "Cohort"]] },
+    { id: "career", label: "Career", pages: [["interview", "Interview room"], ["applications", "Applications"], ["career", "CV and pitch"], ["portfolio", "Portfolio"], ["routes", "Specialisms"]] },
+    { id: "cohort", label: "Cohort", pages: [["cohort", "Cohort"], ["league", "League"]] },
   ];
   const NAV = GROUPS.reduce((a, g) => a.concat(g.pages), []);
   const groupOf = (page) => GROUPS.find((g) => g.pages.some((p) => p[0] === page)) || null;
@@ -305,10 +305,11 @@
       const pr = progress(), cur = currentRow(pr.p); out.pct = pr.pct; out.cur = cur ? cur.m.title : "Race day reached";
       out.behind = cur && cur.ed < parseDate(today()) ? Math.ceil((parseDate(today()) - cur.ed) / DAY) : 0;
     } else { out.pct = 0; out.cur = S.tools ? "Taking the placement" : "Rating their tools"; out.behind = 0; }
-    return out;
+    return leagueSummary(out);
   }
   function flush() {
     if (!db || !uid || !S.account) return;
+    xwTick();
     const body = JSON.stringify(S);
     if (body !== lastSaved) { lastSaved = body; const data = JSON.parse(body); chain = chain.then(() => stateRef().set(data)).catch(onWriteErr); }
     const sum = JSON.stringify(summary());
@@ -362,7 +363,7 @@
       if (!mods.length || !docs.diag || !docs.toolkit) { phase = "nocontent"; return; }
       MOD = mods.map((m) => Object.assign({}, m, { resources: (m.resources || []).map((r) => ({ t: r[0], by: r[1], cost: r[2], url: r[3], note: r[4] || "", fmt: String(r[5] || "reading").split("+") })) }));
       byId = Object.fromEntries(MOD.map((m) => [m.id, m]));
-      CT = { DIAG: docs.diag.items, TK: docs.toolkit, COH: (docs.cohorts && Array.isArray(docs.cohorts.list)) ? docs.cohorts.list : [] };
+      CT = { LEAGUE: docs.league && docs.league.wk ? docs.league : null, DIAG: docs.diag.items, TK: docs.toolkit, COH: (docs.cohorts && Array.isArray(docs.cohorts.list)) ? docs.cohorts.list : [] };
       notice = docs.notice && docs.notice.text ? docs.notice : null;
       phase = "ready";
       subscribeCohort();
@@ -387,7 +388,7 @@
     db.collection("learners").onSnapshot((snap) => {
       clearTimeout(t); cohortErr = false;
       cohort = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-      if (["cohort", "admin"].includes(route().name)) render();
+      if (["cohort", "admin", "league"].includes(route().name)) render();
     }, () => { clearTimeout(t); cohortErr = true; if (["cohort", "admin"].includes(route().name)) render(); });
   }
   // Accountability partners: each member writes only pairs/<own id>; a pair is live when both point at each other.
@@ -414,16 +415,20 @@
   }
   function subscribeShared() {
     if (sharedSubbed) return; sharedSubbed = true;
-    const rr = () => { if (["projects", "admin"].includes(route().name)) render(); else refreshNav(); };
+    const rr = () => { if (["projects", "admin", "portfolio"].includes(route().name)) render(); else refreshNav(); };
     db.collection("subs").onSnapshot((s) => { subs = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); rr(); }, () => { subs = subs || []; rr(); });
     db.collection("reviews").onSnapshot((s) => { reviews = s.docs.map((d) => Object.assign({ id: d.id }, d.data())); rr(); }, () => { reviews = reviews || []; rr(); });
   }
 
   /* ---------- ui bits ---------- */
   let toastT;
+  // Screen readers hear changes through one live region that is always on the page; regions added
+  // at the moment of the change are often missed.
+  let annT;
+  function announce(msg) { const el = document.getElementById("sr-live"); if (!el) return; el.textContent = ""; clearTimeout(annT); annT = setTimeout(() => { el.textContent = msg; }, 60); }
   function toast(msg) {
     document.querySelectorAll(".toast").forEach((x) => x.remove());
-    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status"); el.textContent = msg;
+    const el = document.createElement("div"); el.className = "toast"; el.setAttribute("aria-hidden", "true"); el.textContent = msg; announce(msg);
     document.body.appendChild(el);
     clearTimeout(toastT);
     toastT = setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 160); }, 3000);

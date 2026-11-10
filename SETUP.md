@@ -103,6 +103,22 @@ Benchwork nags people who skip, Duolingo style. Each member picks how hard in Se
 
 GitHub pauses scheduled workflows in a repo with no commits for 60 days; it emails you first, and one click on **Enable workflow** restarts it. Without the keys, reminders still work by email. iPhone and iPad users must add Benchwork to their Home Screen before they can turn notifications on; Settings tells them how.
 
+## 6e. Backups (5 minutes, free)
+
+Supabase's free plan has no point-in-time backups, so Benchwork makes its own. Every Sunday evening it emails you an encrypted copy of the whole database; **Admin > Backups** downloads one any time.
+
+1. Make up a long passphrase (16 characters or more, four random words works) and save it in your password manager. Without it the files can't be opened, by you or anyone else.
+2. Put it in Vercel as `BACKUP_KEY` and redeploy. **Admin > System check** shows "Backups" in green.
+3. Make a Google Drive folder called "Benchwork backups" and drop each Sunday's attachment in. Keep about three months' worth and delete older ones; the privacy notice says so.
+
+**Restoring a backup.** On your computer, in the project folder, with the passphrase and the keys from Supabase > Project Settings > API (the service key stays on your computer, never in the repo or chat):
+
+```
+BACKUP_KEY='…' SUPABASE_URL='https://….supabase.co' SUPABASE_SERVICE_ROLE_KEY='…' node scripts/restore.mjs benchwork-backup-2026-11-15.bwbak
+```
+
+That checks the file and lists what's in it. Add `--write` to restore. Rows are put back over the live database, so anything deleted or damaged comes back and newer rows are kept. Sign-in accounts live in Supabase Auth, not in the backup: if you ever restore into a brand-new project, members sign up again with the same email and the script lists whose data was skipped. The restore script has been checked against encrypted files but not yet against a live Supabase project, so try it on a spare project first.
+
 ## 7. First visit
 
 1. Open your site and sign up with the email you used in `set_owner`. Confirm it from your inbox.
@@ -123,6 +139,9 @@ Work through this once, in a private browser window, before sharing the link wid
 - [ ] **Search live jobs** and read one advert from a careers page link.
 - [ ] **Pair your two accounts as partners** and send a cheer: the email arrives at the other address.
 - [ ] **Turn on notifications** in Settings > Reminders on your phone (add the site to your Home Screen first on an iPhone) and press **Send me a test**.
+- [ ] **Spoken mock interview** in Chrome or Safari: the question is read out, the microphone opens and the report has a Delivery card.
+- [ ] **Publish a portfolio** from Career > Portfolio and open the link in a private window.
+- [ ] **Download a backup** from Admin > Backups and open it with `node scripts/restore.mjs <file>` (without `--write`).
 - [ ] **Report something** from the second account; it shows in Admin > Reports.
 - [ ] **Create a cohort** in Admin, open its invite link in a private window and sign up: the new member lands in that cohort.
 - [ ] **Download my data** and **delete the test account** from Settings.
@@ -142,6 +161,12 @@ Work through this once, in a private browser window, before sharing the link wid
 - **Scheduled emails**: weekly progress goes out on Sundays at 18:00 UK time (19:00 in summer) and reminders run daily at 17:00 (18:00 in summer). See them under Vercel > Settings > Cron Jobs.
 - **AI spend**: Admin shows an estimate for the last 30 days; the Anthropic console has the exact figure. A full mock interview (decode, five questions with follow-ups, scorecard) costs roughly 25p to 40p on the default model. To halve it, set `INTERVIEW_MODEL=claude-haiku-5-5`; the scoring gets less sharp.
 - **Back-ups**: Supabase's free plan keeps daily back-ups for 7 days.
+
+## How far the free setup goes
+
+- **Email.** A Gmail account sends about 500 emails a day. Past roughly 100 active members, switch to Resend with your own domain (step 3 explains both).
+- **Scheduled jobs.** The reminder and weekly jobs work through members eight at a time and stop after 45 seconds, inside Vercel's one-minute limit. Anyone not reached gets their reminder on the next hourly run. That comfortably covers a few thousand members.
+- **Database.** Supabase's free plan gives 500 MB, enough for thousands of members. Free projects pause after a week with no activity; the hourly reminders job keeps yours awake.
 
 ## Moving to your own domain later
 

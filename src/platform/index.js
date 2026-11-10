@@ -172,6 +172,18 @@ async function bootstrap() {
         if (error) throw error; return site.replace(/\/$/, "") + "/c/" + data.id;
       },
       push: makePush(cfg.vapidPublicKey, api),
+      portfolio: {
+        url: (slug) => site.replace(/\/$/, "") + "/p/" + slug,
+        get: async () => { const { data, error } = await sb.from("portfolios").select("slug, published, headline, about, links, show, hidden").eq("user_id", session.user.id).maybeSingle(); if (error) throw error; return data; },
+        // Insert the first time, update after (members may only update the columns they own).
+        save: async (p) => {
+          const row = { slug: p.slug, published: !!p.published, headline: p.headline, about: p.about, links: p.links, show: p.show, updated_at: new Date().toISOString() };
+          const { data: cur } = await sb.from("portfolios").select("user_id").eq("user_id", session.user.id).maybeSingle();
+          const { error } = cur ? await sb.from("portfolios").update(row).eq("user_id", session.user.id) : await sb.from("portfolios").insert(Object.assign({ user_id: session.user.id }, row));
+          if (error) throw Object.assign(new Error(error.message), { code: /duplicate|unique|23505/i.test((error.code || "") + error.message) ? "taken" : "error" });
+        },
+        list: async () => { const { data } = await sb.from("portfolios").select("user_id, slug, published, headline, hidden").eq("published", true); return data || []; },
+      },
       tutorUsage: async () => { const { data } = await sb.from("ai_usage").select("user_id, day, kind, calls, in_tokens, out_tokens").gte("day", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)); return data || []; },
     };
     sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", session.user.id).then(() => {}, () => {});

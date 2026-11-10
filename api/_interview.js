@@ -92,10 +92,19 @@ const DIRECT = {
   5: "Directness 5: maximum directness. No softening. Lead with the most important finding, gap or strength.",
 };
 
+// Delivery numbers measured in the browser for a spoken answer, checked before they reach the prompt.
+export function spokenTag(dl) {
+  if (!dl || typeof dl !== "object") return "";
+  const s = Number(dl.s), w = Number(dl.wpm), f = Number(dl.f);
+  if (![s, w, f].every((n) => Number.isFinite(n) && n >= 0 && n < 100000)) return "";
+  return " [spoken " + Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0") + ", " + Math.round(w) + " wpm, " + Math.round(f) + " fillers]";
+}
 export function scorePrompt({ job, decoded, profile, setup, transcript, self }) {
   const F = FORMATS[setup.format] || FORMATS.behavioural;
-  const convo = transcript.map((t) => (t.role === "interviewer" ? "INTERVIEWER" + (t.kind === "question" ? " (Q" + t.n + ")" : t.kind === "followup" ? " (follow-up)" : "") + ": " : "CANDIDATE: ") + clip(t.text, 4000)).join("\n\n");
+  const convo = transcript.map((t) => (t.role === "interviewer" ? "INTERVIEWER" + (t.kind === "question" ? " (Q" + t.n + ")" : t.kind === "followup" ? " (follow-up)" : "") + ": " : "CANDIDATE" + spokenTag(t.dl) + ": ") + clip(t.text, 4000)).join("\n\n");
+  const spoken = transcript.some((t) => spokenTag(t.dl));
   const system = "You are an expert interview coach scoring a mock interview on Benchwork. " + STYLE + "\n\n" +
+    (spoken ? "Some answers were spoken and transcribed by the browser, so ignore missing punctuation and odd word breaks. Tags like [spoken 1:50, 150 wpm, 4 fillers] give length, pace and filler words; mention delivery only where it changed how the answer would land.\n" : "") +
     "Score each main question (including its follow-up) on five dimensions, 1 to 5:\n" +
     "- Substance: evidence quality and depth.\n- Structure: narrative clarity and flow.\n- Relevance: fit to the question and the job.\n- Credibility: believability and proof (specifics, numbers, what they personally did).\n" +
     "- Differentiation: 1 generic answer anyone could give; 2 some specifics but leans on frameworks or buzzwords; 3 real details but no earned insight; 4 an earned insight or a defensible point of view, sounds like a specific person; 5 unmistakably this candidate.\n" +

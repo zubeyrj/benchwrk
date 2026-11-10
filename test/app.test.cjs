@@ -12,6 +12,9 @@ seed['reviews/u2'] = { name: 'Amira', given: { 'u1:m7': { s: [3, 2, 2, 3], c: 'C
 seed['pairs/u2'] = { name: 'Amira', partner: null, req: 'u1', commit: { wk: '__MON__', hours: 12, text: 'Finish Python lesson 4' }, msgs: [] };
 seed['learners/u2'] = { name: 'Amira', goal: 'engineer', hours: 31, week: 9, at: '2026-11-08', pts: 640, streak: 2, qp: 3, xs: 9, ls: 14, last: '2026-10-29', pct: 18, cur: 'Python for engineers', behind: 0 };
 (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const z = new Date(d.getTime() - d.getTimezoneOffset() * 6e4); seed['pairs/u2'].commit.wk = z.toISOString().slice(0, 10); })();
+(() => { const d = new Date(), x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); const wk = x.toISOString().slice(0, 10), lw = new Date(x.getTime() - 7 * 864e5).toISOString().slice(0, 10);
+  Object.assign(seed['learners/u2'], { wk, wxp: 5000 });
+  seed['league'] = { wk, tier: { u1: 1, u2: 1 }, group: { u1: '1-0', u2: '1-0' }, last: { u1: { wk: lw, rank: 1, n: 12, xp: 340, from: 0, to: 1 } }, kept: {} }; })();
 const mock = fs.readFileSync(path.join(__dirname, 'mock.cjs.js'), 'utf8');
 const strip = (s) => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const results = [], errs = [];
@@ -198,6 +201,42 @@ let BASE = '';
 
   // 10. other pages
   for (const [h, n] of [['cohort', '16-cohort'], ['log', '17-log'], ['toolkit', '18-toolkit'], ['settings', '19-settings'], ['courses', '20-courses']]) { await go(p, h, 400); await shot(p, n); await overflow(p, h); }
+  // leagues
+  await go(p, 'league', 500);
+  ok('league table: Silver, Amira ahead', /Silver league/.test(await p.textContent('main')) && (await p.$$eval('.lg-row b', (b) => b.map((x) => x.textContent)))[0] === 'Amira' && await p.isVisible('.lg-row.me'));
+  ok('last week result shown', /Promoted to Silver/.test(await p.textContent('.lg-result')) && /1st of 12 with 340 XP/.test(await p.textContent('.lg-result')));
+  ok('weekly XP published in the summary', await p.evaluate(() => { const l = window.__store.get('learners/u1'); return l && /^\d{4}-\d{2}-\d{2}$/.test(l.wk) && typeof l.wxp === 'number'; }));
+  await shot(p, '16b-league'); await overflow(p, 'league');
+  await p.click('.lg-result [data-act="lgseen"]'); await p.waitForTimeout(200);
+  ok('result banner dismissed', !(await p.isVisible('.lg-result')));
+  await go(p, 'home', 500);
+  ok('league card on Today', /Silver league · 2nd of 2/.test(await p.textContent('.lg-mini')));
+  await go(p, 'league', 300); await p.click('[data-act="lgleave"]'); await p.waitForTimeout(800);
+  ok('leaving the leagues is published', await p.evaluate(() => window.__store.get('learners/u1').lg === false) && /left the leagues/.test(await p.textContent('main')));
+  await p.click('[data-act="lgjoin"]'); await p.waitForTimeout(800);
+  ok('joining again', await p.evaluate(() => window.__store.get('learners/u1').lg !== false) && await p.isVisible('.lg-table'));
+  // screen readers: page changes move focus to the heading and name the tab; messages go to one live region
+  await go(p, 'library', 600);
+  ok('page change focuses the heading', await p.evaluate(() => document.activeElement && document.activeElement.tagName === 'H1' && /Library/.test(document.activeElement.textContent)));
+  ok('tab title names the page', /^Library · Benchwork$/.test(await p.title()));
+  await go(p, 'league', 300); await p.click('[data-act="lgleave"]'); await p.waitForTimeout(300);
+  ok('toasts are announced', /left the leagues/.test(await p.textContent('#sr-live')));
+  await p.click('[data-act="lgjoin"]'); await p.waitForTimeout(300);
+  ok('league zones named for screen readers', (await p.$$('.lg-row .sr')).length >= 1);
+  // portfolio
+  await go(p, 'portfolio', 500);
+  ok('portfolio suggests an address from the name', (await p.inputValue('#pf-slug')) === 'z');
+  await p.fill('#pf-slug', 'Bad slug'); await p.fill('#pf-github', 'http://github.com/z'); await p.click('#pfform button[value="1"]'); await p.waitForTimeout(200);
+  ok('portfolio checks address and links', await p.isVisible('#pf-slug-err') && await p.isVisible('#pf-github-err'));
+  await p.fill('#pf-slug', 'taken-name'); await p.fill('#pf-github', 'https://github.com/zara'); await p.click('#pfform button[value="1"]'); await p.waitForTimeout(300);
+  ok('taken address explained', /taken/.test(await p.textContent('#pf-slug-err')));
+  await p.fill('#pf-slug', 'zara-jones'); await p.fill('#pf-headline', 'Analyst moving into AI engineering'); await p.uncheck('input[name="pf-show"][value="stats"]');
+  await p.click('#pfform button[value="1"]'); await p.waitForTimeout(300);
+  ok('portfolio published', await p.evaluate(() => { const r = window.__pf(); return r.published === true && r.slug === 'zara-jones' && r.links.github === 'https://github.com/zara' && r.show.stats === false && r.show.projects === true; }) && /benchwork\.test\/p\/zara-jones/.test(await p.textContent('.pf-live')));
+  ok('preview follows the toggles', /Analyst moving into AI engineering/.test(await p.textContent('.pf-prev')) && !/hours logged/.test(await p.textContent('.pf-prev')));
+  await shot(p, '38b-portfolio'); await overflow(p, 'portfolio');
+  await p.click('[data-act="pfunpub"]'); await p.waitForTimeout(300);
+  ok('portfolio made private', await p.evaluate(() => window.__pf().published === false));
   // partners
   await go(p, 'cohort', 500);
   await p.click('[data-act="pairaccept"][data-id="u2"]'); await p.waitForTimeout(400);
@@ -328,6 +367,35 @@ let BASE = '';
   ok('self-assessment sent', await p.evaluate(() => { const c = window.__api.filter((x) => x.body && x.body.mode === 'score').pop(); return c.body.self.best === 2 && c.body.self.worst === 3 && c.body.self.rating === 4; }));
   ok('interview XP counted', await p.evaluate(() => window.__store.get('data/users/u1/state').iv.sessions.filter((x) => x.score).length === 1));
   await shot(p, '35-iv-report'); await overflow(p, 'interview report');
+  {
+    // Spoken interview, with the browser's speech features replaced by stand-ins.
+    const st = await p.evaluate(() => window.__store.get('data/users/u1/state'));
+    const jobId = st.iv.jobs[0].id;
+    const vp = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    vp.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
+    await vp.addInitScript(() => {
+      window.__said = [];
+      Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak: (u) => { window.__said.push(u.text); setTimeout(() => u.onend && u.onend(), 30); }, cancel: () => {}, getVoices: () => [] } });
+      window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      window.SpeechRecognition = function () { const r = this; r.start = () => { window.__listening = true; setTimeout(() => r.onresult && r.onresult({ results: [[{ transcript: 'um so I built a retrieval system you know over two hundred policy documents and basically it answered staff questions with sources' }]] }), 60); }; r.stop = () => { window.__listening = false; setTimeout(() => r.onend && r.onend(), 10); }; };
+    });
+    await vp.addInitScript(({ mock, seed, opts }) => { eval(mock); window.__mock(seed, opts); }, { mock, seed, opts: { state: st } });
+    await vp.goto(BASE + '/index.html'); await vp.waitForTimeout(600);
+    await go(vp, 'iv-job-' + jobId, 400);
+    await vp.check('#iv-voice'); await vp.selectOption('#iv-count', '4'); await vp.click('#ivsetup button[type=submit]'); await vp.waitForTimeout(700);
+    ok('spoken interview reads the question aloud', await vp.evaluate(() => window.__said.length === 1), await vp.evaluate(() => JSON.stringify({ said: window.__said, hash: location.hash, voice: !!document.getElementById('iv-voice') })));
+    ok('microphone opens after the question', await vp.evaluate(() => window.__listening === true) && /Stop listening/.test(await vp.textContent('[data-iv="mic"]')));
+    await vp.waitForTimeout(3300);
+    ok('live pace and fillers shown', /22 words · .* · 3 fillers/.test(await vp.textContent('#iv-live')), await vp.textContent('#iv-live'));
+    await vp.click('#ivanswer button[type=submit]'); await vp.waitForTimeout(700);
+    ok('spoken answer saved with delivery', await vp.evaluate(() => { const s = window.__store.get('data/users/u1/state').iv.sessions.pop(); const a = s.transcript.find((t) => t.role === 'candidate'); return a && a.dl && a.dl.f === 3 && a.dl.fl.um === 1 && a.dl.fl['you know'] === 1 && a.dl.wpm > 100; }));
+    ok('answer bubble shows pace', /words a minute · 3 fillers/.test(await vp.textContent('.iv-room')));
+    ok('replay button on the new question', await vp.isVisible('[data-iv="replay"]'));
+    await vp.click('[data-iv="endearly"]').catch(() => {}); await vp.waitForTimeout(200);
+    if (await vp.isVisible('#ivself')) { await vp.click('#ivself button[type=submit]'); await vp.waitForTimeout(800); }
+    ok('report has a delivery card', /Delivery/.test(await vp.textContent('main')) && /fillers a minute/.test(await vp.textContent('main')));
+    await shot(vp, '35b-iv-delivery'); await overflow(vp, 'delivery'); await vp.close();
+  }
   await p.click('[data-iv="storyfrom"]'); await p.waitForTimeout(250);
   ok('story idea prefilled', /retrieval returned the wrong policy/.test(await p.inputValue('#st-s')));
   await go(p, 'iv-new', 300);
@@ -363,7 +431,7 @@ let BASE = '';
   ok('opening the bell clears the badge', !(await p.isVisible('.bell .badge')));
   await p.click('main'); await p.waitForTimeout(80);
   await go(p, 'career', 300);
-  ok('CV and pitch hub', /CV review/.test(await p.textContent('main')) && (await p.$$eval('.subnav a', (a) => a.map((x) => x.textContent))).join(',') === 'Interview room,Applications,CV and pitch,Specialisms');
+  ok('CV and pitch hub', /CV review/.test(await p.textContent('main')) && (await p.$$eval('.subnav a', (a) => a.map((x) => x.textContent))).join(',') === 'Interview room,Applications,CV and pitch,Portfolio,Specialisms');
   await go(p, 'career-cv', 300);
   await p.fill('#cv-text', 'Data analyst with four years in retail analytics. '.repeat(15)); await p.click('#cvform button[type=submit]'); await p.waitForTimeout(400);
   ok('CV review shown', /Built 12 dashboards/.test(await p.textContent('main')) && /RAG/.test(await p.textContent('main')));

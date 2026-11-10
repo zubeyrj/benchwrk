@@ -1,5 +1,6 @@
 // Vercel cron, Sunday 18:00 UTC: each member's week in one email.
-import { SITE, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, stats, weekHours, withErrors } from "../_lib.js";
+import { SITE, pool, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, stats, weekHours, withErrors } from "../_lib.js";
+import { emailBackup } from "../backup.js";
 import { loadMembers } from "./_members.js";
 
 const r1 = (n) => Math.round(Number(n || 0) * 10) / 10;
@@ -31,10 +32,12 @@ export default withErrors(async function handler(req, res) {
   if (!requireCron(req, res)) return;
   const monday = mondayOf(new Date()), ref = isoDay(monday), since = new Date(Date.now() - 6 * 864e5).toISOString();
   let sent = 0, skipped = 0, failed = 0;
-  for (const m of await loadMembers()) {
-    if (!m.prefs.weekly || (await sentSince(m.profile.id, "weekly", since, ref))) { skipped++; continue; }
+  const left = await pool(await loadMembers(), 8, async (m) => {
+    if (!m.prefs.weekly || (await sentSince(m.profile.id, "weekly", since, ref))) { skipped++; return; }
     try { const e = weeklyEmail(m, monday); await sendEmail(Object.assign({ to: m.profile.email, unsubscribe: unsubLink(m.profile, "weekly") }, e)); await logEmail(m.profile.id, "weekly", ref); sent++; }
     catch (err) { failed++; console.error("weekly", m.profile.id, err.message); }
-  }
-  send(res, 200, { sent, skipped, failed });
+  }, 40000);
+  let backup = null;
+  try { backup = await emailBackup(); } catch (err) { backup = { error: err.message }; console.error("backup", err.message); }
+  send(res, 200, { sent, skipped, failed, left, backup });
 });

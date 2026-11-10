@@ -4,6 +4,7 @@
 import { SITE, adminClient, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, weekHours, withErrors } from "../_lib.js";
 import { loadMembers } from "./_members.js";
 import { remindOf } from "../_nudge.js";
+import { updateLeagues } from "./league.js";
 
 const r1 = (n) => Math.round(Number(n || 0) * 10) / 10;
 
@@ -39,6 +40,8 @@ export default withErrors(async function handler(req, res) {
       }
     } catch (err) { failed++; console.error("daily", m.profile.id, err.message); }
   }
+  // Fallback in case the hourly job is off: leagues still settle once a day.
+  try { await updateLeagues(now); } catch (err) { console.error("league", err.message); }
   // Housekeeping: error reports are kept for 90 days (see the privacy notice).
   await adminClient().from("errors").delete().lt("at", new Date(Date.now() - 90 * 864e5).toISOString());
   send(res, 200, { streak, comeback, failed });

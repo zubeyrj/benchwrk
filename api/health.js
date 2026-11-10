@@ -35,6 +35,7 @@ export default withErrors(async function handler(req, res) {
     check("Scheduled emails", async () => ({ ok: !!env("CRON_SECRET"), note: env("CRON_SECRET") ? "Weekly on Sundays, reminders daily" : "Add CRON_SECRET in Vercel" })),
     check("Live job search", async () => { const extra = [env("ADZUNA_APP_ID") && "Adzuna", env("REED_API_KEY") && "Reed"].filter(Boolean); return { ok: true, warn: !extra.length, note: "Remotive and Arbeitnow" + (extra.length ? " plus " + extra.join(" and ") : ". Add Adzuna or Reed keys for UK coverage") }; }),
     check("Sign-up protection", async () => ({ ok: true, warn: !env("TURNSTILE_SITE_KEY"), note: env("TURNSTILE_SITE_KEY") ? "Captcha on (check it's also switched on in Supabase > Auth > Bot protection)" : "No captcha: add TURNSTILE_SITE_KEY and switch on bot protection in Supabase" })),
+    check("Backups", async () => ({ ok: true, warn: !(env("BACKUP_KEY") && env("BACKUP_KEY").length >= 16), note: env("BACKUP_KEY") && env("BACKUP_KEY").length >= 16 ? "Encrypted backup emailed to you every Sunday" : "Add BACKUP_KEY (a passphrase of 16+ characters) in Vercel to get a weekly encrypted backup" })),
     check("Contact address", async () => ({ ok: !!env("CONTACT_EMAIL"), note: env("CONTACT_EMAIL") || "Add CONTACT_EMAIL for the privacy notice" })),
   ]);
   send(res, 200, { checks, at: new Date().toISOString() });

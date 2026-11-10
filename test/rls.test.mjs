@@ -24,6 +24,7 @@ await db.exec(`grant usage on schema public to anon, authenticated;
   grant select, insert, update, delete on all tables in schema public to anon, authenticated;
   grant execute on all functions in schema public to anon, authenticated;
   revoke update on public.profiles from authenticated; grant update (name, prefs, last_seen) on public.profiles to authenticated;
+  revoke update on public.portfolios from authenticated; grant update (slug, published, headline, about, links, show, updated_at) on public.portfolios to authenticated;
   revoke insert on public.errors from anon, authenticated;
   revoke execute on function public.bump_ai(uuid, text, int, int), public.set_owner(text) from anon, authenticated;`);
 
@@ -78,6 +79,13 @@ ok("members can't write errors", !!(await as(A, "insert into errors (source, mes
 ok("member saves own push subscription", !(await as(A, `insert into push_subs (user_id, endpoint, p256dh, auth) values ('${A}', 'https://push.example/a', 'k', 'a')`)).err);
 ok("can't save one for someone else", !!(await as(A, `insert into push_subs (user_id, endpoint, p256dh, auth) values ('${B}', 'https://push.example/b', 'k', 'a')`)).err);
 ok("others can't see your push subscriptions", ((await as(B, "select * from push_subs")).rows || []).length === 0);
+ok("member creates own portfolio", !(await as(A, `insert into portfolios (user_id, slug, headline) values ('${A}', 'amira-k', 'Data analyst to AI engineer')`)).err);
+ok("can't create one for someone else", !!(await as(A, `insert into portfolios (user_id, slug) values ('${B}', 'ben-x')`)).err);
+ok("slug rules enforced", !!(await as(B, `insert into portfolios (user_id, slug) values ('${B}', 'Bad Slug!')`)).err);
+ok("slugs are unique", !!(await as(B, `insert into portfolios (user_id, slug) values ('${B}', 'amira-k')`)).err);
+ok("others can't read a portfolio row directly", ((await as(B, "select * from portfolios")).rows || []).length === 0);
+ok("member can't un-hide their page", !!(await as(A, `update portfolios set hidden = false where user_id = '${A}'`)).err);
+ok("admin can see every portfolio (hiding goes through the API)", (await as(OWNER, "select * from portfolios")).rows.length === 1);
 ok("unknown collections refused", !!(await write(A, "misc/" + A)).err);
 const del = await as(A, "delete from docs where path = $1", ["content/m1"]);
 ok("member cannot delete content", (await read(OWNER, "content/m1")) && !del.err);

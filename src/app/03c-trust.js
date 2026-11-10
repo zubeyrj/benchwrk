@@ -151,7 +151,11 @@
     const H = A.health;
     const sysSec = window.BW ? '<div class="card sec"><div class="row between"><h2 style="margin:0">System check</h2><div class="row"><button class="btn line sm" data-act="testemail"' + (A.testing ? " disabled" : "") + '>Send me a test email</button><button class="btn sm" data-act="health"' + (A.checking ? " disabled" : "") + ">" + (A.checking ? "Checking…" : H ? "Check again" : "Run checks") + "</button></div></div>" +
       (H ? '<ul class="rl sys">' + H.checks.map((c) => '<li><span class="dot ' + (!c.ok ? "bad" : c.warn ? "warn" : "ok") + '" aria-hidden="true"></span><span class="grow"><b>' + esc(c.name) + '</b><div class="xs muted">' + esc(c.note || "") + '</div></span><span class="xs muted">' + (!c.ok ? "Needs attention" : c.warn ? "Optional" : "Working") + "</span></li>").join("") + "</ul>" : '<p class="small muted">Checks the database, Claude key, email, scheduled jobs, job search and captcha. Run it after setup and after changing settings in Vercel.</p>') + "</div>" : "";
-    return sysSec + repSec + suspSec + cohSec + errSec;
+    // Backups and portfolios
+    const bakSec = window.BW ? '<div class="card sec"><div class="row between"><h2 style="margin:0">Backups</h2><button class="btn line sm" data-act="backupnow"' + (A.backingUp ? " disabled" : "") + ">" + (A.backingUp ? "Preparing…" : "Download a backup now") + '</button></div><p class="small muted">An encrypted copy of the whole database is emailed to you every Sunday. The file opens only with your BACKUP_KEY passphrase; SETUP.md explains how to restore one.</p></div>' : "";
+    if (window.BW && window.BW.portfolio && A.pfs === undefined) { A.pfs = null; window.BW.portfolio.list().then((l) => { A.pfs = l; if (route().name === "admin") render(); }).catch(() => { A.pfs = []; }); }
+    const pfSec = window.BW && window.BW.portfolio ? '<div class="card sec"><h2>Public portfolios</h2>' + (A.pfs === null ? loading(40) : A.pfs.length ? '<ul class="rl">' + A.pfs.map((x) => '<li><span class="grow"><a href="' + esc(window.BW.portfolio.url(x.slug)) + '" target="_blank" rel="noopener"><b>/p/' + esc(x.slug) + '</b></a><div class="xs muted">' + esc(nameOf(x.user_id)) + (x.headline ? " · " + esc(x.headline) : "") + "</div></span>" + (x.hidden ? '<span class="tag behind">Hidden</span><button class="btn line sm" data-act="pfshow" data-id="' + esc(x.user_id) + '">Show</button>' : '<button class="btn line sm" data-act="pfhide" data-id="' + esc(x.user_id) + '">Hide</button>') + "</li>").join("") + "</ul>" : '<p class="small muted">Nobody has published a portfolio yet.</p>') + "</div>" : "";
+    return sysSec + bakSec + repSec + suspSec + pfSec + cohSec + errSec;
   }
 
   /* ----- events ----- */
@@ -185,6 +189,22 @@
       return;
     }
     if (a === "errclear") { try { await window.BW.client.from("errors").update({ resolved: true }).eq("resolved", false); ui.admin.errors = []; render(); } catch (x) { toast("Couldn't update."); } return; }
+    if (a === "backupnow") {
+      ui.admin.backingUp = true; render();
+      try {
+        const r = await window.BW.api("/api/backup", {}, { raw: true });
+        if (!r.ok) { let m = "The backup didn't work."; try { m = (await r.json()).error || m; } catch (x) { /* not json */ } throw new Error(m); }
+        const blob = await r.blob(), name = (/filename="([^"]+)"/.exec(r.headers.get("content-disposition") || "") || [])[1] || "benchwork-backup.bwbak";
+        const url = URL.createObjectURL(blob), link = document.createElement("a"); link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+        toast("Backup downloaded. Keep it somewhere safe.");
+      } catch (x) { toast((x && x.message) || "The backup didn't work."); }
+      ui.admin.backingUp = false; render(); return;
+    }
+    if (a === "pfhide" || a === "pfshow") {
+      try { await window.BW.api("/api/admin-moderate", { action: a === "pfhide" ? "hideportfolio" : "showportfolio", uid: b.dataset.id }); const x = (ui.admin.pfs || []).find((y) => y.user_id === b.dataset.id); if (x) x.hidden = a === "pfhide"; toast(a === "pfhide" ? "Portfolio hidden." : "Portfolio visible again."); }
+      catch (x) { toast((x && x.message) || "Couldn't change that."); }
+      render(); return;
+    }
     if (a === "health") { ui.admin.checking = true; render(); try { ui.admin.health = await window.BW.api("/api/health"); } catch (x) { toast((x && x.message) || "The check didn't run."); } ui.admin.checking = false; render(); return; }
     if (a === "testemail") { ui.admin.testing = true; render(); try { const r = await window.BW.api("/api/health", { test: "email" }); toast("Test email sent to " + r.to + "."); } catch (x) { toast((x && x.message) || "Couldn't send it."); } ui.admin.testing = false; render(); return; }
   });

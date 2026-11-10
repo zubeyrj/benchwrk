@@ -270,6 +270,118 @@ r = await call(daily, { method: "GET", headers: { authorization: "Bearer cron-se
 ok("daily cron leaves relentless members to the nudge cron", r.json.streak === 0 && r.json.comeback === 0);
 delete globalThis.__testNow; delete globalThis.__testPush;
 
+// ---- leagues ----
+{
+  const { rollLeagues, addNewcomers, weekXp, leagueSpot, zoneSize, GROUP_MAX } = await import("../api/_league.js");
+  const W1 = "2026-11-02", W2 = "2026-11-09";
+  const S = {};
+  for (let i = 0; i < 10; i++) S["u" + i] = { name: "M" + i, at: "2026-11-08", wk: W1, wxp: i * 10 };
+  S.quiet = { name: "Q", at: "2026-09-01", wk: W1, wxp: 0 };
+  S.out = { name: "O", at: "2026-11-08", wk: W1, wxp: 999, lg: false };
+  let L = rollLeagues(null, S, W1, "2026-11-08");
+  ok("first week: active members join Bronze", Object.keys(L.group).length === 10 && Object.values(L.tier).every((t) => t === 0) && !L.group.quiet && !L.group.out);
+  ok("zone size", zoneSize(10) === 2 && zoneSize(3) === 1 && zoneSize(1) === 0 && zoneSize(20) === 4);
+  const spot = leagueSpot(L, S, "u8");
+  ok("standing this week", spot.rank === 2 && spot.n === 10 && spot.zone === "up" && spot.tier === "Bronze");
+  ok("standing outside the zone shows the gap", leagueSpot(L, S, "u5").gapUp === 31);
+  // Members who've already rolled into week 2 keep last week's XP in lw.
+  S.u9 = { name: "M9", at: "2026-11-09", wk: W2, wxp: 5, lw: { wk: W1, xp: 90 } };
+  ok("last week's XP read from lw", weekXp(S.u9, W1) === 90 && weekXp(S.u9, W2) === 5 && weekXp(S.u0, W2) === 0);
+  S.u0.wxp = 0;
+  const L2 = rollLeagues(L, S, W2, "2026-11-09");
+  ok("top two promoted to Silver", L2.tier.u9 === 1 && L2.tier.u8 === 1 && L2.tier.u7 === 0 && L2.last.u9.rank === 1 && L2.last.u9.to === 1);
+  ok("nobody drops below Bronze", L2.tier.u0 === 0 && L2.last.u0.from === 0);
+  ok("new week groups by tier", L2.group.u9.startsWith("1-") && L2.group.u7.startsWith("0-") && L2.wk === W2);
+  // Silver week: zero XP drops a league; the top tier can't go higher.
+  const S3 = { a: { name: "A", at: "2026-11-15", wk: W2, wxp: 0 }, b: { name: "B", at: "2026-11-15", wk: W2, wxp: 50 } };
+  const L3 = rollLeagues({ wk: W2, tier: { a: 1, b: 5 }, group: { a: "1-0", b: "5-0" } }, S3, "2026-11-16", "2026-11-16");
+  ok("no XP all week drops a league; Diamond stays Diamond", L3.tier.a === 0 && L3.tier.b === 5);
+  // Groups stay at 20 or fewer.
+  const big = {}; for (let i = 0; i < 45; i++) big["b" + i] = { name: "B" + i, at: "2026-11-08", wk: W1, wxp: i };
+  const LB = rollLeagues(null, big, W1, "2026-11-08"), sizes = {}; Object.values(LB.group).forEach((g) => { sizes[g] = (sizes[g] || 0) + 1; });
+  ok("big pool split into even groups of at most 20", Object.keys(sizes).length === 3 && Object.values(sizes).every((n) => n <= GROUP_MAX && n >= 15));
+  const LN = rollLeagues(null, { x: { name: "X", at: "2026-11-08" } }, W1, "2026-11-08");
+  ok("newcomers join midweek", addNewcomers(LN, { x: { name: "X", at: "2026-11-08" }, y: { name: "Y", at: "2026-11-10" } }, "2026-11-10") && LN.group.y === LN.group.x && LN.tier.y === 0);
+  // The route writes content/league once a week and adds newcomers in between.
+  const lroute = await load("cron/league.js");
+  ok("league cron needs secret", (await call(lroute, { method: "GET" })).status === 401);
+  globalThis.__testNow = "2026-11-16T00:20:00Z";
+  sb._doc("learners/" + ben.id, { name: "Ben", at: "2026-11-15", wk: "2026-11-09", wxp: 40 });
+  await new Promise((res) => setTimeout(res, 10));
+  r = await call(lroute, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+  const doc = sb.tables.docs.find((d) => d.path === "content/league");
+  ok("league settled and saved where members can read it", r.json.rolled === true && doc && doc.data.wk === "2026-11-16" && doc.data.group[ben.id]);
+  r = await call(lroute, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+  ok("second call in the same week changes nothing", r.json.rolled === false && r.json.changed === false);
+  const { pickCopy } = await import("../api/_nudge.js");
+  const lc = pickCopy({ atRisk: false, quiet: 2, weeks: 0, left: 0, have: 0, need: 6, cur: "SQL", L: { dow: 6 }, league: { tier: "Gold", rank: 9, n: 10, zone: "down", k: 2, gapUp: 40 } }, "eve", "s");
+  ok("relegation reminder on Saturday", /Gold|Relegation/.test(lc.title + lc.body) && /9th of 10/.test(lc.body));
+  delete globalThis.__testNow;
+}
+
+// ---- portfolio pages ----
+{
+  const pfr = await load("portfolio.js");
+  sb.tables.portfolios.push({ user_id: amira.id, slug: "amira-k", published: true, hidden: false, headline: "Analyst <b>to</b> AI engineer", about: "Built things.", links: { github: "https://github.com/amira", linkedin: "javascript:alert(1)", web: "" }, show: { projects: true, reviews: true, certs: true, stats: true, index: false } });
+  sb._doc("subs/" + amira.id, { name: "Amira", items: { m7: { repo: "https://github.com/amira/rag", demo: "javascript:x", note: "RAG over policies", at: "2026-11-01" }, m8: { repo: "ftp://nope" } } });
+  sb._doc("reviews/" + ben.id, { name: "Ben", given: { [amira.id + ":m7"]: { s: [3, 2, 3, 2], c: "Clear README and honest numbers on recall.", at: "2026-11-02" } } });
+  sb._doc("content/m7", { title: "RAG assistant: project 1" });
+  sb._doc("learners/" + amira.id, { name: "Amira", lvl: 4, hours: 31.4, pct: 22, cur: "Python", streak: 3 });
+  await new Promise((res) => setTimeout(res, 10));
+  r = await call(pfr, { method: "GET", url: "/api/portfolio?slug=amira-k" });
+  ok("portfolio page renders", r.status === 200 && r.text.includes("<h1>Amira</h1>") && r.text.includes("RAG assistant") && r.text.includes("2.5 / 3</b> from 1 peer review") && r.text.includes("Clear README"));
+  ok("portfolio escapes text and drops unsafe links", r.text.includes("Analyst &lt;b&gt;to&lt;/b&gt;") && !r.text.includes("javascript:") && !r.text.includes("ftp://") && r.text.includes('href="https://github.com/amira"'));
+  ok("portfolio hidden from search engines unless chosen", r.text.includes('name="robots" content="noindex"'));
+  ok("bad slug is a 404", (await call(pfr, { method: "GET", url: "/api/portfolio?slug=../x" })).status === 404);
+  const adm = await load("admin-moderate.js");
+  ok("members can't hide portfolios", (await call(adm, { token: T.ben, body: { action: "hideportfolio", uid: amira.id } })).status === 403);
+  await call(adm, { token: T.owner, body: { action: "hideportfolio", uid: amira.id } });
+  ok("owner hides a portfolio", (await call(pfr, { method: "GET", url: "/api/portfolio?slug=amira-k" })).status === 404);
+  await call(adm, { token: T.owner, body: { action: "showportfolio", uid: amira.id } });
+  sb._doc("learners/" + amira.id, { name: "Amira", suspended: true });
+  await new Promise((res) => setTimeout(res, 10));
+  ok("suspended member's page is hidden", (await call(pfr, { method: "GET", url: "/api/portfolio?slug=amira-k" })).status === 404);
+  sb._doc("learners/" + amira.id, { name: "Amira", lvl: 4 });
+  sb.tables.portfolios[0].published = false;
+  await new Promise((res) => setTimeout(res, 10));
+  ok("unpublished page is a 404", (await call(pfr, { method: "GET", url: "/api/portfolio?slug=amira-k" })).status === 404);
+  sb.tables.portfolios[0].published = true;
+}
+
+// ---- batching ----
+{
+  const { pool } = await import("../api/_lib.js");
+  const seen = []; let busy = 0, peak = 0;
+  const left = await pool([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, async (x) => { busy++; peak = Math.max(peak, busy); await new Promise((r) => setTimeout(r, 5)); seen.push(x); busy--; }, 0);
+  ok("pool runs everything, a few at a time", left === 0 && seen.length === 10 && peak === 3);
+  const left2 = await pool(Array.from({ length: 50 }, (_, i) => i), 2, async () => { await new Promise((r) => setTimeout(r, 10)); }, 25);
+  ok("pool stops at the time budget and reports what's left", left2 > 30 && left2 < 50);
+}
+
+// ---- backups ----
+{
+  const bk = await load("backup.js"), { decrypt } = await import("../api/_backup.js");
+  ok("backup needs the cron secret", (await call(bk, { method: "GET" })).status === 401);
+  r = await call(bk, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+  ok("no BACKUP_KEY: skipped with a reason", /BACKUP_KEY/.test(r.json.skipped));
+  ok("owner download refused without a key", (await call(bk, { token: T.owner, body: {} })).json.code === "no_key");
+  ok("members can't download backups", (await call(bk, { token: T.ben, body: {} })).status === 403);
+  process.env.BACKUP_KEY = "correct horse battery staple";
+  const before = sent.length;
+  r = await call(bk, { method: "GET", headers: { authorization: "Bearer cron-secret" } });
+  const m = sent[before], att = m && m.attachments && m.attachments[0];
+  ok("backup emailed to the owner as an attachment", r.json.sent === true && m.to[0] === "owner@example.org" && /\.bwbak$/.test(att.filename));
+  const file = Buffer.from(att.content, "base64");
+  ok("backup is encrypted", !file.toString("latin1").includes("amira@example.org") && file.subarray(0, 5).toString() === "BWBK1");
+  const dump = decrypt(file, "correct horse battery staple");
+  ok("backup holds every table and the account list", dump.tables.docs.length > 5 && dump.tables.profiles.some((x) => x.email === "amira@example.org") && dump.tables.portfolios.length === 1 && dump.users.some((u) => u.email === "ben@example.org"));
+  let wrong = ""; try { decrypt(file, "wrong passphrase!!"); } catch (e) { wrong = e.message; }
+  ok("wrong passphrase refused", /Wrong passphrase/.test(wrong));
+  const tampered = Buffer.from(file); tampered[tampered.length - 3] ^= 1; let bad = ""; try { decrypt(tampered, "correct horse battery staple"); } catch (e) { bad = e.message; }
+  ok("tampered file refused", /damaged|Wrong/.test(bad));
+  delete process.env.BACKUP_KEY;
+}
+
 // ---- delete ----
 const del = await load("me-delete.js");
 ok("delete needs confirmation", (await call(del, { token: T.amira, body: {} })).status === 400);
@@ -312,6 +424,9 @@ r = await call(iv, { token: T.ben, body: { mode: "score", job: JOB, setup: Objec
 last = ivCalls[ivCalls.length - 1];
 ok("score returns the scorecard", r.status === 200 && r.json.hire_signal === "Mixed" && r.json.scores.differentiation === 2);
 ok("score prompt: rubric, band, directness, self-assessment", /Differentiation: 1 generic/.test(last.system) && /Early career/.test(last.system) && /Directness 5/.test(last.system) && /Self-rating overall: 4/.test(last.messages[0].content) && /scope_note/.test(last.system));
+r = await call(iv, { token: T.ben, body: { mode: "score", job: JOB, setup: SETUP, transcript: [{ role: "interviewer", kind: "question", n: 1, text: "Q1" }, { role: "candidate", text: "um I built it", dl: { s: 95, wpm: 152, f: 3 } }, { role: "candidate", text: "x", dl: { s: "<script>", wpm: 1, f: 1 } }], self: {} } });
+last = ivCalls[ivCalls.length - 1];
+ok("spoken answers carry delivery into the scoring prompt", /CANDIDATE \[spoken 1:35, 152 wpm, 3 fillers\]/.test(last.messages[0].content) && /transcribed by the browser/.test(last.system) && !/<script>/.test(last.messages[0].content));
 ok("interview usage tracked separately", sb.tables.ai_usage.some((u) => u.user_id === ben.id && u.kind === "interview" && u.calls >= 6));
 process.env.INTERVIEW_DAILY_CALLS = "2";
 ok("interview daily allowance", (await call(iv, { token: T.ben, body: { mode: "decode", job: JOB } })).json.code === "daily_cap");
@@ -364,7 +479,7 @@ ok("owner can't suspend self", (await call(mod, { token: T.owner, body: { action
 const health = await load("health.js");
 ok("health is owner-only", (await call(health, { method: "GET", token: T.ben })).status === 403);
 r = await call(health, { method: "GET", token: T.owner, headers: { host: "benchwork.test" } });
-ok("health runs every check", r.status === 200 && r.json.checks.length === 8 && r.json.checks.find((c) => c.name === "Database").ok && r.json.checks.find((c) => c.name === "Site address").ok);
+ok("health runs every check", r.status === 200 && r.json.checks.length === 9 && r.json.checks.find((c) => c.name === "Backups").warn && r.json.checks.find((c) => c.name === "Database").ok && r.json.checks.find((c) => c.name === "Site address").ok);
 ok("health flags missing captcha as optional", r.json.checks.find((c) => c.name === "Sign-up protection").warn === true);
 r = await call(health, { token: T.owner, body: { test: "email" } });
 ok("test email", r.status === 200 && sent[sent.length - 1].subject === "Benchwork test email");
