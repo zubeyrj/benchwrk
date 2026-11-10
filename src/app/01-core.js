@@ -325,12 +325,14 @@
 
   /* ---------- boot ---------- */
   const timeout = (ms) => new Promise((res) => setTimeout(() => res("__timeout"), ms));
+  // Benchwork's own runtime (platform.js) wins over any host-provided window.claude.
+  const RT = () => window.BW_RUNTIME || window.claude;
   async function boot() {
     try {
-      if (!window.claude || typeof window.claude.use !== "function") throw new Error("runtime");
-      user = await Promise.race([window.claude.use("user"), timeout(10000)]);
+      if (!RT() || typeof RT().use !== "function") throw new Error("runtime");
+      user = await Promise.race([RT().use("user"), timeout(10000)]);
       if (user === "__timeout") user = null;
-      db = await Promise.race([window.claude.use("db"), timeout(10000)]);
+      db = await Promise.race([RT().use("db"), timeout(10000)]);
       if (db === "__timeout") db = null;
       if (!user || !db) throw new Error("signed-out");
       uid = await user.id();
@@ -345,8 +347,8 @@
       else phase = canWrite === false ? "noaccess" : "signup";
     } catch (e) { phase = "noaccess"; }
     render();
-    Promise.race([window.claude && window.claude.use("sample"), timeout(10000)]).then((s) => { sample = s && s !== "__timeout" ? s : null; if (sample && phase === "ready") refreshTutors(); }).catch(() => {});
-    Promise.race([window.claude && window.claude.use("downloads"), timeout(10000)]).then((d) => { downloads = d && d !== "__timeout" ? d : null; }).catch(() => {});
+    Promise.race([RT() && RT().use("sample"), timeout(10000)]).then((s) => { sample = s && s !== "__timeout" ? s : null; if (sample && phase === "ready") refreshTutors(); }).catch(() => {});
+    Promise.race([RT() && RT().use("downloads"), timeout(10000)]).then((d) => { downloads = d && d !== "__timeout" ? d : null; }).catch(() => {});
   }
   async function loadContent() {
     try {

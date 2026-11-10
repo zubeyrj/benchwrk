@@ -95,7 +95,8 @@ function friendly(e) {
 async function bootstrap() {
   const cfg = window.BW_CONFIG || {};
   // Tests (and any host that already provides the runtime) skip straight to the app.
-  if (window.claude && typeof window.claude.use === "function") { loadApp(); return; }
+  // (In the preview an in-memory backend is supplied, so any runtime the host page provides is ignored.)
+  if (!window.__fakeSupabase && window.claude && typeof window.claude.use === "function") { loadApp(); return; }
   const sb = window.__fakeSupabase || (cfg.supabaseUrl && cfg.supabaseAnonKey ? createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true, flowType: "pkce" } }) : null);
   if (!sb) { ui.mode = "setup"; render(); return; }
   const site = cfg.siteUrl || location.origin;
@@ -130,7 +131,7 @@ async function bootstrap() {
     };
     const rt = makeRuntime(sb, session, { api });
     const reportError = window.__fakeSupabase ? () => {} : watchErrors(async () => { const { data } = await sb.auth.getSession(); return data && data.session ? data.session.access_token : ""; });
-    window.claude = { use: rt.use };
+    window.BW_RUNTIME = { use: rt.use };
     window.BW = {
       client: sb, api, site, email: session.user.email, reportError,
       invite: ((session.user.user_metadata || {}).invite || storedInvite() || "").toUpperCase(),
