@@ -75,6 +75,15 @@ Gmail allows about 500 emails a day, which covers a few hundred members.
    - Optional: `TUTOR_DAILY_LIMIT` (questions per member per day, default 40) and `TUTOR_SITE_DAILY_LIMIT` (whole site, default 1500)
 3. Redeploy.
 
+## 6b. Live job search (optional, free, 10 minutes)
+
+The Interview room's "Find live AI jobs" works straight away with Remotive and Arbeitnow (remote and European roles). For proper UK coverage, add one or both of these free job-board APIs:
+
+- **Adzuna**: sign up at [developer.adzuna.com](https://developer.adzuna.com), create an app and add `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` in Vercel.
+- **Reed**: register at [reed.co.uk/developers](https://www.reed.co.uk/developers/jobseeker) and add `REED_API_KEY`.
+
+Benchwork doesn't scrape LinkedIn or Indeed: both forbid it and block it. Members can still paste any advert, or a link to a company careers page, which Benchwork reads.
+
 ## 7. First visit
 
 1. Open your site and sign up with the email you used in `set_owner`. Confirm it from your inbox.
@@ -89,7 +98,7 @@ Gmail allows about 500 emails a day, which covers a few hundred members.
 - **Change a course**: edit it in Admin > Content editor, or edit `content/` in the repo, run `npm run content`, push, then click **Reload all courses from the repo** in Admin.
 - **Email a learner**: Admin > Members > Email.
 - **Scheduled emails**: weekly progress goes out on Sundays at 18:00 UK time (19:00 in summer) and reminders run daily at 17:00 (18:00 in summer). See them under Vercel > Settings > Cron Jobs.
-- **Tutor spend**: Admin shows an estimate for the last 30 days; the Anthropic console has the exact figure.
+- **AI spend**: Admin shows an estimate for the last 30 days; the Anthropic console has the exact figure. A full mock interview (decode, five questions with follow-ups, scorecard) costs roughly 25p to 40p on the default model. To halve it, set `INTERVIEW_MODEL=claude-haiku-5-5`; the scoring gets less sharp.
 - **Back-ups**: Supabase's free plan keeps daily back-ups for 7 days.
 
 ## Moving to your own domain later

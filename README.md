@@ -13,6 +13,7 @@ peer review, accountability partners, XP and streaks, and an AI tutor.
 | The app | `src/app/*.js`, built into `public/app.js` | Every screen: Today, Courses, Plan, Practice, Projects, Cohort, Log, Toolkit, Settings, Admin |
 | Sign-in and data layer | `src/platform/`, built into `public/platform.js` | Email and password, Google, confirmation, password reset; a small document API over Supabase with live updates |
 | Python and SQL in the browser | `public/runner.js`, `public/harness.txt` | Pyodide and sql.js in a Web Worker, with tests per exercise |
+| Interview room | `src/app/03b-interview.js`, `api/interviewer.js`, `api/jobs.js`, `api/job-fetch.js` | Job advert decode, live job search, AI mock interviews (one question at a time, follow-ups), self-reflection, five-dimension scorecards, a STAR storybank |
 | API | `api/*.js` (Vercel functions) | Tutor (Claude), data export and deletion, partner emails, owner emails, content loading, public certificates, unsubscribe |
 | Scheduled emails | `api/cron/*.js` | Sunday progress email, streak-at-risk and come-back reminders |
 | Database | `supabase/schema.sql` | Documents table with row-level security, profiles, certificates, tutor usage, email log |

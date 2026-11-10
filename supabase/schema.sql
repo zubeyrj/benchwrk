@@ -132,20 +132,21 @@ create policy certs_update on public.certs for update using (user_id = auth.uid(
 grant select on public.certs to anon;
 
 -- ---------------------------------------------------------------------------
--- Server-side bookkeeping: tutor spend and sent emails. Written by the API with
+-- Server-side bookkeeping: AI spend (tutor, interviewer, job-page fetches) and sent emails. Written by the API with
 -- the service key; the admin can read tutor usage for the analytics panel.
 -- ---------------------------------------------------------------------------
-create table if not exists public.tutor_usage (
+create table if not exists public.ai_usage (
   user_id    uuid not null references auth.users (id) on delete cascade,
   day        date not null default current_date,
+  kind       text not null default 'tutor', -- tutor | interview | fetch
   calls      int not null default 0,
   in_tokens  int not null default 0,
   out_tokens int not null default 0,
-  primary key (user_id, day)
+  primary key (user_id, day, kind)
 );
-alter table public.tutor_usage enable row level security;
-drop policy if exists tutor_usage_select on public.tutor_usage;
-create policy tutor_usage_select on public.tutor_usage for select using (user_id = auth.uid() or public.is_admin());
+alter table public.ai_usage enable row level security;
+drop policy if exists ai_usage_select on public.ai_usage;
+create policy ai_usage_select on public.ai_usage for select using (user_id = auth.uid() or public.is_admin());
 
 create table if not exists public.email_log (
   id      bigint generated always as identity primary key,
@@ -157,13 +158,13 @@ create table if not exists public.email_log (
 create index if not exists email_log_user_kind on public.email_log (user_id, kind, sent_at desc);
 alter table public.email_log enable row level security; -- server-side only
 
-create or replace function public.bump_tutor(uid uuid, inp int, outp int) returns void
+create or replace function public.bump_ai(uid uuid, k text, inp int, outp int) returns void
 language sql security definer set search_path = public as $$
-  insert into public.tutor_usage (user_id, day, calls, in_tokens, out_tokens) values (uid, current_date, 1, inp, outp)
-  on conflict (user_id, day) do update set calls = tutor_usage.calls + 1,
-    in_tokens = tutor_usage.in_tokens + excluded.in_tokens, out_tokens = tutor_usage.out_tokens + excluded.out_tokens;
+  insert into public.ai_usage (user_id, day, kind, calls, in_tokens, out_tokens) values (uid, current_date, k, 1, inp, outp)
+  on conflict (user_id, day, kind) do update set calls = ai_usage.calls + 1,
+    in_tokens = ai_usage.in_tokens + excluded.in_tokens, out_tokens = ai_usage.out_tokens + excluded.out_tokens;
 $$;
-revoke execute on function public.bump_tutor(uuid, int, int) from public, anon, authenticated;
+revoke execute on function public.bump_ai(uuid, text, int, int) from public, anon, authenticated;
 
 -- Live updates for the cohort board, partners and reviews.
 do $$ begin

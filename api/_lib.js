@@ -132,3 +132,34 @@ export function footerFor(profile, kind, label) {
     (profile && profile.unsub_token ? '<a href="' + unsubLink(profile, kind) + '" style="color:#6b7280">Stop ' + esc(label) + "</a> · " : "") +
     '<a href="' + SITE() + '/#settings" style="color:#6b7280">Email settings</a>';
 }
+
+// ---------- AI usage and Claude calls ----------
+const todayIso = () => new Date().toISOString().slice(0, 10);
+export async function usageToday(uid, kind) {
+  const { data } = await adminClient().from("ai_usage").select("calls").eq("user_id", uid).eq("day", todayIso()).eq("kind", kind).maybeSingle();
+  return data ? data.calls : 0;
+}
+export async function siteUsageToday(kind) {
+  const { data } = await adminClient().from("ai_usage").select("calls").eq("day", todayIso()).eq("kind", kind);
+  return (data || []).reduce((a, r) => a + r.calls, 0);
+}
+export const bumpAi = (uid, kind, inp = 0, outp = 0) => adminClient().rpc("bump_ai", { uid, k: kind, inp, outp });
+
+// One non-streaming call to Claude. Returns { text, usage } or throws with .status.
+export async function claude({ model, system, messages, max_tokens }) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": env("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model, max_tokens, system, messages }),
+  });
+  if (!r.ok) throw Object.assign(new Error("Claude " + r.status), { status: r.status });
+  const j = await r.json();
+  return { text: (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join(""), usage: j.usage || {} };
+}
+
+// Pulls the JSON object out of a model reply, even if it added a sentence or a code fence around it.
+export function parseJsonReply(text) {
+  const a = text.indexOf("{"), b = text.lastIndexOf("}");
+  if (a < 0 || b < a) return null;
+  try { return JSON.parse(text.slice(a, b + 1)); } catch (e) { return null; }
+}

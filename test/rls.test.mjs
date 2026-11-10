@@ -24,7 +24,7 @@ await db.exec(`grant usage on schema public to anon, authenticated;
   grant select, insert, update, delete on all tables in schema public to anon, authenticated;
   grant execute on all functions in schema public to anon, authenticated;
   revoke update on public.profiles from authenticated; grant update (name, prefs, last_seen) on public.profiles to authenticated;
-  revoke execute on function public.bump_tutor(uuid, int, int), public.set_owner(text) from anon, authenticated;`);
+  revoke execute on function public.bump_ai(uuid, text, int, int), public.set_owner(text) from anon, authenticated;`);
 
 const OWNER = "11111111-1111-1111-1111-111111111111", A = "22222222-2222-2222-2222-222222222222", B = "33333333-3333-3333-3333-333333333333";
 await db.exec(`insert into auth.users (id, email, raw_user_meta_data) values ('${A}', 'amira@example.org', '{"full_name":"Amira K"}');`);
@@ -80,11 +80,11 @@ ok("cannot issue for someone else", !!(await as(A, `insert into certs (user_id, 
 const pub = await as(null, "select id, name, course_title from certs");
 ok("anyone can verify a certificate", pub.rows && pub.rows.length === 1 && pub.rows[0].id.length === 16);
 
-ok("members cannot bump tutor usage", !!(await as(A, `select bump_tutor('${A}', 1, 1)`)).err);
-await db.query(`select bump_tutor('${A}', 100, 50)`); await db.query(`select bump_tutor('${A}', 10, 5)`);
-ok("tutor usage accumulates", (await db.query(`select calls, in_tokens from tutor_usage where user_id = '${A}'`)).rows[0].calls === 2);
-ok("admin reads tutor usage", (await as(OWNER, "select * from tutor_usage")).rows.length === 1);
-ok("member cannot read others' usage", (await as(B, "select * from tutor_usage")).rows.length === 0);
+ok("members cannot bump tutor usage", !!(await as(A, `select bump_ai('${A}', 'tutor', 1, 1)`)).err);
+await db.query(`select bump_ai('${A}', 'tutor', 100, 50)`); await db.query(`select bump_ai('${A}', 'tutor', 10, 5)`); await db.query(`select bump_ai('${A}', 'interview', 7, 7)`);
+ok("tutor usage accumulates", (await db.query(`select calls, in_tokens from ai_usage where user_id = '${A}' and kind = 'tutor'`)).rows[0].calls === 2);
+ok("admin reads tutor usage", (await as(OWNER, "select * from ai_usage")).rows.length === 2);
+ok("member cannot read others' usage", (await as(B, "select * from ai_usage")).rows.length === 0);
 ok("members cannot read email log", ((await as(A, "select * from email_log")).rows || []).length === 0);
 ok("members cannot read settings", ((await as(A, "select * from app_settings")).rows || []).length === 0);
 ok("members cannot make themselves admin", !!(await as(A, `insert into admins values ('${A}')`)).err);

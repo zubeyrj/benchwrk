@@ -27,9 +27,9 @@
   const FACTOR = { start: 1, fast: 0.6, testout: 0.15 };
   const LVNAME = { start: "Start here", fast: "Fast track", testout: "Prove it" };
   const PROJECTS = ["m7", "m8", "m9"];
-  const PTS = { lesson: 10, ex: 25, exSol: 10, quiz: 50, hour: 5, cp: 20, sub: 100, rev: 30 };
+  const PTS = { lesson: 10, ex: 25, exSol: 10, quiz: 50, hour: 5, cp: 20, sub: 100, rev: 30, iv: 75 };
   const DAY = 864e5;
-  const NAV = [["home", "Today"], ["courses", "Courses"], ["plan", "Plan"], ["practice", "Practice"], ["projects", "Projects"], ["cohort", "Cohort"], ["log", "Log"], ["toolkit", "Toolkit"]];
+  const NAV = [["home", "Today"], ["courses", "Courses"], ["plan", "Plan"], ["practice", "Practice"], ["projects", "Projects"], ["interview", "Interview"], ["cohort", "Cohort"], ["log", "Log"], ["toolkit", "Toolkit"]];
   const LEVELS = ["Starter", "Tinkerer", "Builder", "Maker", "Engineer", "Shipper", "Architect"];
   const QUESTS = [["hours", "Log your weekly hours", 100], ["lessons", "Read 3 lessons", 50], ["ex", "Solve 3 exercises", 75], ["quiz", "Pass or review a quiz", 50]];
   const $app = document.getElementById("app");
@@ -84,7 +84,7 @@
   document.addEventListener("input", (e) => { const t = e.target; if (t.dataset && t.dataset.words) { const el = document.getElementById(t.dataset.words); if (el) el.textContent = dateWords(t.value); } });
 
   /* ---------- state ---------- */
-  function blank() { return { v: 4, account: null, tools: null, placement: null, hpw: 15, goal: "engineer", start: isoDate(mondayOf(new Date())), mods: {}, log: [], miss: {}, revs: 0, quests: {}, qxp: 0, onboarded: null }; }
+  function blank() { return { v: 4, account: null, tools: null, placement: null, hpw: 15, goal: "engineer", start: isoDate(mondayOf(new Date())), mods: {}, log: [], miss: {}, revs: 0, quests: {}, qxp: 0, onboarded: null, iv: { jobs: [], sessions: [], stories: [] } }; }
   function normalize(o) {
     const n = Object.assign(blank(), o && typeof o === "object" ? o : {});
     if (!n.mods || typeof n.mods !== "object") n.mods = {};
@@ -92,6 +92,8 @@
     if (!n.miss || typeof n.miss !== "object") n.miss = {};
     if (!n.quests || typeof n.quests !== "object") n.quests = {};
     n.qxp = Number(n.qxp) || 0;
+    if (!n.iv || typeof n.iv !== "object") n.iv = {};
+    ["jobs", "sessions", "stories"].forEach((k) => { if (!Array.isArray(n.iv[k])) n.iv[k] = []; });
     n.hpw = clampH(n.hpw);
     return n;
   }
@@ -199,11 +201,12 @@
       if (st.sub) subsN++;
       if (st.done) done++;
     });
-    return { lessons, ex, exSol, quiz, cp, subs: subsN, done, revs: S.revs || 0 };
+    const iv = ((S.iv && S.iv.sessions) || []).filter((x) => x.score).length;
+    return { lessons, ex, exSol, quiz, cp, subs: subsN, done, revs: S.revs || 0, iv };
   }
   function points() {
     const c = counts();
-    return c.lessons * PTS.lesson + c.ex * PTS.ex + c.exSol * PTS.exSol + c.quiz * PTS.quiz + Math.round(totalHours()) * PTS.hour + c.cp * PTS.cp + c.subs * PTS.sub + c.revs * PTS.rev + (S.qxp || 0);
+    return c.lessons * PTS.lesson + c.ex * PTS.ex + c.exSol * PTS.exSol + c.quiz * PTS.quiz + Math.round(totalHours()) * PTS.hour + c.cp * PTS.cp + c.subs * PTS.sub + c.revs * PTS.rev + c.iv * PTS.iv + (S.qxp || 0);
   }
   // Levels get further apart as you climb: 150, 450, 900, 1500...
   function levelInfo(xp) {

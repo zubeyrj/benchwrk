@@ -1,7 +1,7 @@
 // POST /api/tutor  { messages: [{ role, content }] }  ->  streamed plain text
 // Calls Claude with the site's API key. Each member gets a daily allowance, and the whole
 // site has a daily ceiling, so spend can't run away.
-import { adminClient, env, fail, readJson, requireUser } from "./_lib.js";
+import { bumpAi, env, fail, readJson, requireUser, siteUsageToday, usageToday } from "./_lib.js";
 
 const MAX_TURNS = 40, MAX_CHARS = 60000;
 
@@ -20,12 +20,9 @@ export default async function handler(req, res) {
   }
   if (chars > MAX_CHARS || messages[0].role !== "user") return fail(res, 400, "That conversation is too long. Start a fresh one.");
 
-  const db = adminClient(), today = new Date().toISOString().slice(0, 10);
   const perUser = Number(env("TUTOR_DAILY_LIMIT", 40)), perSite = Number(env("TUTOR_SITE_DAILY_LIMIT", 1500));
-  const mine = await db.from("tutor_usage").select("calls").eq("user_id", user.id).eq("day", today).maybeSingle();
-  if (mine.data && mine.data.calls >= perUser) return fail(res, 429, "You've used today's " + perUser + " tutor questions. They reset at midnight.", "daily_cap");
-  const all = await db.from("tutor_usage").select("calls").eq("day", today);
-  if ((all.data || []).reduce((a, r) => a + r.calls, 0) >= perSite) return fail(res, 429, "The tutor has hit today's limit for the whole site. Try again tomorrow.", "site_cap");
+  if ((await usageToday(user.id, "tutor")) >= perUser) return fail(res, 429, "You've used today's " + perUser + " tutor questions. They reset at midnight.", "daily_cap");
+  if ((await siteUsageToday("tutor")) >= perSite) return fail(res, 429, "The tutor has hit today's limit for the whole site. Try again tomorrow.", "site_cap");
 
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -62,6 +59,6 @@ export default async function handler(req, res) {
     }
   } finally {
     res.end();
-    await db.rpc("bump_tutor", { uid: user.id, inp: inTok, outp: outTok });
+    await bumpAi(user.id, "tutor", inTok, outTok);
   }
 }

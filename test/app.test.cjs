@@ -58,7 +58,7 @@ let BASE = '';
   await p.click('.welcome-modal [data-act="tour"]'); await p.waitForTimeout(300);
   ok('tour starts', await p.isVisible('.tour-pop'));
   await shot(p, '02c-tour', false);
-  for (let i = 0; i < 9; i++) { await p.click('.tour-pop [data-act="tournext"]'); await p.waitForTimeout(120); if (i === 4) await shot(p, '02d-tour-mid', false); }
+  for (let i = 0; i < 10; i++) { await p.click('.tour-pop [data-act="tournext"]'); await p.waitForTimeout(120); if (i === 4) await shot(p, '02d-tour-mid', false); }
   await shot(p, '02e-tour-end', false);
   await p.click('.tour-pop [data-act="tournext"]'); await p.waitForTimeout(150);
   ok('tour ends', !(await p.isVisible('.tour-pop')) && await p.evaluate(() => !!(window.__store.get('data/users/u1/state') || {}).onboarded || true));
@@ -202,6 +202,54 @@ let BASE = '';
   ok('cheer emails partner', await p.evaluate(() => window.__api.some((c) => c.path === '/api/nudge' && c.body.to === 'u2' && c.body.kind === 'cheer' && c.body.text)));
 
   // settings extras: account, emails, calendar, data
+  // interview room
+  await go(p, 'interview', 400);
+  ok('interview room in nav', /Interview/.test(await p.textContent('#nav')) && /Practise the interview before it counts/.test(await p.textContent('main')));
+  await shot(p, '30-iv-hub');
+  await p.click('a[href="#iv-stories"]'); await p.waitForTimeout(250);
+  await p.fill('#st-title', 'Weekend RAG demo'); await p.fill('#st-a', 'I built retrieval over 200 policy PDFs.'); await p.fill('#st-r', 'Answers went from 40% to 85% correct on my eval set.');
+  await p.click('#ivstory button[type=submit]'); await p.waitForTimeout(900);
+  ok('story added', await p.evaluate(() => window.__store.get('data/users/u1/state').iv.stories.length === 1));
+  await go(p, 'iv-new', 300);
+  await p.fill('#iv-text', 'too short'); await p.click('#ivpaste button[type=submit]'); await p.waitForTimeout(150);
+  ok('short advert refused', await p.isVisible('#iv-text-err'));
+  await p.fill('#iv-url', 'https://careers.example.com/42'); await p.click('[data-iv="fetch"]'); await p.waitForTimeout(250);
+  ok('advert read from link', (await p.inputValue('#iv-title')) === 'Applied AI Engineer' && (await p.inputValue('#iv-text')).length > 200);
+  await shot(p, '31-iv-paste');
+  await p.click('#ivpaste button[type=submit]'); await p.waitForTimeout(500);
+  ok('job decoded', /Investable Stretch/.test(await p.textContent('main')) && /Retrieval pipelines/.test(await p.textContent('main')));
+  ok('decode sends profile with story', await p.evaluate(() => { const c = window.__api.filter((x) => x.path === '/api/interviewer' && x.body.mode === 'decode').pop(); return c.body.profile.stories[0].title === 'Weekend RAG demo' && c.body.courses.length > 10; }));
+  ok('likely round preselected', await p.isChecked('input[name="ivformat"][value="technical"]'));
+  await shot(p, '32-iv-decode');
+  await p.selectOption('#iv-count', '4'); await p.click('#ivsetup button[type=submit]'); await p.waitForTimeout(400);
+  ok('interview starts with question 1', /Question 1 of 4/.test(await p.textContent('main')) && (await p.$$('.iv-msg.them')).length === 1);
+  await p.fill('#iv-ans', 'I built a RAG demo over policy PDFs.'); await p.click('#ivanswer button[type=submit]'); await p.waitForTimeout(300);
+  ok('follow-up asked', /follow-up/.test(await p.textContent('.iv-room')));
+  await p.fill('#iv-ans', 'About 2 seconds down to 800ms.'); await p.click('#ivanswer button[type=submit]'); await p.waitForTimeout(300);
+  await shot(p, '33-iv-run');
+  await p.click('[data-iv="skip"]'); await p.waitForTimeout(300);
+  for (let i = 0; i < 2; i++) { await p.fill('#iv-ans', 'Answer ' + i); await p.click('#ivanswer button[type=submit]'); await p.waitForTimeout(300); }
+  ok('interview ends after 4 questions', await p.isVisible('#ivself'));
+  ok('answers sent as transcript', await p.evaluate(() => { const c = window.__api.filter((x) => x.body && x.body.mode === 'ask').pop(); return c.body.transcript.some((t) => t.text === '(skipped)') && c.body.setup.count === 4 && c.body.setup.format === 'technical'; }));
+  await shot(p, '34-iv-self');
+  await p.selectOption('#iv-best', '2'); await p.selectOption('#iv-worst', '3'); await p.check('input[name="ivrate"][value="4"]'); await p.click('#ivself button[type=submit]'); await p.waitForTimeout(700);
+  ok('scorecard shown', /iv-report-/.test(await p.evaluate(() => location.hash)) && /Mixed/.test(await p.textContent('main')) && /Put a number in every result/.test(await p.textContent('main')));
+  ok('self-assessment sent', await p.evaluate(() => { const c = window.__api.filter((x) => x.body && x.body.mode === 'score').pop(); return c.body.self.best === 2 && c.body.self.worst === 3 && c.body.self.rating === 4; }));
+  ok('interview XP counted', await p.evaluate(() => window.__store.get('data/users/u1/state').iv.sessions.filter((x) => x.score).length === 1));
+  await shot(p, '35-iv-report'); await overflow(p, 'interview report');
+  await p.click('[data-iv="storyfrom"]'); await p.waitForTimeout(250);
+  ok('story idea prefilled', /retrieval returned the wrong policy/.test(await p.inputValue('#st-s')));
+  await go(p, 'iv-new', 300);
+  await p.check('input[data-ivtab][value="find"]'); await p.waitForTimeout(150);
+  await p.click('#ivfind button[type=submit]'); await p.waitForTimeout(300);
+  ok('live jobs listed', (await p.$$('.iv-job')).length === 2 && /Remotive/.test(await p.textContent('main')));
+  await shot(p, '36-iv-find');
+  await p.click('[data-iv="usejob"][data-i="1"]'); await p.waitForTimeout(500);
+  ok('summary-only job fetches full advert', await p.evaluate(() => window.__api.some((c) => c.path === '/api/job-fetch' && c.body.url === 'https://x')) && /iv-job-/.test(await p.evaluate(() => location.hash)));
+  await go(p, 'interview', 300);
+  ok('hub lists the interview and saved jobs', (await p.$$('.iv-row')).length >= 3);
+  await shot(p, '37-iv-hub-after'); await overflow(p, 'interview hub');
+
   await go(p, 'settings', 500);
   ok('settings shows account', /Signed in as z@example\.org/.test(await p.textContent('main')));
   ok('email toggles shown', (await p.$$('[data-pref]')).length === 3);
@@ -231,7 +279,7 @@ let BASE = '';
   await p.selectOption('#ad-doc', 'content/m13'); await p.waitForTimeout(300);
   ok('content editor loads JSON', /"title": "Programming from zero"/.test(await p.inputValue('#ad-text')));
   await p.fill('#n-text', 'Saturday study call at 10:00.'); await p.click('#noticeform button[type=submit]'); await p.waitForTimeout(200);
-  ok('admin insights', /At a glance/.test(await p.textContent('main')) && /tutor questions, 30 days/.test(await p.textContent('main')) && /Where quiet members stopped/.test(await p.textContent('main')));
+  ok('admin insights', /At a glance/.test(await p.textContent('main')) && /tutor questions, 30 days/.test(await p.textContent('main')) && /interviewer turns/.test(await p.textContent('main')) && /Where quiet members stopped/.test(await p.textContent('main')));
   ok('tutor spend estimate', /£0\.07/.test(await p.textContent('.kpis')));
   await p.click('[data-act="mailopen"][data-id="u2"]'); await p.waitForTimeout(150);
   await p.fill('#mail-subj', 'Project 1'); await p.fill('#mail-body', 'Nice work on the README.'); await p.click('#mailform button[type=submit]'); await p.waitForTimeout(200);

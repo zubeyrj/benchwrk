@@ -137,7 +137,7 @@ async function bootstrap() {
         const { data, error } = await sb.from("certs").upsert(Object.assign({ user_id: session.user.id }, c), { onConflict: "user_id,course" }).select("id").single();
         if (error) throw error; return site.replace(/\/$/, "") + "/c/" + data.id;
       },
-      tutorUsage: async () => { const { data } = await sb.from("tutor_usage").select("user_id, day, calls, in_tokens, out_tokens").gte("day", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)); return data || []; },
+      tutorUsage: async () => { const { data } = await sb.from("ai_usage").select("user_id, day, kind, calls, in_tokens, out_tokens").gte("day", new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)); return data || []; },
     };
     sb.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", session.user.id).then(() => {}, () => {});
     loadApp();

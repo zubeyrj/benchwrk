@@ -244,13 +244,15 @@
     const dropRows = Object.entries(drop).sort((a, b) => b[1] - a[1]).slice(0, 8), maxD = dropRows.length ? dropRows[0][1] : 1;
     const where = {}; list.forEach((c) => { const k = c.cur || "Not started"; where[k] = (where[k] || 0) + 1; });
     const whereRows = Object.entries(where).sort((a, b) => b[1] - a[1]).slice(0, 8), maxW = whereRows.length ? whereRows[0][1] : 1;
-    const u = ui.admin.usage || [], calls = u.reduce((a, r) => a + r.calls, 0), inT = u.reduce((a, r) => a + r.in_tokens, 0), outT = u.reduce((a, r) => a + r.out_tokens, 0);
-    // Rough spend at Haiku-class prices ($1 in, $5 out per million tokens), shown in pounds.
-    const cost = ((inT / 1e6) * 1 + (outT / 1e6) * 5) * 0.79;
+    const u = ui.admin.usage || [], tut = u.filter((r) => (r.kind || "tutor") === "tutor"), ivu = u.filter((r) => r.kind === "interview");
+    const calls = tut.reduce((a, r) => a + r.calls, 0), ivCalls = ivu.reduce((a, r) => a + r.calls, 0);
+    // Rough spend, in pounds: the tutor at Haiku-class prices ($1 in, $5 out per million tokens), the interviewer at Sonnet-class ($3, $15).
+    const tok = (rows, k) => rows.reduce((a, r) => a + r[k], 0);
+    const cost = ((tok(tut, "in_tokens") / 1e6) * 1 + (tok(tut, "out_tokens") / 1e6) * 5 + (tok(ivu, "in_tokens") / 1e6) * 3 + (tok(ivu, "out_tokens") / 1e6) * 15) * 0.79;
     const bars = (rows, max) => rows.length ? rows.map((r) => '<div class="bar-row"><span>' + esc(r[0]) + '</span><span class="track"><i style="width:' + Math.max(4, Math.round((r[1] / max) * 100)) + '%"></i></span><span class="r">' + r[1] + "</span></div>").join("") : '<p class="small muted">Nothing yet.</p>';
     return '<div class="card sec"><h2>At a glance</h2><div class="kpis">' +
       [[list.length, "members"], [active, "active this week"], [stalled.length, "quiet 14+ days"], [never, "not started"], [behind, "a week+ behind plan"]].map((k) => '<div class="kpi"><b>' + k[0] + "</b><span>" + k[1] + "</span></div>").join("") +
-      (bw ? '<div class="kpi"><b>' + calls + '</b><span>tutor questions, 30 days</span></div><div class="kpi"><b>£' + cost.toFixed(2) + "</b><span>tutor spend, 30 days (est.)</span></div>" : "") + "</div>" +
+      (bw ? '<div class="kpi"><b>' + calls + '</b><span>tutor questions, 30 days</span></div><div class="kpi"><b>' + ivCalls + '</b><span>interviewer turns, 30 days</span></div><div class="kpi"><b>£' + cost.toFixed(2) + "</b><span>AI spend, 30 days (est.)</span></div>" : "") + "</div>" +
       '<div class="two"><div><h3>Where members are now</h3>' + bars(whereRows, maxW) + '</div><div><h3>Where quiet members stopped</h3>' + bars(dropRows, maxD) + "</div></div></div>";
   }
   function adminMail(emails) {
@@ -377,6 +379,7 @@
     ["plan", "Plan", "Your dated week-by-week plan at your hours, from today to race day: your first offer."],
     ["practice", "Practice", "Ten-question rounds with instant feedback. Anything you miss comes back until it sticks."],
     ["projects", "Projects", "Three real projects with checkpoints. Share them for peer review and review others for XP."],
+    ["interview", "Interview", "Mock interviews with an AI interviewer, built from a real job advert you paste or find here. One question at a time, then a scorecard."],
     ["cohort", "Cohort", "The club table, and where you pick an accountability partner to keep each other on track."],
     ["log", "Log", "Log a study session in ten seconds. Your streak, countdowns and dates all update from it."],
     ["toolkit", "Toolkit", "Your weekly rhythm, the software to install and which certification is worth paying for."],

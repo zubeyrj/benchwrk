@@ -3,7 +3,7 @@
 (function (root) {
   function makeFakeSupabase(opts) {
     opts = opts || {};
-    const tables = { docs: [], profiles: [], admins: [], certs: [], tutor_usage: [], email_log: [] };
+    const tables = { docs: [], profiles: [], admins: [], certs: [], ai_usage: [], email_log: [] };
     const users = {}; // id -> { id, email, password, confirmed, user_metadata, app_metadata, created_at }
     const tokens = {}; // access token -> user id
     const listeners = [];
@@ -12,7 +12,7 @@
     const clone = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
     const uuid = () => { seq++; return ("00000000-0000-4000-8000-" + String(seq).padStart(12, "0")); };
     const today = () => new Date().toISOString().slice(0, 10);
-    const keyOf = { docs: ["path"], profiles: ["id"], admins: ["user_id"], certs: ["user_id", "course"], tutor_usage: ["user_id", "day"] };
+    const keyOf = { docs: ["path"], profiles: ["id"], admins: ["user_id"], certs: ["user_id", "course"], ai_usage: ["user_id", "day", "kind"] };
 
     function decorate(t, row) {
       if (t === "docs") { row.parent = row.path.replace(/\/[^/]+$/, ""); row.updated_at = new Date().toISOString(); }
@@ -112,15 +112,15 @@
       async updateUser(o) { if (!session) return { error: { message: "no session" } }; users[session.user.id].password = o.password; return { data: {}, error: null }; },
       async signOut() { session = null; emit("SIGNED_OUT", null); return { error: null }; },
       async getUser(token) { const id = tokens[token]; return id && users[id] ? { data: { user: publicUser(users[id]) }, error: null } : { data: { user: null }, error: { message: "bad token" } }; },
-      admin: { async deleteUser(id) { delete users[id]; for (const t of ["profiles", "certs", "tutor_usage", "email_log", "admins"]) tables[t] = tables[t].filter((r) => (r.id || r.user_id) !== id && r.user_id !== id); return { error: null }; } },
+      admin: { async deleteUser(id) { delete users[id]; for (const t of ["profiles", "certs", "ai_usage", "email_log", "admins"]) tables[t] = tables[t].filter((r) => (r.id || r.user_id) !== id && r.user_id !== id); return { error: null }; } },
     };
 
     const client = {
       from: builder, auth, calls, tables, users,
       async rpc(name, a) {
-        if (name === "bump_tutor") {
-          const k = tables.tutor_usage.find((r) => r.user_id === a.uid && r.day === today());
-          if (k) { k.calls++; k.in_tokens += a.inp; k.out_tokens += a.outp; } else tables.tutor_usage.push({ user_id: a.uid, day: today(), calls: 1, in_tokens: a.inp, out_tokens: a.outp });
+        if (name === "bump_ai") {
+          const k = tables.ai_usage.find((r) => r.user_id === a.uid && r.day === today() && r.kind === a.k);
+          if (k) { k.calls++; k.in_tokens += a.inp; k.out_tokens += a.outp; } else tables.ai_usage.push({ user_id: a.uid, day: today(), kind: a.k, calls: 1, in_tokens: a.inp, out_tokens: a.outp });
         }
         return { data: null, error: null };
       },

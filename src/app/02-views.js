@@ -1,6 +1,6 @@
 
   /* ---------- router ---------- */
-  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "log", "cohort", "toolkit", "placement", "settings", "admin"];
+  const SIMPLE = ["home", "plan", "courses", "practice", "projects", "interview", "log", "cohort", "toolkit", "placement", "settings", "admin"];
   function route() {
     let h = decodeURIComponent((location.hash || "#home").slice(1));
     if (h === "roadmap") h = "plan";
@@ -11,6 +11,8 @@
     if ((m = h.match(/^cert-(m\d+)$/))) return { name: "cert", id: m[1] };
     if ((m = h.match(/^lesson-(m\d+)-(\d+)$/))) return { name: "lesson", id: m[1], i: Number(m[2]) };
     if ((m = h.match(/^ex-(m\d+)-([a-z0-9]+)$/))) return { name: "ex", id: m[1], ex: m[2] };
+    if (h === "iv-new" || h === "iv-stories") return { name: "interview", sub: h.slice(3) };
+    if ((m = h.match(/^iv-(job|run|report)-([a-z0-9]+)$/))) return { name: "interview", sub: m[1], key: m[2] };
     return { name: SIMPLE.indexOf(h) >= 0 ? h : "home" };
   }
   const SVG = {
@@ -48,7 +50,7 @@
       else {
         const r = route();
         renderNav(NAVOF[r.name] || r.name);
-        const V = { home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
+        const V = { interview: vInterview, home: vHome, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
         else html = V[r.name](r);

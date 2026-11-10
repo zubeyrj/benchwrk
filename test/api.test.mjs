@@ -10,9 +10,30 @@ const ok = (name, cond) => { n++; if (!cond) { fails++; console.log("FAIL", name
 
 // ---- stubs for outside services ----
 const sent = [];
-let anthropicCalls = [], anthropicMode = "ok";
+let anthropicCalls = [], anthropicMode = "ok"; const ivCalls = [], adzunaUrls = [];
+globalThis.__testLookup = async (host) => (host === "evil.example.com" ? [{ address: "10.0.0.5" }] : [{ address: "93.184.216.34" }]);
 globalThis.fetch = async (url, init) => {
   if (String(url).includes("api.resend.com")) { sent.push(JSON.parse(init.body)); return new Response(JSON.stringify({ id: "em_" + sent.length }), { status: 200 }); }
+  if (String(url).includes("api.anthropic.com") && !JSON.parse(init.body).stream) {
+    const b = JSON.parse(init.body); ivCalls.push(b);
+    if (anthropicMode === "busy") return new Response("{}", { status: 529 });
+    const sys = b.system || "", usage = { input_tokens: 1000, output_tokens: 200 };
+    let text;
+    if (/decoding a job/.test(sys)) text = anthropicMode === "notjob" ? '{"is_job":false}' : 'Here you go:\n```json\n' + JSON.stringify({ is_job: true, title: "AI Engineer", company: "Acme", seniority: "early", summary: "Build RAG features.", competencies: [{ name: "RAG", why: "core of the role", quote: "build retrieval pipelines" }], must_haves: ["Python"], nice_to_haves: ["AWS"], fit: { verdict: "Investable Stretch", confidence: "Medium", signals: ["Shipped a RAG project"], frameable_gaps: ["No commercial AI work"], structural_gaps: [] }, likely_rounds: [{ format: "technical", why: "they list a take-home" }], prep: [{ action: "Finish evals", course: "Evaluating LLM apps" }], red_flags: [] }) + "\n```";
+    else if (/interviewer for this job/.test(sys)) text = anthropicMode === "badtag" ? "Tell me about yourself." : "[[QUESTION 1]]\nHello, I'm the hiring manager. Walk me through your RAG project.";
+    else if (/scoring a mock interview/.test(sys)) text = JSON.stringify({ band: "Early career", confidence: "Medium", hire_signal: "Mixed", scores: { substance: 3, structure: 3.5, relevance: 4, credibility: 2.5, differentiation: 2 }, self_delta: "over", questions: [{ n: 1, question: "q", heard: "h", scores: { substance: 3, structure: 3.5, relevance: 4, credibility: 2.5, differentiation: 2 }, note: "n", stronger_answer: "s" }] });
+    return new Response(JSON.stringify({ content: [{ type: "text", text }], usage }), { status: 200 });
+  }
+  if (String(url).includes("remotive.com")) return new Response(JSON.stringify({ jobs: [{ id: 7, title: "Senior AI Engineer", company_name: "Remote Co", candidate_required_location: "UK", salary: "", publication_date: "2026-11-08T10:00:00", url: "https://remotive.com/j/7", description: "<p>Build <b>LLM</b> apps &amp; evals.</p>" + "<p>More detail.</p>".repeat(30) }, { id: 8, title: "Office Manager", company_name: "X", url: "https://remotive.com/j/8", description: "<p>no</p>" }] }), { status: 200 });
+  if (String(url).includes("arbeitnow.com")) return new Response("{}", { status: 500 });
+  if (String(url).includes("api.adzuna.com")) { adzunaUrls.push(String(url)); return new Response(JSON.stringify({ results: [{ id: "123", title: "<strong>AI</strong> Engineer", company: { display_name: "Acme" }, location: { display_name: "London" }, salary_min: 55000, salary_max: 70000, created: "2026-11-09T09:00:00Z", redirect_url: "https://www.adzuna.co.uk/jobs/land/ad/123", description: "Build RAG..." }, { id: "124", title: "Senior AI Engineer", company: { display_name: "Remote Co" }, location: { display_name: "London" }, created: "2026-11-01T09:00:00Z", redirect_url: "https://x", description: "dup" }] }), { status: 200 }); }
+  if (String(url).startsWith("https://careers.example.com/")) {
+    const u = new URL(String(url));
+    if (u.pathname === "/hop") return new Response("", { status: 302, headers: { location: "http://169.254.169.254/latest/meta-data" } });
+    if (u.pathname === "/pdf") return new Response("%PDF", { status: 200, headers: { "content-type": "application/pdf" } });
+    const ld = { "@context": "https://schema.org", "@graph": [{ "@type": "Organization" }, { "@type": "JobPosting", title: "Applied AI Engineer", hiringOrganization: { "@type": "Organization", name: "Example Ltd" }, jobLocation: { address: { addressLocality: "Birmingham", addressCountry: "GB" } }, description: "<h2>About</h2><p>You will build RAG &amp; agents.</p><ul><li>Python</li><li>Evals</li></ul>" + "<p>We value curiosity and shipping.</p>".repeat(12) }] };
+    return new Response('<html><head><title>Job</title><script type="application/ld+json">' + JSON.stringify(ld) + "</script></head><body><nav>menu</nav><main>ignored</main></body></html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+  }
   if (String(url).includes("api.anthropic.com")) {
     anthropicCalls.push({ headers: init.headers, body: JSON.parse(init.body) });
     if (anthropicMode === "busy") return new Response("{}", { status: 529 });
@@ -49,7 +70,7 @@ ok("tutor rejects huge convo", (await call(tutor, { token: T.amira, body: { mess
 let r = await call(tutor, { token: T.amira, body: { messages: [{ role: "user", content: "Why does line 3 fail?" }] } });
 ok("tutor streams the answer", r.status === 200 && r.text === "Look at line 3." && r.chunks === undefined);
 ok("tutor uses site key and model", anthropicCalls[0].headers["x-api-key"] === "sk-test" && anthropicCalls[0].body.model === "claude-haiku-5-5" && anthropicCalls[0].body.stream === true);
-ok("tutor records usage", sb.tables.tutor_usage.find((u) => u.user_id === amira.id).in_tokens === 120 && sb.tables.tutor_usage.find((u) => u.user_id === amira.id).out_tokens === 9);
+ok("tutor records usage", sb.tables.ai_usage.find((u) => u.user_id === amira.id && u.kind === "tutor").in_tokens === 120 && sb.tables.ai_usage.find((u) => u.user_id === amira.id && u.kind === "tutor").out_tokens === 9);
 await call(tutor, { token: T.amira, body: { messages: [{ role: "user", content: "again" }] } });
 await call(tutor, { token: T.amira, body: { messages: [{ role: "user", content: "again" }] } });
 r = await call(tutor, { token: T.amira, body: { messages: [{ role: "user", content: "fourth" }] } });
@@ -73,7 +94,7 @@ const exp = await load("me-export.js");
 r = await call(exp, { method: "GET", token: T.amira });
 ok("export returns own records", r.status === 200 && r.json.private_records.length === 1 && r.json.shared_with_cohort.length === 1 && r.json.account.email === "amira@example.org");
 ok("export excludes others", !JSON.stringify(r.json).includes("ben@example.org") && !JSON.stringify(r.json.shared_with_cohort).includes('"Ben"'));
-ok("export includes tutor usage", r.json.tutor_usage.length === 1);
+ok("export includes tutor usage", r.json.ai_usage.length === 1);
 
 // ---- nudge ----
 const nudge = await load("nudge.js");
@@ -161,6 +182,75 @@ r = await call(del, { token: T.amira, body: { confirm: "DELETE" } });
 ok("member deletes account", r.status === 200 && !sb.users[amira.id] && !sb.tables.docs.some((d) => d.path.includes(amira.id)) && !sb.tables.profiles.some((p) => p.id === amira.id) && !sb.tables.certs.some((c) => c.user_id === amira.id));
 ok("others untouched", sb.tables.docs.some((d) => d.path === "learners/" + ben.id) && !!sb.users[ben.id]);
 ok("deleted token stops working", (await call(exp, { method: "GET", token: T.amira })).status === 401);
+
+// ---- interviewer ----
+const iv = await load("interviewer.js");
+const JOB = { title: "AI Engineer", company: "Acme", text: "We are hiring an AI engineer to build retrieval pipelines, evals and LLM features in Python. You will own features end to end." };
+const SETUP = { format: "technical", count: 5, band: "early", directness: 3 };
+ok("interviewer needs sign-in", (await call(iv, { body: { mode: "decode", job: JOB } })).status === 401);
+ok("interviewer rejects tiny job text", (await call(iv, { token: T.ben, body: { mode: "decode", job: { text: "hi" } } })).status === 400);
+r = await call(iv, { token: T.ben, body: { mode: "decode", job: JOB, profile: { name: "Ben" }, courses: ["Evaluating LLM apps"] } });
+ok("decode returns parsed JSON from a fenced reply", r.status === 200 && r.json.fit.verdict === "Investable Stretch" && r.json.competencies[0].name === "RAG");
+ok("decode prompt carries job, profile and courses", /<job title="AI Engineer" company="Acme">/.test(ivCalls[0].messages[0].content) && /"name": "Ben"/.test(ivCalls[0].messages[0].content) && /Evaluating LLM apps/.test(ivCalls[0].messages[0].content));
+ok("decode uses the interview model", ivCalls[0].model === "claude-sonnet-5-5");
+anthropicMode = "notjob";
+ok("non-job text refused", (await call(iv, { token: T.ben, body: { mode: "decode", job: JOB } })).json.code === "not_job");
+anthropicMode = "ok";
+r = await call(iv, { token: T.ben, body: { mode: "ask", job: JOB, setup: SETUP, transcript: [] } });
+ok("first turn is question 1", r.status === 200 && r.json.kind === "question" && r.json.n === 1 && /RAG project/.test(r.json.text) && !/\[\[/.test(r.json.text));
+let last = ivCalls[ivCalls.length - 1];
+ok("ask prompt: only QUESTION 1 allowed at start", /\[\[QUESTION 1\]\]/.test(last.system) && !/FOLLOWUP\]\]/.test(last.system.split("Start your reply")[1]));
+const tr = [{ role: "interviewer", kind: "question", n: 1, text: "Q1" }, { role: "candidate", text: "A1" }, { role: "interviewer", kind: "followup", text: "F1" }, { role: "candidate", text: "A1b" }];
+await call(iv, { token: T.ben, body: { mode: "ask", job: JOB, setup: SETUP, transcript: tr } });
+last = ivCalls[ivCalls.length - 1];
+ok("after a follow-up only the next question is allowed", /\[\[QUESTION 2\]\]/.test(last.system.split("Start your reply")[1]) && !/FOLLOWUP/.test(last.system.split("Start your reply")[1]));
+ok("transcript replayed as turns", last.messages.length === 5 && last.messages[1].role === "assistant" && /\[\[FOLLOWUP\]\]/.test(last.messages[3].content) && last.messages[4].content === "A1b");
+anthropicMode = "badtag";
+const tr5 = []; for (let i = 1; i <= 5; i++) tr5.push({ role: "interviewer", kind: "question", n: i, text: "Q" + i }, { role: "candidate", text: "A" + i });
+r = await call(iv, { token: T.ben, body: { mode: "ask", job: JOB, setup: SETUP, transcript: tr5 } });
+ok("untagged reply after the last question becomes END", r.json.kind === "end");
+anthropicMode = "ok";
+ok("ask validates setup", (await call(iv, { token: T.ben, body: { mode: "ask", job: JOB, setup: { format: "x", count: 5, band: "early", directness: 3 }, transcript: [] } })).status === 400);
+ok("score needs an answer", (await call(iv, { token: T.ben, body: { mode: "score", job: JOB, setup: SETUP, transcript: [{ role: "interviewer", kind: "question", n: 1, text: "Q1" }] } })).status === 400);
+r = await call(iv, { token: T.ben, body: { mode: "score", job: JOB, setup: Object.assign({}, SETUP, { directness: 5 }), transcript: tr, self: { best: 1, worst: 1, rating: 4, note: "ok" } } });
+last = ivCalls[ivCalls.length - 1];
+ok("score returns the scorecard", r.status === 200 && r.json.hire_signal === "Mixed" && r.json.scores.differentiation === 2);
+ok("score prompt: rubric, band, directness, self-assessment", /Differentiation: 1 generic/.test(last.system) && /Early career/.test(last.system) && /Directness 5/.test(last.system) && /Self-rating overall: 4/.test(last.messages[0].content) && /scope_note/.test(last.system));
+ok("interview usage tracked separately", sb.tables.ai_usage.some((u) => u.user_id === ben.id && u.kind === "interview" && u.calls >= 6));
+process.env.INTERVIEW_DAILY_CALLS = "2";
+ok("interview daily allowance", (await call(iv, { token: T.ben, body: { mode: "decode", job: JOB } })).json.code === "daily_cap");
+delete process.env.INTERVIEW_DAILY_CALLS;
+
+// ---- jobs ----
+const jobs = await load("jobs.js");
+ok("jobs need sign-in", (await call(jobs, { method: "GET", url: "/api/jobs?q=AI" })).status === 401);
+r = await call(jobs, { method: "GET", token: T.ben, url: "/api/jobs?q=AI%20engineer&where=London" });
+ok("free sources work without keys", r.status === 200 && r.json.jobs.length === 1 && r.json.jobs[0].source === "Remotive" && r.json.jobs[0].full && /LLM apps & evals/.test(r.json.jobs[0].text));
+ok("off-topic jobs filtered", !r.json.jobs.some((j) => j.title === "Office Manager"));
+ok("failed source reported, not fatal", r.json.sources.some((s) => s.name === "arbeitnow" && !s.ok) && !r.json.sources.some((s) => s.name === "adzuna"));
+process.env.ADZUNA_APP_ID = "id"; process.env.ADZUNA_APP_KEY = "key";
+r = await call(jobs, { method: "GET", token: T.ben, url: "/api/jobs?q=AI%20engineer&where=Birmingham" });
+ok("Adzuna used when keys are set", adzunaUrls.length === 1 && /where=Birmingham/.test(adzunaUrls[0]) && r.json.jobs.some((j) => j.source === "Adzuna" && j.title === "AI Engineer" && j.salary === "£55k to £70k"));
+ok("duplicates across sources removed", r.json.jobs.filter((j) => j.title === "Senior AI Engineer").length === 1);
+ok("newest first", r.json.jobs[0].posted >= r.json.jobs[r.json.jobs.length - 1].posted);
+await call(jobs, { method: "GET", token: T.ben, url: "/api/jobs?q=AI%20engineer&where=Birmingham" });
+ok("results cached", adzunaUrls.length === 1);
+delete process.env.ADZUNA_APP_ID; delete process.env.ADZUNA_APP_KEY;
+
+// ---- job page reader ----
+const jf = await load("job-fetch.js");
+r = await call(jf, { token: T.ben, body: { url: "https://careers.example.com/jobs/42" } });
+ok("reads JobPosting data from a careers page", r.status === 200 && r.json.title === "Applied AI Engineer" && r.json.company === "Example Ltd" && r.json.location === "Birmingham, GB" && /build RAG & agents/.test(r.json.text) && /• Python/.test(r.json.text) && r.json.structured);
+ok("LinkedIn explained, not fetched", (await call(jf, { token: T.ben, body: { url: "https://www.linkedin.com/jobs/view/1" } })).json.code === "blocked_site");
+ok("private IP blocked", (await call(jf, { token: T.ben, body: { url: "http://127.0.0.1/admin" } })).status === 422);
+ok("metadata IP blocked", (await call(jf, { token: T.ben, body: { url: "http://169.254.169.254/" } })).status === 422);
+ok("hostname resolving to private IP blocked", (await call(jf, { token: T.ben, body: { url: "https://evil.example.com/job" } })).status === 422);
+ok("redirect to private IP blocked", (await call(jf, { token: T.ben, body: { url: "https://careers.example.com/hop" } })).status === 422);
+ok("non-HTML refused", (await call(jf, { token: T.ben, body: { url: "https://careers.example.com/pdf" } })).status === 422);
+ok("odd ports refused", (await call(jf, { token: T.ben, body: { url: "https://careers.example.com:8443/x" } })).status === 422);
+ok("file URLs refused", (await call(jf, { token: T.ben, body: { url: "file:///etc/passwd" } })).status === 422);
+const { extractJob, htmlToText } = await import("../api/_html.js");
+ok("plain page fallback", /Role/.test(extractJob("<html><head><title>AI role</title></head><body><nav>x</nav><main><h1>Role</h1><p>Do things &amp; stuff</p></main></body></html>").text) && htmlToText("a&nbsp;b &#8212; c") === "a b - c");
 
 // ---- SMTP instead of Resend ----
 delete process.env.RESEND_API_KEY; delete process.env.EMAIL_FROM; process.env.SMTP_HOST = "json"; process.env.SMTP_USER = "benchwork.app@gmail.com"; globalThis.__smtpSent = [];
