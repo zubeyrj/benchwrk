@@ -147,8 +147,9 @@
   function courseFrac(id) {
     const m = byId[id], st = S.mods[id] || {}, lx = LX[id];
     if (st.done) return 1;
-    const lessons = Object.keys(st.checks || {}).length, exDone = Object.values(st.ex || {}).filter((x) => x.ok).length;
-    const exN = lx ? lx.ex.length : 0, tot = m.lessons.length + exN + 1;
+    const core = m.lessons.map((_, i) => i).filter((i) => !optLesson(m, i)), ch = st.checks || {};
+    const lessons = core.filter((i) => ch[i]).length, exDone = Object.values(st.ex || {}).filter((x) => x.ok).length;
+    const exN = lx ? lx.ex.length : 0, tot = core.length + exN + 1;
     return Math.min(0.99, (lessons + exDone + (quizInfo(id).best >= 80 ? 1 : 0)) / tot);
   }
 
@@ -290,7 +291,7 @@
     const p = plan(), wiNow = weekIndex(p, new Date()), lb = loggedByDate(), rh = rhythm(), byW = hoursByWeek();
     const applyW = weekIndex(p, addDays(p.applyAt, -1)), focus = r && r.week ? r.week - 1 : -1;
     const head = S.placement
-      ? '<h1>Your training plan</h1><p class="lede">' + p.weeks + " weeks at " + p.hpw + " hours a week, " + fmtY(gridStart(p)) + " to " + fmtY(p.end) + ". Logging a session fills its cell.</p>"
+      ? '<h1>Your training plan</h1><p class="lede">' + p.weeks + " weeks at " + p.hpw + " hours a week, " + fmtY(gridStart(p)) + " to " + fmtY(p.end) + ", on the " + (isFull() ? "full" : "lean") + ' path. Logging a session fills its cell.</p><p class="small"><a href="#settings" data-act="topath">' + (isFull() ? "Switch to the lean path" : "See the full path and optional extras") + "</a></p>"
       : '<h1>The full plan</h1><p class="lede">Every course at full length. Your tool ratings and the placement trim what you already know.</p><div class="row" style="margin-top:16px"><a class="btn" href="#placement">' + (S.tools ? "Take the placement" : "Rate your tools") + "</a></div>";
     const legend = '<div class="legend">' + [["learn", "Learn"], ["build", "Build"], ["project", "Project"], ["review", "Review"]].map((k) => '<span class="tag k-' + k[0] + '">' + k[1] + "</span>").join("") + '<span class="tag" style="--c:var(--accent)">This week</span></div>';
     let rows = "";
@@ -318,13 +319,14 @@
   function vCourses() {
     const p = plan(), c = counts();
     MOD.forEach((m) => { if (!LX[m.id]) needLX(m.id).then(() => { if (route().name === "courses" && MOD.every((x) => LX[x.id])) render(); }); });
-    let html = '<h1>Courses</h1><p class="lede">' + plural(p.rows.length, "course") + " on your path, in four tracks. Short lessons, exercises that run in your browser, a quiz from a question bank and a build. " + plural(c.done, "course") + " complete.</p>";
+    const extraN = MOD.filter((m) => m.extra && !extraOn(m)).length;
+    let html = '<h1>Courses</h1><p class="lede">' + plural(p.rows.length, "course") + " on your " + (isFull() ? "full" : "lean") + " path" + (extraN ? ", plus " + plural(extraN, "optional extra") + " you can add" : "") + ". Short lessons, exercises that run in your browser, a quiz from a question bank and a build. " + plural(c.done, "course") + " complete.</p>";
     [1, 2, 3, 4].forEach((ph) => {
       const list = MOD.filter((m) => m.phase === ph);
       html += '<div class="sec"><div class="row" style="margin-bottom:12px"><span class="tag p' + ph + '">' + PHASES[ph] + '</span></div><div class="grid3">';
       list.forEach((m) => {
         const r = p.rows.find((x) => x.m.id === m.id), lx = LX[m.id], f = courseFrac(m.id), cur = currentRow(p);
-        html += '<a class="card node" style="display:block;padding:18px" href="#course-' + m.id + '"><div class="row between" style="margin-bottom:10px">' + (r ? lvTag(r.lv, r.done) || '<span class="tag">Core</span>' : '<span class="tag skip">Skipped by placement</span>') + (cur && cur.m.id === m.id ? '<span class="tag" style="--c:var(--accent);background:var(--accent-soft);color:var(--accent-text)">Current</span>' : "") + "</div>" +
+        html += '<a class="card node" style="display:block;padding:18px" href="#course-' + m.id + '"><div class="row between" style="margin-bottom:10px">' + (r ? (m.extra && !isFull() ? '<span class="tag extra">Extra</span>' : lvTag(r.lv, r.done) || '<span class="tag">Core</span>') : m.extra && !extraOn(m) ? '<span class="tag extra">Optional extra</span>' : '<span class="tag skip">Skipped by placement</span>') + (cur && cur.m.id === m.id ? '<span class="tag" style="--c:var(--accent);background:var(--accent-soft);color:var(--accent-text)">Current</span>' : "") + "</div>" +
           '<h3 style="font-size:18px">' + esc(m.title) + '</h3><p class="xs muted" style="margin:0 0 12px">' + plural(m.lessons.length, "lesson") + (lx ? " · " + plural(lx.ex.length, "exercise") : "") + (r ? " · " + r.hours + " h · " + weekRange(p, r) : "") + '</p><span class="bar' + (f >= 1 ? " ok" : "") + '"><i style="--f:' + f.toFixed(3) + '"></i></span><p class="xs muted" style="margin:6px 0 0">' + Math.round(f * 100) + "% complete" + (quizInfo(m.id).attempts ? " · quiz best " + quizInfo(m.id).best + "%" : "") + "</p></a>";
       });
       html += "</div></div>";
@@ -335,8 +337,9 @@
   function courseHead(m, r, p) {
     const f = courseFrac(m.id);
     return '<div class="banner" style="--pc:' + PH_COLOR[m.phase] + '"><div><p class="crumb"><a href="#courses">Courses</a> / ' + esc(PHASES[m.phase]) + "</p><h1>" + esc(m.title) + '</h1><p class="lede">' + esc(m.why) + "</p>" +
-      '<div class="meta">' + (r ? lvTag(r.lv, r.done) || '<span class="tag">Core</span>' : '<span class="tag skip">Not in your plan</span>') +
-      (r ? '<span><a href="#plan-w' + (weekIndex(p, r.sd) + 1) + '">' + weekRange(p, r) + "</a>, " + r.hours + " h, " + fmt(r.sd) + " to " + fmt(r.ed) + "</span>" : "") + "</div></div>" +
+      '<div class="meta">' + (m.extra && !isFull() ? '<span class="tag extra">' + (r ? "Extra, in your plan" : "Optional extra") + "</span>" : r ? lvTag(r.lv, r.done) || '<span class="tag">Core</span>' : '<span class="tag skip">Not in your plan</span>') +
+      (r ? '<span><a href="#plan-w' + (weekIndex(p, r.sd) + 1) + '">' + weekRange(p, r) + "</a>, " + r.hours + " h, " + fmt(r.sd) + " to " + fmt(r.ed) + "</span>" : "") + "</div>" +
+      (m.extra && !isFull() ? '<div class="extra-note"><p>' + esc(m.extraWhy || "Optional: not needed to build the projects or start applying.") + "</p>" + extraBtn(m) + "</div>" : "") + "</div>" +
       '<div class="ringwrap">' + ring(f, 96, PH_COLOR[m.phase], Math.round(f * 100) + "% complete") + "<b>" + Math.round(f * 100) + "%</b><span>complete</span></div></div>";
   }
   function vCourse(r0) {
@@ -348,7 +351,7 @@
     const lessonsLeft = m.lessons.filter((_, i) => !ch[i]).length, exLeft = lx.ex.filter((e) => !(exs[e.id] && exs[e.id].ok)).length;
     const gradient = !r || !r.done ? '<p class="small" style="margin:0 0 4px"><b>' + (lessonsLeft + exLeft ? plural(lessonsLeft, "lesson") + " and " + plural(exLeft, "exercise") + " to go" : "Only the quiz to go") + "</b>" + (q.best >= 80 ? "" : ", then the quiz.") + "</p>" : "";
     const subOf = (t, L) => { if (!L) return ""; const raw = String(t).replace(/<[^>]+>/g, ""); if (raw.toLowerCase().indexOf(L.t.toLowerCase()) === 0) return raw.slice(L.t.length).replace(/^[\s:,]+/, ""); return raw === L.t ? "" : raw; };
-    const lessons = '<ol class="rl">' + m.lessons.map((t, i) => { const L = lx.lessons[i], sub = subOf(t, L); return '<li><span class="num' + (ch[i] ? " ok" : "") + '">' + (ch[i] ? SVG.check : i + 1) + '</span><span class="grow">' + (L ? '<a class="ttl" href="#lesson-' + id + "-" + i + '">' + esc(L.t) + "</a>" : "<b>" + rich(t) + "</b>") + (sub ? '<div class="xs muted">' + esc(sub.charAt(0).toUpperCase() + sub.slice(1)) + "</div>" : "") + "</span>" + '<span class="state' + (ch[i] ? " ok" : "") + '">' + (ch[i] ? "Read" : L ? L.min + " min" : "") + "</span></li>"; }).join("") + "</ol>";
+    const lessons = '<ol class="rl">' + m.lessons.map((t, i) => { const L = lx.lessons[i], sub = subOf(t, L); return '<li><span class="num' + (ch[i] ? " ok" : "") + '">' + (ch[i] ? SVG.check : i + 1) + '</span><span class="grow">' + (L ? '<a class="ttl" href="#lesson-' + id + "-" + i + '">' + esc(L.t) + "</a>" : "<b>" + rich(t) + "</b>") + (sub ? '<div class="xs muted">' + esc(sub.charAt(0).toUpperCase() + sub.slice(1)) + "</div>" : "") + "</span>" + '<span class="state' + (ch[i] ? " ok" : "") + '">' + (ch[i] ? "Read" : optLesson(m, i) ? "Optional" : L ? L.min + " min" : "") + "</span></li>"; }).join("") + "</ol>";
     const exList = lx.ex.length ? '<div class="card"><h2>Exercises</h2><ol class="rl">' + lx.ex.map((e, i) => { const s = exs[e.id] || {}; return '<li><span class="num' + (s.ok ? " ok" : "") + '">' + (s.ok ? SVG.check : i + 1) + '</span><span class="grow"><a class="ttl" href="#ex-' + id + "-" + e.id + '">' + esc(e.t) + '</a><div class="xs muted">' + (e.kind === "sql" ? "SQL" : e.mode === "write-tests" ? "Python: write the tests" : "Python") + '</div></span><span class="state' + (s.ok ? " ok" : "") + '">' + (s.ok ? (s.sol ? "Solved with the answer" : "+" + PTS.ex + " XP earned") : "+" + PTS.ex + " XP") + "</span></li>"; }).join("") + "</ol></div>" : "";
     const canDone = q.best >= 80;
     const doneBtn = r && r.done ? '<a class="btn" href="#cert-' + id + '">View certificate</a><button class="btn line" data-act="reopen" data-id="' + id + '">Reopen course</button>'

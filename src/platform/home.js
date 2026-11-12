@@ -19,13 +19,15 @@ export function planFor(hpw, from, today) {
   const start = nextMonday(today || new Date());
   const rows = []; let cum = 0;
   PLAN.courses.forEach((c) => {
-    if (c.zero && from !== "zero") return;
+    if ((c.zero && from !== "zero") || c.extra) return; // the lean path: optional extras are left out
     rows.push(Object.assign({}, c, { s: cum, e: cum + c.h, sd: addWeeks(start, cum / hpw), ed: addWeeks(start, (cum + c.h) / hpw) }));
     cum += c.h;
   });
-  const job = rows.find((r) => r.job) || rows[rows.length - 1];
-  return { rows, total: cum, start, end: addWeeks(start, cum / hpw), apply: job.sd, weeks: Math.ceil(cum / hpw) };
+  // Applying starts once the second project is done; the third finishes alongside the job search.
+  const p2 = rows.find((r) => r.project === 2) || rows[rows.length - 1];
+  return { rows, total: cum, start, end: addWeeks(start, cum / hpw), apply: p2.ed, weeks: Math.ceil(cum / hpw) };
 }
+export const EXTRA_HOURS = PLAN.courses.filter((c) => c.extra).reduce((a, c) => a + c.full, 0) + PLAN.courses.filter((c) => !c.extra).reduce((a, c) => a + (c.full - c.h), 0);
 
 export function readPlanChoice() {
   try { const p = JSON.parse(localStorage.getItem("bw-plan") || "null"); if (p && HOURS.indexOf(p.hpw) >= 0) return { hpw: p.hpw, from: p.from === "some" ? "some" : "zero" }; } catch (e) { /* storage blocked */ }
@@ -47,7 +49,7 @@ function phaseRows(P) {
   }).join("");
 }
 function summary(P, hpw) {
-  return "you'd start applying for AI engineering jobs in <b>" + monthYear(P.apply) + "</b> and finish the plan by <b>" + monthYear(P.end) + "</b>. That's " + P.total + " hours, or about " + Math.round(P.weeks / 4.35) + " months at " + hpw + " hours a week.";
+  return "you'd start applying for AI engineering jobs in <b>" + monthYear(P.apply) + "</b>, after your second project, and finish the plan by <b>" + monthYear(P.end) + "</b>. That's " + P.total + " hours, or about " + Math.round(P.weeks / 4.35) + " months at " + hpw + " hours a week, with " + EXTRA_HOURS + " hours of optional extras if you want them.";
 }
 
 // The parts that change when you move the controls, updated in place so the bar can animate.
@@ -84,9 +86,9 @@ const DIMS = [["Substance", 4], ["Structure", 3], ["Relevance", 4], ["Credibilit
 
 const FAQ = [
   ["How much does it cost?", "Nothing at the moment, and there's no card to enter. The tutor and the AI interviewer have a daily allowance so the site can stay free."],
-  ["Do I need a maths or computing background?", "No. The plan starts with Programming from zero and teaches the maths you need inside the machine learning course. If you can already code, the placement test skips what you know."],
-  ["How long does it take?", "About " + planFor(8, "zero").total + " hours from scratch, or " + planFor(8, "some").total + " if you already write some Python. The calculator at the top works out the dates for your hours."],
-  ["Is it accredited?", "No. Your certificates can be checked online and added to LinkedIn, and the plan prepares you for Microsoft's AI-103 certification exam, which employers do recognise."],
+  ["Do I need a maths or computing background?", "No. The plan starts with Programming from zero, and the LLM course explains the maths the projects use. A machine learning course is there as an optional extra. If you can already code, the placement test skips what you know."],
+  ["How long does it take?", "About " + planFor(8, "zero").total + " hours from scratch, or " + planFor(8, "some").total + " if you already write some Python. You can start applying after the second of the three projects. Optional extras, such as machine learning and a Microsoft certification, add up to " + EXTRA_HOURS + " hours if you want them. The calculator at the top works out the dates for your hours."],
+  ["Is it accredited?", "No. Your certificates can be checked online and added to LinkedIn, and an optional course prepares you for Microsoft's AI-103 certification exam, which employers do recognise."],
   ["Will it get me a job?", "No course can promise that. Benchwork gives you what hiring managers look for: three working projects, peer-reviewed, a public portfolio page and plenty of interview practice."],
   ["What happens to my data?", 'It\'s handled as the <a href="privacy.html">privacy notice</a> describes. You can download all of it, or delete your account, from Settings at any time.'],
 ];

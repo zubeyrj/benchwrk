@@ -153,5 +153,10 @@
    "a": 1,
    "e": "Grounding plus an explicit way out beats instructions alone."
   }
+ ],
+ "lean": 18,
+ "opt": [
+  5,
+  6
  ]
 }

@@ -112,5 +112,7 @@
    "a": 1,
    "e": "Recall is coverage of the real positives."
   }
- ]
+ ],
+ "extra": true,
+ "extraWhy": "Recommended if the roles you want mention machine learning. Interviewers sometimes ask how models learn. The projects don't need it: LLM fundamentals covers what they use."
 }

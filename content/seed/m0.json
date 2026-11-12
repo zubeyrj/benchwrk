@@ -129,5 +129,9 @@
    "a": 1,
    "e": "Ollama lets you build and iterate for free, then switch to a hosted model when quality matters."
   }
+ ],
+ "lean": 6,
+ "opt": [
+  4
  ]
 }

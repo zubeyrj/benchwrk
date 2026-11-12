@@ -41,9 +41,9 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   // 0. The public homepage
   let p = await page("fresh", "/");
   ok("homepage is the default", /Become an AI engineer from zero/.test(await text(p)) && await p.isVisible("#hp-hours"));
-  ok("plan uses the real course hours", /397 hours/.test(await p.textContent("#hp-out")));
+  ok("plan uses the lean path from the real course hours", /305 hours/.test(await p.textContent("#hp-out")) && /after your second project/.test(await p.textContent("#hp-out")) && /92 hours of optional extras/.test(await p.textContent("#hp-out")));
   await p.selectOption("#hp-hours", "20"); await p.selectOption("#hp-from", "some"); await p.waitForTimeout(200);
-  ok("calculator updates in place", /357 hours/.test(await p.textContent("#hp-out")) && /20 hours a week/.test(await p.textContent("#hp-out")) && (await p.$$(".hp-bar li.off")).length === 1);
+  ok("calculator updates in place", /265 hours/.test(await p.textContent("#hp-out")) && /20 hours a week/.test(await p.textContent("#hp-out")) && (await p.$$(".hp-bar li.off")).length === 4);
   ok("homepage has no horizontal scroll", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await shot(p, "a0-home", true);
   await p.click('.hp-cta [data-home="start"]'); await p.waitForTimeout(200);

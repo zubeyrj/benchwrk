@@ -121,5 +121,9 @@
    "a": 1,
    "e": "Logs are how you diagnose a wrong tool choice and show reviewers your reasoning."
   }
+ ],
+ "lean": 25,
+ "opt": [
+  5
  ]
 }

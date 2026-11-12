@@ -110,6 +110,8 @@
     if (typeof n.cohort !== "string") n.cohort = "";
     n.notifSeen = Number(n.notifSeen) || 0;
     if (!n.remind || typeof n.remind !== "object") n.remind = null;
+    n.path = n.path === "full" ? "full" : "lean";
+    if (!n.extras || typeof n.extras !== "object" || Array.isArray(n.extras)) n.extras = {};
     if (!n.sched || typeof n.sched !== "object" || !n.sched.days || typeof n.sched.days !== "object") n.sched = null;
     if (!n.resume || typeof n.resume !== "object" || typeof n.resume.h !== "string" || !/^[a-z0-9-]{1,60}$/.test(n.resume.h)) n.resume = null;
     if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
@@ -154,25 +156,37 @@
     if (domainRating(m.domain, st) === 0) return "start";
     return levelOf(st.placement.scores[m.domain]);
   }
+  // The lean path (the default) leaves out optional extras and optional lessons; the full path keeps everything.
+  // An extra joins the lean path when you add it, or once you've started it.
+  const isFull = (st) => (st || S).path === "full";
+  function extraOn(m, st) {
+    st = st || S;
+    if (!m.extra || isFull(st)) return true;
+    const ms = (st.mods && st.mods[m.id]) || {};
+    return !!((st.extras || {})[m.id] || ms.done || Object.keys(ms.checks || {}).length);
+  }
+  const optLesson = (m, i, st) => !isFull(st) && Array.isArray(m.opt) && m.opt.indexOf(i) >= 0;
   function plan(st, mods) {
     st = st || S; mods = mods || MOD;
     const hpw = clampH(st.hpw), start = parseDate(st.start || today());
     let cum = 0;
-    const rows = mods.filter((m) => !m.zero || needZero(st)).map((m) => {
+    const rows = mods.filter((m) => (!m.zero || needZero(st)) && extraOn(m, st)).map((m) => {
       const lv = modLevel(m, st);
-      const hours = Math.max(2, Math.round(m.hours * FACTOR[lv || "start"]));
+      const base = !isFull(st) && m.lean ? m.lean : m.hours;
+      const hours = Math.max(2, Math.round(base * FACTOR[lv || "start"]));
       const s = cum; cum += hours;
       const ms = (st.mods && st.mods[m.id]) || {};
       return { m, lv, hours, s, e: cum, sd: addWeeks(start, s / hpw), ed: addWeeks(start, cum / hpw), done: !!ms.done };
     });
-    const applyAfter = st.goal === "adjacent" ? "m8" : "m9";
+    // Two finished projects are enough to start applying on the lean path; the third finishes while you apply.
+    const applyAfter = st.goal === "adjacent" || !isFull(st) ? "m8" : "m9";
     const ar = rows.find((r) => r.m.id === applyAfter) || rows[rows.length - 1];
     const end = addWeeks(start, cum / hpw);
     return { rows, total: cum, hpw, start, end, race: addWeeks(end, 6), applyAt: ar ? ar.ed : start, applyAfter, weeks: Math.max(1, Math.ceil(cum / hpw)) };
   }
   const inPlan = (id) => plan().rows.some((r) => r.m.id === id);
   const currentRow = (p) => p.rows.find((r) => !r.done) || null;
-  function lessonFrac(id) { const m = byId[id]; const ch = (S.mods[id] && S.mods[id].checks) || {}; return m.lessons.filter((_, i) => ch[i]).length / m.lessons.length; }
+  function lessonFrac(id) { const m = byId[id]; const ch = (S.mods[id] && S.mods[id].checks) || {}; const core = m.lessons.map((_, i) => i).filter((i) => !optLesson(m, i)); return core.length ? core.filter((i) => ch[i]).length / core.length : 0; }
   function progress() {
     const p = plan(); let done = 0;
     p.rows.forEach((r) => { done += r.done ? r.hours : r.hours * 0.8 * lessonFrac(r.m.id); });

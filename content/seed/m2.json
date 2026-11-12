@@ -120,5 +120,9 @@
    "a": 2,
    "e": "Secrets and generated folders stay out of Git; source, config and tests go in."
   }
+ ],
+ "lean": 17,
+ "opt": [
+  5
  ]
 }

@@ -111,5 +111,7 @@
    "a": 1,
    "e": "Logs leak. Don't store what you don't need."
   }
- ]
+ ],
+ "extra": true,
+ "extraWhy": "Recommended once your projects are live: security, personal data and cost. Good material for interviews, not needed to build the projects."
 }

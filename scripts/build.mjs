@@ -14,7 +14,7 @@ execSync("node --check " + JSON.stringify(pub("app.js")));
 {
   const seed = path.join(root, "content/seed"), mods = fs.readdirSync(seed).filter((f) => /^m\d+\.json$/.test(f)).map((f) => JSON.parse(fs.readFileSync(path.join(seed, f), "utf8"))).sort((a, b) => a.order - b.order);
   const ex = JSON.parse(fs.readFileSync(path.join(root, "content/seedx/lx-m1.json"), "utf8")).ex[0];
-  const plan = { courses: mods.map((m) => ({ id: m.id, t: m.title, h: m.hours, ph: m.phase, zero: !!m.zero, job: !!m.interview, project: m.project || 0, why: m.project ? m.why : undefined })), ex: { t: ex.t, md: ex.md, sol: ex.sol, tests: ex.tests.map((t) => t[0]) } };
+  const plan = { courses: mods.map((m) => ({ id: m.id, t: m.title, h: m.lean || m.hours, full: m.hours, extra: !!m.extra, ph: m.phase, zero: !!m.zero, job: !!m.interview, project: m.project || 0, why: m.project ? m.why : undefined })), ex: { t: ex.t, md: ex.md, sol: ex.sol, tests: ex.tests.map((t) => t[0]) } };
   fs.writeFileSync(path.join(root, "src/platform/plan-data.json"), JSON.stringify(plan, null, 1) + "\n");
 }
 await build({ entryPoints: [path.join(root, "src/platform/index.js")], bundle: true, minify: true, format: "iife", target: "es2020", outfile: pub("platform.js"), legalComments: "none" });

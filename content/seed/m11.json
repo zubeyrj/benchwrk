@@ -104,5 +104,7 @@
    "a": 1,
    "e": "Practice under exam conditions and hands-on time cover both question styles."
   }
- ]
+ ],
+ "extra": true,
+ "extraWhy": "Optional. A Microsoft certification helps some CVs past screening, mostly for roles on Azure. You don't need it to get hired."
 }

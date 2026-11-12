@@ -38,6 +38,9 @@
     if (E.tab === "details") {
       const res = (C.resources || []).map((r, i) => '<tr><td><input aria-label="Resource ' + (i + 1) + ' title" value="' + esc(r[0]) + '" data-res="' + i + ':0"></td><td><input aria-label="By" value="' + esc(r[1]) + '" data-res="' + i + ':1"></td><td><input aria-label="Cost" value="' + esc(r[2]) + '" data-res="' + i + ':2" style="width:110px"></td><td><input aria-label="Link" value="' + esc(r[3]) + '" data-res="' + i + ':3"></td><td><select aria-label="Format" data-res="' + i + ':5">' + ["video", "reading", "interactive", "book", "video+interactive", "video+reading", "reading+interactive"].map((f) => '<option' + ((r[5] || "reading") === f ? " selected" : "") + ">" + f + "</option>").join("") + '</select></td><td><button class="link xs" data-act="edresdel" data-i="' + i + '">Remove</button></td></tr>').join("");
       return '<div class="two">' + field("ed-title", "Title", C.title, { key: "C.title" }) + field("ed-hours", "Hours", C.hours, { key: "C.hours", type: "number" }) + "</div>" +
+        '<div class="two">' + field("ed-lean", "Hours on the lean path", C.lean || "", { key: "C.lean", type: "number", hint: "Leave empty if it's the same. Lower it when some lessons are optional." }) +
+        '<label class="toggle" style="align-self:center"><span><b>Optional extra</b><br><span class="small muted">Left out of the lean path; members can add it.</span></span><input type="checkbox" id="ed-extra" data-ed="C.extra"' + (C.extra ? " checked" : "") + "></label></div>" +
+        (C.extra ? field("ed-extrawhy", "Why someone would add it", C.extraWhy, { key: "C.extraWhy", area: true, rows: 2 }) : "") +
         field("ed-why", "Why this course", C.why, { key: "C.why", area: true, rows: 3 }) + field("ed-out", "Outcomes", (C.outcomes || []).join("\n"), { key: "C.outcomes", area: true, rows: 4, hint: "One per line." }) +
         field("ed-method", "How to study it", C.method, { key: "C.method", area: true, rows: 3 }) + field("ed-build", "The build", C.build, { key: "C.build", area: true, rows: 3 }) +
         '<h3>Resources</h3><div class="tblwrap"><table class="tbl ed-res"><thead><tr><th>Title</th><th>By</th><th>Cost</th><th>Link</th><th>Format</th><th></th></tr></thead><tbody>' + res + '</tbody></table></div><button class="btn line sm" data-act="edresadd" style="margin-top:8px">Add a resource</button>';
@@ -45,6 +48,7 @@
     if (E.tab === "lessons") {
       const x = L.lessons[E.sel];
       return itemPicker(L.lessons, "Lesson", "Add a lesson") + (x ? '<div class="two">' + field("ed-lt", "Title", x.t, { key: "L.t" }) + field("ed-lmin", "Minutes", x.min, { key: "L.min", type: "number" }) + "</div>" +
+        '<label class="toggle"><span><b>Optional on the lean path</b><br><span class="small muted">Shown as optional; progress counts the other lessons.</span></span><input type="checkbox" data-ed="L.opt"' + ((C.opt || []).indexOf(E.sel) >= 0 ? " checked" : "") + "></label>" +
         '<div class="row between"><b class="small">Lesson text (Markdown)</b><button class="link small" data-act="edpreview">' + (E.preview ? "Edit" : "Preview") + "</button></div>" +
         (E.preview ? '<div class="card lesson-preview">' + md(x.md || "") + "</div>" : field("ed-lmd", "Lesson text", x.md, { key: "L.md", area: true, rows: 16, code: true })) +
         "<h3>Check question</h3>" + qFields("L.check", x.check || { q: "", o: ["", "", "", ""], a: 0, e: "" }) : '<p class="muted">No lessons yet.</p>');
@@ -77,6 +81,9 @@
     const [root, ...path] = key.split(".");
     let obj = root === "C" ? E.C : root === "L" ? E.L.lessons[E.sel] : root === "X" ? E.L.ex[E.sel] : E.L.pool[E.sel];
     if (!obj) return;
+    if (root === "L" && path[0] === "opt") { const o = (E.C.opt || []).filter((i) => i !== E.sel); if (val) o.push(E.sel); E.C.opt = o.sort((a, b) => a - b); if (!E.C.opt.length) delete E.C.opt; return; }
+    if (root === "C" && path[0] === "lean") { const n = Number(val); if (n > 0) E.C.lean = n; else delete E.C.lean; return; }
+    if (root === "C" && path[0] === "extra") { if (val) E.C.extra = true; else { delete E.C.extra; delete E.C.extraWhy; } render(); return; }
     if (root === "L" && path[0] === "check") { obj.check = obj.check || { q: "", o: ["", "", "", ""], a: 0, e: "" }; obj = obj.check; path.shift(); }
     const k = path[0];
     if (k === "o") { obj.o = (obj.o || ["", "", "", ""]).slice(); obj.o[Number(path[1])] = val; return; }

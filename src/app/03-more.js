@@ -148,7 +148,7 @@
       '<div class="card sec"><h2>Appearance</h2><div class="seg" role="radiogroup" aria-label="Colour theme" style="max-width:360px;grid-template-columns:repeat(3,1fr)">' + [["auto", "Match device"], ["light", "Light"], ["dark", "Dark"]].map((t) => '<label><input type="radio" name="theme" value="' + t[0] + '" data-theme-pick' + (theme === t[0] ? " checked" : "") + "><span>" + t[1] + "</span></label>").join("") + "</div></div>" +
       '<div class="card sec"><h2>Tour</h2><p class="muted">A two-minute walk through every tab.</p><button class="btn line" data-act="tour">Show me around again</button></div>' +
       '<div class="card sec"><h2>Tools and placement</h2><p class="muted">Update your tool ratings or retake the placement when your skills move on. Your progress stays.</p><div class="row"><button class="btn line" data-act="retools">Change my tool ratings</button><a class="btn line" href="#placement" data-act="preset">Retake the placement</a></div></div>' +
-      settingsLearn() + settingsRemind() + settingsTrust() + settingsExtras() +
+      pathCard() + settingsLearn() + settingsRemind() + settingsTrust() + settingsExtras() +
       '<div class="card sec"><h2>Reset</h2><p class="muted">Clears your tool ratings, placement, lessons read, exercises, quiz scores and sessions. Your account stays.</p><button class="btn line" data-act="reset" style="color:var(--fail)">' + (ui.resetArm ? "Click again to erase your progress" : "Reset my progress") + "</button></div></div>";
   }
 
