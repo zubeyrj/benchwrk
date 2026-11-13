@@ -420,6 +420,20 @@
     return '<div class="card sec"><h2>Read this in more depth</h2>' + (lib ? '<p class="small muted">From the library: longer chapters on the same idea, with code you can run.</p>' + lib : "") +
       (top ? '<p class="small" style="margin:' + (lib ? "12px" : "0") + ' 0 0">Prefer a course or video? <a href="' + esc(top.url) + '" target="_blank" rel="noopener">' + esc(top.t) + '</a> <span class="muted">(' + esc(top.by) + ", " + esc(top.cost) + ')</span>. Every resource for this course is on the <a href="#course-' + m.id + '">course page</a>.</p>' : "") + "</div>";
   }
+  // Split a lesson at its "###" headings. The text before the first heading is the introduction.
+  function lessonParts(src) {
+    const out = [], lines = String(src || "").split("\n"); let cur = { h: "", md: [] }, inCode = false;
+    lines.forEach((l) => {
+      if (/^```/.test(l)) inCode = !inCode;
+      if (!inCode && /^#{2,3} /.test(l)) { if (cur.md.join("").trim()) out.push(cur); cur = { h: l.replace(/^#+ /, ""), md: [] }; return; }
+      cur.md.push(l);
+    });
+    if (cur.md.join("").trim()) out.push(cur);
+    // Fold very short sections into the one before so no screen is a single line.
+    const merged = [];
+    out.forEach((x) => { const text = x.md.join("\n"); if (merged.length && text.split(/\s+/).length < 35) { merged[merged.length - 1].md += "\n\n### " + x.h + "\n" + text; } else merged.push({ h: x.h, md: text }); });
+    return merged.length ? merged : [{ h: "", md: src }];
+  }
   function starterNote(ex) {
     const st = String(ex.start || "");
     if (/bug/i.test(ex.t)) return "The code is broken on purpose: finding and fixing the bugs is the exercise.";
@@ -444,9 +458,17 @@
     const practise = mine.length ? '<div class="card sec"><h2>Practise this</h2><p class="small muted">Straight after reading is the best time. These run in your browser and check your answer.</p><ul class="rl">' + mine.map((e) => '<li><span class="num' + (exs[e.id] && exs[e.id].ok ? " ok" : "") + '">' + (exs[e.id] && exs[e.id].ok ? SVG.check : SVG.code.replace('width="20" height="20"', 'width="14" height="14"')) + '</span><span class="grow"><a class="ttl" href="#ex-' + id + "-" + e.id + '">' + esc(e.t) + '</a></span><span class="state">' + (exs[e.id] && exs[e.id].ok ? "Solved" : "+" + PTS.ex + " XP") + "</span></li>").join("") + "</ul></div>" : "";
     const deeper = learnMore(m, L);
     const readN = Object.keys(ch).length;
+    // Bite-size: a lesson with sections shows one section per screen, with Back and Next.
+    const parts = lessonParts(L.md), pk = id + "-" + r.i, all = ui.lessonAll || parts.length < 2;
+    const pi = all ? parts.length - 1 : Math.min(parts.length - 1, Math.max(0, (ui.lessonPart && ui.lessonPart[pk]) || 0)), lastPart = pi === parts.length - 1;
+    const body = all ? md(L.md) : '<div class="part"><h2 class="part-h">' + esc(parts[pi].h || L.t) + "</h2>" + md(parts[pi].md) + "</div>";
+    const partNav = all ? (parts.length > 1 ? '<p class="xs" style="margin:14px 0 0"><button class="link" data-act="lall">Show one part at a time</button></p>' : "")
+      : '<div class="part-nav"><button class="btn line" data-act="lpart" data-d="-1"' + (pi ? "" : " disabled") + '>Back</button><div class="part-dots" role="img" aria-label="Part ' + (pi + 1) + " of " + parts.length + '">' + parts.map((_, k) => '<i class="' + (k < pi ? "seen" : k === pi ? "on" : "") + '"></i>').join("") + '</div>' +
+        (lastPart ? '<span class="xs muted">Last part</span>' : '<button class="btn" data-act="lpart" data-d="1">Next</button>') + '</div><p class="xs muted" style="margin:10px 0 0;text-align:center">Part ' + (pi + 1) + " of " + parts.length + '. Arrow keys work too. <button class="link" data-act="lall">Show the whole lesson</button></p>';
+    const tail = lastPart ? qc + practise + deeper +
+      '<div class="row sec">' + (read ? '<a class="btn lg" href="' + nextHref + '">' + nextLabel + '</a><span class="state ok">' + TICK + " Read</span>" : '<button class="btn lg" data-act="lread" data-id="' + id + '" data-i="' + r.i + '" data-next="' + nextHref + '">Mark as read, ' + nextLabel.toLowerCase() + "</button>") + "</div>" : "";
     return '<p class="crumb"><a href="#courses">Courses</a> / <a href="#course-' + id + '">' + esc(m.title) + "</a> / Lesson " + (r.i + 1) + " of " + lx.lessons.length + "</p>" +
-      '<div class="cols"><article><div class="card pad-lg"><h1>' + esc(L.t) + '</h1><p class="meta"><span>' + L.min + " min read</span><span>+" + PTS.lesson + " XP</span></p>" + lessonNudge(m, lx, r.i) + '<div class="prose" style="margin-top:20px">' + md(L.md) + "</div></div>" + qc + practise + deeper +
-      '<div class="row sec">' + (read ? '<a class="btn lg" href="' + nextHref + '">' + nextLabel + '</a><span class="state ok">' + TICK + " Read</span>" : '<button class="btn lg" data-act="lread" data-id="' + id + '" data-i="' + r.i + '" data-next="' + nextHref + '">Mark as read, ' + nextLabel.toLowerCase() + "</button>") + "</div>" +
+      '<div class="cols"><article><div class="card pad-lg"><h1>' + esc(L.t) + '</h1><p class="meta"><span>' + L.min + " min read</span><span>+" + PTS.lesson + " XP</span></p>" + lessonNudge(m, lx, r.i) + '<div class="prose" style="margin-top:20px">' + body + "</div>" + partNav + "</div>" + tail +
       tutorBlock("lesson-" + id + "-" + r.i, "Ask the tutor", "Stuck on something in this lesson? Ask in your own words.", null) + "</article>" +
       '<aside><div class="card"><div class="row between" style="margin-bottom:8px"><h3 style="margin:0">' + esc(m.title) + '</h3><span class="xs muted n">' + readN + "/" + lx.lessons.length + '</span></div><span class="bar thin" style="margin-bottom:10px"><i style="--f:' + (readN / lx.lessons.length).toFixed(3) + '"></i></span>' + toc + "</div></aside></div>";
   }

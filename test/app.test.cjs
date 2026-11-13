@@ -111,6 +111,14 @@ let BASE = '';
   ok('exercises sit under the lesson they practise', (await p.$$('.csteps .cstep.ex')).length === 9 && await p.evaluate(() => { const li = [...document.querySelectorAll('.cstep')]; return li[1].classList.contains('ex') && /Variables/.test(li[1].textContent); }));
   ok('course page says what to do next', /Start here/.test(await p.textContent('.start-card')));
   await go(p, 'lesson-m13-0', 400);
+  ok('lesson opens one part at a time', /Part 1 of \d/.test(await p.textContent('main')) && !(await p.$('[data-act="lread"]')));
+  await shot(p, '08a-lesson-part', false);
+  await p.click('[data-act="lpart"][data-d="1"]'); await p.waitForTimeout(150);
+  ok('Next moves to part 2', /Part 2 of/.test(await p.textContent('main')));
+  await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(150);
+  ok('arrow keys move between parts', /Part 1 of/.test(await p.textContent('main')));
+  for (let k = 0; k < 12 && await p.$('[data-act="lpart"][data-d="1"]'); k++) { await p.click('[data-act="lpart"][data-d="1"]'); await p.waitForTimeout(80); }
+  ok('the last part has the check and the button', !!(await p.$('[data-act="lread"]')));
   await p.check('input[data-lc="m13-0"][value="2"]'); await p.waitForTimeout(150);
   ok('quick check feedback', (await p.$$('.q .opt.right')).length === 1);
   await shot(p, '08-lesson'); await overflow(p, 'lesson');

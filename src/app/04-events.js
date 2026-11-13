@@ -40,6 +40,11 @@
   }
   // Close the account menu on any click outside it, and on Escape.
   document.addEventListener("click", (e) => { const m = document.querySelector("details.acct[open]"); if (m && !m.contains(e.target)) m.removeAttribute("open"); }, true);
+  document.addEventListener("keydown", (e) => {
+    if ((e.key !== "ArrowRight" && e.key !== "ArrowLeft") || e.altKey || e.ctrlKey || e.metaKey || route().name !== "lesson") return;
+    const t = e.target; if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+    const b = document.querySelector('[data-act="lpart"][data-d="' + (e.key === "ArrowRight" ? 1 : -1) + '"]:not([disabled])'); if (b) { e.preventDefault(); b.click(); }
+  });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const m = document.querySelector("details.acct[open]"); if (m) { m.removeAttribute("open"); m.querySelector("summary").focus(); } } });
   document.addEventListener("click", (e) => {
     const sk = e.target.closest(".skip"); if (sk) { e.preventDefault(); $app.focus(); return; }
@@ -88,6 +93,8 @@
     if (act === "tourskip" || act === "welcomedone") { endTour(); return; }
     if (phase !== "ready") return;
     if (act === "tick") { tickToday(); return; }
+    if (act === "lpart") { const r = route(), k = r.id + "-" + r.i; ui.lessonPart = ui.lessonPart || {}; ui.lessonPart[k] = Math.max(0, (ui.lessonPart[k] || 0) + Number(b.dataset.d)); render(); const h = document.querySelector(".part-h"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); } window.scrollTo(0, Math.max(0, (document.querySelector("article") || {}).offsetTop - 80 || 0)); return; }
+    if (act === "lall") { ui.lessonAll = !ui.lessonAll; render(); return; }
     if (act === "qlog") {
       const h = Number(b.dataset.h), cur = currentRow(plan());
       const td = thisWeekDays().find((d) => d.today);
