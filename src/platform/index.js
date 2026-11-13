@@ -79,7 +79,7 @@ function view() {
 }
 
 // The small mark used on the homepage's example notifications.
-const MARK = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="#fff" stroke-width="4.2"/></svg>';
+const MARK = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#ededef"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#08080a"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="#08080a" stroke-width="4.2"/></svg>';
 
 // The masthead's right-hand side while signed out.
 function mast() {

@@ -261,10 +261,10 @@
     const code = (uid || "x").slice(0, 4).toUpperCase() + "-" + m.id.toUpperCase() + "-" + isoDate(date).replace(/-/g, "");
     const x = (s) => esc(s), F = "Bricolage Grotesque, Figtree, Arial, sans-serif", B = "Figtree, Arial, sans-serif";
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" role="img" aria-label="Certificate: ' + x(m.title) + '">' +
-      '<rect width="1100" height="720" fill="#ffffff"/><rect width="1100" height="150" fill="#0e1726"/><circle cx="1010" cy="40" r="150" fill="none" stroke="#c93c1a" stroke-opacity=".25" stroke-width="40"/>' +
-      '<g transform="translate(70 52)"><rect width="46" height="46" rx="13" fill="#c93c1a"/><rect x="11.5" y="8.6" width="6" height="28.7" rx="3" fill="#fff"/><circle cx="26.6" cy="27.3" r="8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5.7"/><path d="M26.6 19.3a8 8 0 1 1-8 8" fill="none" stroke="#fff" stroke-width="5.7" stroke-linecap="round"/></g>' +
+      '<rect width="1100" height="720" fill="#ffffff"/><rect width="1100" height="150" fill="#0e1726"/><circle cx="1010" cy="40" r="150" fill="none" stroke="#18181b" stroke-opacity=".25" stroke-width="40"/>' +
+      '<g transform="translate(70 52)"><rect width="46" height="46" rx="13" fill="#18181b"/><rect x="11.5" y="8.6" width="6" height="28.7" rx="3" fill="#fff"/><circle cx="26.6" cy="27.3" r="8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5.7"/><path d="M26.6 19.3a8 8 0 1 1-8 8" fill="none" stroke="#fff" stroke-width="5.7" stroke-linecap="round"/></g>' +
       '<text x="132" y="86" font-family="' + F + '" font-size="34" font-weight="800" fill="#ffffff" letter-spacing="-1">benchwrk</text>' +
-      '<text x="70" y="230" font-family="' + B + '" font-size="18" font-weight="700" fill="#c93c1a" letter-spacing="2">CERTIFICATE OF COMPLETION</text>' +
+      '<text x="70" y="230" font-family="' + B + '" font-size="18" font-weight="700" fill="#18181b" letter-spacing="2">CERTIFICATE OF COMPLETION</text>' +
       '<text x="70" y="315" font-family="' + F + '" font-size="64" font-weight="800" fill="#0e1726" letter-spacing="-2">' + x(name) + "</text>" +
       '<text x="70" y="370" font-family="' + B + '" font-size="22" fill="#566173">has completed</text>' +
       '<text x="70" y="430" font-family="' + F + '" font-size="42" font-weight="750" fill="#0e1726" letter-spacing="-1">' + x(m.title) + "</text>" +
@@ -292,7 +292,7 @@
   /* ---------- the tutor (asks Claude through /api/tutor) ---------- */
   // The tutor lives in a floating button at the bottom right of every page. It opens a chat panel that
   // knows which lesson, exercise or problem you're on. In-page buttons open the same panel.
-  const LOGO_MARK = '<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>';
+  const LOGO_MARK = '<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#08080a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>';
   function tutorBlock(key, title, blurb, startLabel) {
     if (!sample) return "";
     return '<div class="tutor-cta no-print"><button class="btn line sm" data-act="tutoropen" data-k="' + esc(key) + '"' + (startLabel ? ' data-start="1"' : "") + ">" + esc(startLabel || "Ask the tutor about this") + '</button><span class="xs muted">' + esc(blurb) + "</span></div>";
@@ -403,7 +403,7 @@
     const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
     c.width = W * dpr; c.height = H * dpr; document.body.appendChild(c);
     const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
-    const cols = ["#c93c1a", "#f5a524", "#13a05a", "#2563d0", "#0e9f9e", "#ff8a66"];
+    const cols = ["#18181b", "#f5a524", "#13a05a", "#2563d0", "#0e9f9e", "#ff8a66"];
     const parts = Array.from({ length: 160 }, (_, i) => { const left = i % 2 === 0; return { x: left ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.3), vx: (left ? 1 : -1) * (6 + Math.random() * 9), vy: -(10 + Math.random() * 12), w: 6 + Math.random() * 6, h: 8 + Math.random() * 10, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, col: cols[i % cols.length] }; });
     const t0 = performance.now();
     (function frame(t) {

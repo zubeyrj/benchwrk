@@ -99,7 +99,7 @@ const ok = (n, c, x) => results.push((c ? "PASS " : "FAIL ") + n + (x ? " :: " +
   await p.evaluate(() => location.hash = "course-m13"); await p.waitForTimeout(500);
   ok("course content loads through the runtime", /Programming from zero/.test(await text(p)));
   await p.evaluate(() => location.hash = "lesson-m13-0"); await p.waitForTimeout(800);
-  ok("lesson loads lazily through the runtime", (await p.$$(".lesson, article")).length > 0 && /print/.test(await text(p)));
+  ok("lesson loads lazily through the runtime", (await p.$$(".lesson, article")).length > 0 && /program/.test(await text(p)));
   await p.close();
 
   // 3. Google and forgotten password

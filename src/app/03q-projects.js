@@ -25,8 +25,9 @@
   const durTxt = (h) => "About " + h + " hours, roughly " + plural(Math.max(1, Math.round(h / S.hpw)), "week") + " at " + S.hpw + " hours a week";
   function unlockTxt(s) {
     if (s.open) return "";
-    const what = s.blocker && s.blocker.m ? s.blocker.m.title : "the courses before it";
-    return "Opens when you finish " + what + (s.at ? ", around " + fmtY(s.at) + (s.week > 0 ? " (week " + s.week + ")" : "") : "") + ".";
+    const when = s.at ? ", around " + fmtY(s.at) + (s.week > 0 ? " (week " + s.week + ")" : "") : "";
+    if (s.row && s.row.m && PROJECTS.indexOf(s.row.m.id) >= 0) return "Opens when you've finished the courses before it" + when + ". You're on " + (s.blocker && s.blocker.m ? s.blocker.m.title : "an earlier course") + " now.";
+    return "Opens when you finish " + (s.blocker && s.blocker.m ? s.blocker.m.title : "the course that teaches it") + when + ".";
   }
   function projCard(x, p) {
     const s = projState(x, p), d = x.d, title = x.kind === "core" ? d.title || x.m.title.replace(/: project \d/i, "") : x.b.t;
