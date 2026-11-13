@@ -1,4 +1,4 @@
-// Shared helpers for Benchwrk's API routes. Files starting with "_" are not routes on Vercel.
+// Shared helpers for benchwrk's API routes. Files starting with "_" are not routes on Vercel.
 import { createClient } from "@supabase/supabase-js";
 
 export const env = (k, d) => (process.env[k] === undefined || process.env[k] === "" ? d : process.env[k]);
@@ -96,7 +96,7 @@ async function smtpTransport() {
 export async function sendEmail({ to, subject, html, text, unsubscribe, replyTo, attachments }) {
   const headers = {};
   if (unsubscribe) { headers["List-Unsubscribe"] = "<" + unsubscribe + ">"; headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"; }
-  const from = env("EMAIL_FROM", env("SMTP_USER") ? "Benchwrk <" + env("SMTP_USER") + ">" : "Benchwrk <onboarding@resend.dev>");
+  const from = env("EMAIL_FROM", env("SMTP_USER") ? "benchwrk <" + env("SMTP_USER") + ">" : "benchwrk <onboarding@resend.dev>");
   const key = env("RESEND_API_KEY");
   if (key) {
     const r = await fetch("https://api.resend.com/emails", {
@@ -148,7 +148,7 @@ export function stats(rows) {
     rows.map((r) => '<tr><td style="background:#f7f4ef;border-radius:10px 0 0 10px;padding:11px 14px;font-size:14px;color:#4b5563">' + esc(r[0]) + '</td><td align="right" style="background:#f7f4ef;border-radius:0 10px 10px 0;padding:11px 14px;font-size:15px;font-weight:700;color:#0e1726">' + esc(r[1]) + "</td></tr>").join("") + "</table>";
 }
 export function footerFor(profile, kind, label) {
-  return "You're getting this because you have a Benchwrk account. " +
+  return "You're getting this because you have a benchwrk account. " +
     (profile && profile.unsub_token ? '<a href="' + unsubLink(profile, kind) + '" style="color:#6b7280">Stop ' + esc(label) + "</a> · " : "") +
     '<a href="' + SITE() + '/#settings" style="color:#6b7280">Email settings</a>';
 }
@@ -205,8 +205,8 @@ export async function logError({ source, message, detail, url, ua, user_id }) {
     const owner = await ownerProfile();
     if (!owner || !owner.email) return;
     if (await sentSince(owner.id, "error-alert", new Date(Date.now() - 3600e3).toISOString())) return;
-    await sendEmail({ to: owner.email, subject: "Benchwrk: something went wrong", text: "A " + source + " error was recorded:\n\n" + msg + "\n\n" + (url || "") + "\n\nSee Admin > Errors: " + SITE() + "/#admin",
-      html: layout({ preheader: msg, heading: "Something went wrong on Benchwrk", body: p("A " + esc(source) + " error was recorded" + (url ? " on " + esc(url) : "") + ":") + '<pre style="white-space:pre-wrap;background:#f7f4ef;border-radius:10px;padding:12px;font-size:13px">' + esc(msg) + "</pre>" + p("You'll get at most one of these an hour. Later errors are listed in Admin."), cta: "Open Admin", ctaHref: SITE() + "/#admin", footer: "Sent to the Benchwrk owner." }) });
+    await sendEmail({ to: owner.email, subject: "benchwrk: something went wrong", text: "A " + source + " error was recorded:\n\n" + msg + "\n\n" + (url || "") + "\n\nSee Admin > Errors: " + SITE() + "/#admin",
+      html: layout({ preheader: msg, heading: "Something went wrong on benchwrk", body: p("A " + esc(source) + " error was recorded" + (url ? " on " + esc(url) : "") + ":") + '<pre style="white-space:pre-wrap;background:#f7f4ef;border-radius:10px;padding:12px;font-size:13px">' + esc(msg) + "</pre>" + p("You'll get at most one of these an hour. Later errors are listed in Admin."), cta: "Open Admin", ctaHref: SITE() + "/#admin", footer: "Sent to the benchwrk owner." }) });
     await logEmail(owner.id, "error-alert", f);
   } catch (e) { console.error("logError failed", e && e.message); }
 }

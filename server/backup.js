@@ -9,9 +9,9 @@ export async function emailBackup() {
   const dump = await dumpDatabase(), file = encrypt(dump, env("BACKUP_KEY")), day = dump.at.slice(0, 10), n = counts(dump);
   if (file.length > 20 * 1024 * 1024) return { skipped: "The backup is " + Math.round(file.length / 1048576) + " MB, too big to email. Download it from Admin instead.", size: file.length };
   const lines = Object.entries(n).map(([k, v]) => k + ": " + v + " rows").join(", ");
-  await sendEmail({ to: owner.email, subject: "Benchwrk backup " + day, attachments: [{ filename: "benchwrk-backup-" + day + ".bwbak", content: file }],
-    html: layout({ heading: "Your weekly backup", body: p("Attached: everything in the Benchwrk database on " + day + ", encrypted with your BACKUP_KEY passphrase. Keep a few of these somewhere safe, such as a Google Drive folder.") + p('<span style="font-size:14px;color:#6b7280">' + lines + "</span>") + p("To restore, see “Restoring a backup” in SETUP.md."), cta: "Open Benchwrk", ctaHref: SITE() + "/#admin", footer: "Sent to you as the site owner." }),
-    text: "Benchwrk backup " + day + ", encrypted with your BACKUP_KEY. " + lines });
+  await sendEmail({ to: owner.email, subject: "benchwrk backup " + day, attachments: [{ filename: "benchwrk-backup-" + day + ".bwbak", content: file }],
+    html: layout({ heading: "Your weekly backup", body: p("Attached: everything in the benchwrk database on " + day + ", encrypted with your BACKUP_KEY passphrase. Keep a few of these somewhere safe, such as a Google Drive folder.") + p('<span style="font-size:14px;color:#6b7280">' + lines + "</span>") + p("To restore, see “Restoring a backup” in SETUP.md."), cta: "Open benchwrk", ctaHref: SITE() + "/#admin", footer: "Sent to you as the site owner." }),
+    text: "benchwrk backup " + day + ", encrypted with your BACKUP_KEY. " + lines });
   await logEmail(owner.id, "backup", day);
   return { sent: true, size: file.length, rows: n };
 }

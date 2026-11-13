@@ -1,4 +1,4 @@
-// The public homepage: what Benchwrk is, a plan calculator built from the real course hours, and the way in.
+// The public homepage: what benchwrk is, a plan calculator built from the real course hours, and the way in.
 import PLAN from "./plan-data.json";
 
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -89,7 +89,7 @@ const FAQ = [
   ["Do I need a maths or computing background?", "No. The plan starts with Programming from zero, and the LLM course explains the maths the projects use. A machine learning course is there as an optional extra. If you can already code, the placement test skips what you know."],
   ["How long does it take?", "About " + planFor(8, "zero").total + " hours from scratch, or " + planFor(8, "some").total + " if you already write some Python. You can start applying after the second of the three projects. Optional extras, such as machine learning and a Microsoft certification, add up to " + EXTRA_HOURS + " hours if you want them. The calculator at the top works out the dates for your hours."],
   ["Is it accredited?", "No. Your certificates can be checked online and added to LinkedIn, and an optional course prepares you for Microsoft's AI-103 certification exam, which employers do recognise."],
-  ["Will it get me a job?", "No course can promise that. Benchwrk gives you what hiring managers look for: three working projects, peer-reviewed, a public portfolio page and plenty of interview practice."],
+  ["Will it get me a job?", "No course can promise that. benchwrk gives you what hiring managers look for: three working projects, peer-reviewed, a public portfolio page and plenty of interview practice."],
   ["What happens to my data?", 'It\'s handled as the <a href="privacy.html">privacy notice</a> describes. You can download all of it, or delete your account, from Settings at any time.'],
 ];
 
@@ -105,7 +105,7 @@ export function homeView(choice, mark) {
   return '<div class="hp">' +
     '<section class="hp-hero" aria-labelledby="hp-h1"><div class="hp-in">' +
       '<h1 id="hp-h1">Become an AI engineer from zero, one evening at a time.</h1>' +
-      '<p class="hp-lede">Benchwrk is a free, structured course for people with day jobs. You get a plan with a date on every course, lessons with Python exercises that run in your browser, three projects for your CV and interview practice with an AI interviewer.</p>' +
+      '<p class="hp-lede">benchwrk is a free, structured course for people with day jobs. You get a plan with a date on every course, lessons with Python exercises that run in your browser, three projects for your CV and interview practice with an AI interviewer.</p>' +
       '<div class="hp-calc"><p class="hp-sentence">At ' + sel("hp-hours", "Hours a week", HOURS.map((h) => [h, h + " hours"]), choice.hpw) + " a week, starting " +
         sel("hp-from", "Where you're starting", [["zero", "from scratch"], ["some", "knowing some Python"]], choice.from) + ', <span id="hp-out" aria-live="polite">' + summary(P, choice.hpw) + "</span></p>" +
         '<div class="hp-track"><div class="hp-ticks" aria-hidden="true">' + ticks(P) + "</div>" + bar + "</div>" +
@@ -129,7 +129,7 @@ export function homeView(choice, mark) {
       '<ol class="hp-projects">' + projects + "</ol></div></section>" +
 
     '<section class="hp-sec hp-night" aria-labelledby="hp-nag"><div class="hp-in hp-split">' +
-      '<div><h2 id="hp-nag">It notices when you skip</h2><p class="hp-p">Teaching yourself is easy to start and easy to drop. Benchwrk makes dropping it awkward. Pick how hard it pushes you, from off to relentless, then add an accountability partner, a weekly league of up to 20 learners and a streak that resets when you miss your hours.</p></div>' +
+      '<div><h2 id="hp-nag">It notices when you skip</h2><p class="hp-p">Teaching yourself is easy to start and easy to drop. benchwrk makes dropping it awkward. Pick how hard it pushes you, from off to relentless, then add an accountability partner, a weekly league of up to 20 learners and a streak that resets when you miss your hours.</p></div>' +
       '<div class="hp-notes" aria-label="Example reminders">' + NOTES.map((n) => '<div class="hp-note"><span class="hp-ico" aria-hidden="true">' + mark + '</span><div><b>' + esc(n[0]) + "</b><span>" + esc(n[1]) + '</span></div><time class="xs">' + n[2] + "</time></div>").join("") + "</div>" +
     "</div></section>" +
 
@@ -148,6 +148,6 @@ export function homeView(choice, mark) {
       "<p>Rate the tools you've used, take a short placement test and get a plan with a date on every course.</p>" +
       '<button class="btn lg" type="button" data-home="start">Build my plan</button></div></section>' +
 
-    '<footer class="hp-foot"><div class="hp-in"><span>Benchwrk</span><nav aria-label="Footer"><a href="privacy.html">Privacy notice</a><a href="terms.html">Terms</a><a href="?signin" data-auth="to-signin">Sign in</a></nav></div></footer>' +
+    '<footer class="hp-foot"><div class="hp-in"><span>benchwrk</span><nav aria-label="Footer"><a href="privacy.html">Privacy notice</a><a href="terms.html">Terms</a><a href="?signin" data-auth="to-signin">Sign in</a></nav></div></footer>' +
   "</div>";
 }

@@ -1,4 +1,4 @@
-# Benchwrk
+# benchwrk
 
 A free training site that takes people from zero to AI engineer: a placement, a dated plan at their hours,
 15 courses with lessons and coding exercises that run in the browser, a question bank, three portfolio projects with

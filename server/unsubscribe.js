@@ -1,7 +1,7 @@
 // GET or POST /api/unsubscribe?t=<token>&k=weekly|streak|partner|all -> switches that email off. No sign-in needed.
 import { SITE, adminClient, esc, withErrors } from "./_lib.js";
 
-const LABEL = { weekly: "weekly progress emails", streak: "streak reminders", partner: "partner emails", all: "all Benchwrk emails" };
+const LABEL = { weekly: "weekly progress emails", streak: "streak reminders", partner: "partner emails", all: "all benchwrk emails" };
 
 export default withErrors(async function handler(req, res) {
   const url = new URL(req.url, "http://x"), t = url.searchParams.get("t") || "", k = url.searchParams.get("k") || "all";
@@ -24,7 +24,7 @@ export default withErrors(async function handler(req, res) {
   }
   res.statusCode = 200;
   res.setHeader("content-type", "text/html; charset=utf-8");
-  res.end('<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email settings · Benchwrk</title></head>' +
+  res.end('<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email settings · benchwrk</title></head>' +
     '<body style="margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f1ec;color:#1b2333;display:grid;place-items:center;min-height:100vh;padding:16px">' +
     '<main style="background:#fff;border:1px solid #e6e0d6;border-radius:16px;padding:28px;max-width:440px"><h1 style="margin:0 0 10px;font-size:22px">Email settings</h1><p style="line-height:1.55">' + esc(msg) +
     "</p>" + form + '<p><a href="' + SITE() + '/#settings" style="color:#c93c1a;font-weight:700">Change emails in Settings</a></p></main></body></html>');

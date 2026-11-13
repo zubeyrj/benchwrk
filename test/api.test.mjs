@@ -1,7 +1,7 @@
 // Exercises every API route against the in-memory Supabase, with Anthropic and Resend stubbed.
 import "./fake-supabase.js";
 
-Object.assign(process.env, { SITE_URL: "https://benchwork.test", ANTHROPIC_API_KEY: "sk-test", RESEND_API_KEY: "re-test", CRON_SECRET: "cron-secret", TUTOR_DAILY_LIMIT: "3", EMAIL_FROM: "Benchwrk <hi@benchwork.test>" });
+Object.assign(process.env, { SITE_URL: "https://benchwork.test", ANTHROPIC_API_KEY: "sk-test", RESEND_API_KEY: "re-test", CRON_SECRET: "cron-secret", TUTOR_DAILY_LIMIT: "3", EMAIL_FROM: "benchwrk <hi@benchwork.test>" });
 const sb = globalThis.makeFakeSupabase({ ownerEmail: "owner@example.org" });
 globalThis.__testAdminClient = sb;
 
@@ -527,7 +527,7 @@ r = await call(health, { method: "GET", token: T.owner, headers: { host: "benchw
 ok("health runs every check", r.status === 200 && r.json.checks.length === 9 && r.json.checks.find((c) => c.name === "Backups").warn && r.json.checks.find((c) => c.name === "Database").ok && r.json.checks.find((c) => c.name === "Site address").ok);
 ok("health flags missing captcha as optional", r.json.checks.find((c) => c.name === "Sign-up protection").warn === true);
 r = await call(health, { token: T.owner, body: { test: "email" } });
-ok("test email", r.status === 200 && sent[sent.length - 1].subject === "Benchwrk test email");
+ok("test email", r.status === 200 && sent[sent.length - 1].subject === "benchwrk test email");
 
 // ---- jobs ----
 const jobs = await load("jobs.js");

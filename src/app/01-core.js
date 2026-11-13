@@ -1,4 +1,4 @@
-/* Benchwrk: portal logic. Course content is never in this file: it is read from the
+/* benchwrk: portal logic. Course content is never in this file: it is read from the
    portal database (collections "content" and "lessons"), readable only by invited members,
    and only after they have created an account. */
 (function () {
@@ -117,6 +117,7 @@
     if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
     if (!n.lib || typeof n.lib !== "object") n.lib = { done: {}, quiz: {}, prob: {}, route: "" };
     if (!n.act || typeof n.act !== "object" || Array.isArray(n.act)) n.act = {};
+    if (!n.builds || typeof n.builds !== "object" || Array.isArray(n.builds)) n.builds = {};
     if (!n.lf || typeof n.lf !== "object" || Array.isArray(n.lf)) n.lf = {};
     n.hpw = clampH(n.hpw);
     return n;
@@ -183,6 +184,11 @@
     return !!((st.extras || {})[m.id] || ms.done || Object.keys(ms.checks || {}).length);
   }
   const optLesson = (m, i, st) => !isFull(st) && Array.isArray(m.opt) && m.opt.indexOf(i) >= 0;
+  // Share of a course's core lessons ticked, for any state (the live one or a what-if copy).
+  function fracOf(m, st) {
+    const ch = ((st.mods && st.mods[m.id]) || {}).checks || {}, core = (m.lessons || []).map((_, i) => i).filter((i) => !optLesson(m, i, st));
+    return core.length ? core.filter((i) => ch[i]).length / core.length : 0;
+  }
   function plan(st, mods) {
     st = st || S; mods = mods || MOD;
     const hpw = clampH(st.hpw), start = parseDate(st.start || today());
@@ -195,11 +201,21 @@
       const ms = (st.mods && st.mods[m.id]) || {};
       return { m, lv, hours, s, e: cum, sd: addWeeks(start, s / hpw), ed: addWeeks(start, cum / hpw), done: !!ms.done };
     });
+    // The plan re-dates itself from where you actually are: finished courses keep their dates, and the work
+    // still to do is laid out from today at your hours. Fall behind and the dates move later; get ahead and
+    // they move earlier. "slip" is how far the finish has moved from the original plan.
+    const base = addWeeks(start, cum / hpw), now0 = parseDate(today()), anchor = start > now0 ? start : now0;
+    let t = 0;
+    rows.forEach((r) => {
+      if (r.done) return;
+      const left = Math.max(0.5, r.hours * (1 - 0.8 * fracOf(r.m, st)));
+      r.sd = addWeeks(anchor, t / hpw); t += left; r.ed = addWeeks(anchor, t / hpw);
+    });
+    const live = rows.filter((r) => !r.done), end = live.length ? live[live.length - 1].ed : base;
     // Two finished projects are enough to start applying on the lean path; the third finishes while you apply.
     const applyAfter = st.goal === "adjacent" || !isFull(st) ? "m8" : "m9";
     const ar = rows.find((r) => r.m.id === applyAfter) || rows[rows.length - 1];
-    const end = addWeeks(start, cum / hpw);
-    return { rows, total: cum, hpw, start, end, race: addWeeks(end, 6), applyAt: ar ? ar.ed : start, applyAfter, weeks: Math.max(1, Math.ceil(cum / hpw)) };
+    return { rows, total: cum, left: t, hpw, start, end, base, slip: Math.round((end - base) / DAY), race: addWeeks(end, 6), applyAt: ar ? ar.ed : start, applyAfter, weeks: Math.max(1, Math.ceil((end - mondayOf(start)) / (7 * DAY))) };
   }
   const inPlan = (id) => plan().rows.some((r) => r.m.id === id);
   const currentRow = (p) => p.rows.find((r) => !r.done) || null;
@@ -224,7 +240,7 @@
     const scale = S.hpw / 15;
     return src.map((d) => ({ name: d[0], hours: Math.round(d[1] * scale * 2) / 2, kind: String(d[2]).toLowerCase(), label: d[2], note: d[3] || "" }));
   }
-  // Study time = time counted on Benchwrk's study pages (S.act, seconds per day) plus sessions logged by hand
+  // Study time = time counted on benchwrk's study pages (S.act, seconds per day) plus sessions logged by hand
   // for time away from the site. The two never overlap: the log form only asks for time away.
   const autoH = (d) => ((S.act || {})[d] || 0) / 3600;
   function loggedByDate() { const o = {}; S.log.forEach((e) => { o[e.d] = (o[e.d] || 0) + Number(e.h || 0); }); Object.keys(S.act || {}).forEach((d) => { o[d] = (o[d] || 0) + autoH(d); }); return o; }
@@ -266,6 +282,7 @@
       if (st.sub) subsN++;
       if (st.done) done++;
     });
+    Object.values(S.builds || {}).forEach((b) => { cp += Object.keys((b && b.cp) || {}).length; });
     const iv = ((S.iv && S.iv.sessions) || []).filter((x) => x.score).length;
     return { lessons, ex, exSol, quiz, cp, subs: subsN, done, revs: S.revs || 0, iv };
   }
@@ -351,7 +368,7 @@
     const out = { lvl: levelInfo(points()).level, name: (S.account && S.account.name) || "", goal: S.goal, hours: r1(totalHours()), week: r1(thisWeekHours()), wauto: r1(weekAuto()), at: today(), pts: points(), streak: streak(), qp: c.quiz, xs: c.ex + c.exSol, ls: c.lessons, last: days.length ? days[days.length - 1] : "", co: S.cohort || "" };
     if (MOD.length && (S.placement || hasActivity())) {
       const pr = progress(), cur = activeRow(pr.p), nx = currentRow(pr.p); out.pct = pr.pct; out.cur = cur ? cur.m.title : "Every course done";
-      out.behind = nx && nx.ed < parseDate(today()) ? Math.ceil((parseDate(today()) - nx.ed) / DAY) : 0;
+      out.behind = Math.max(0, pr.p.slip); void nx;
     } else { out.pct = 0; out.cur = "Getting started"; out.behind = 0; }
     return leagueSummary(out);
   }
@@ -377,7 +394,7 @@
 
   /* ---------- boot ---------- */
   const timeout = (ms) => new Promise((res) => setTimeout(() => res("__timeout"), ms));
-  // Benchwrk's own runtime (platform.js) wins over any host-provided window.claude.
+  // benchwrk's own runtime (platform.js) wins over any host-provided window.claude.
   const RT = () => window.BW_RUNTIME || window.claude;
   async function boot() {
     try {

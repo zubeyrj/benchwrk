@@ -63,7 +63,7 @@
       if (rv.id === uid || isBlocked(rv.id)) return;
       Object.keys(rv.given || {}).forEach((k) => { const [to, proj] = k.split(":"); if (to === uid) add(dts(rv.given[k].at), (rv.name || "A member") + " reviewed your " + ((byId[proj] && byId[proj].title) || "project"), "#projects", "review"); });
     });
-    if (notice && notice.text) add(notice.ts || dts(notice.at), "From the Benchwrk team: " + notice.text, "#home", "notice");
+    if (notice && notice.text) add(notice.ts || dts(notice.at), "From the benchwrk team: " + notice.text, "#home", "notice");
     myReports.filter((r) => r.status === "resolved" && r.resolvedAt).forEach((r) => add(r.resolvedAt, "Your report about " + (r.label || "a member") + " was reviewed. Thank you.", "#settings", "report"));
     remindNotif(add);
     const now = Date.now();

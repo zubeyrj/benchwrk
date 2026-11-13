@@ -22,10 +22,10 @@ export default withErrors(async function handler(req, res) {
   const subject = kind === "cheer" ? from + " cheered you on" : from + " is checking in on you";
   const html = layout({
     preheader: note || subject, heading: subject,
-    body: p(kind === "cheer" ? esc(from) + " saw your progress on Benchwrk and sent a cheer." : esc(from) + " noticed it's been quiet and wants to know how this week is going.") +
+    body: p(kind === "cheer" ? esc(from) + " saw your progress on benchwrk and sent a cheer." : esc(from) + " noticed it's been quiet and wants to know how this week is going.") +
       (note ? '<blockquote style="margin:4px 0 14px;padding:12px 16px;background:#f7f4ef;border-left:3px solid #c93c1a;border-radius:8px;font-size:16px;line-height:1.5">' + esc(note) + "</blockquote>" : "") +
       p(kind === "cheer" ? "Keep going. Reply with a cheer of your own from the Cohort tab." : "Even 30 minutes tonight keeps your streak alive."),
-    cta: kind === "cheer" ? "Open Benchwrk" : "Log a session", ctaHref: SITE() + (kind === "cheer" ? "/#cohort" : "/#log"),
+    cta: kind === "cheer" ? "Open benchwrk" : "Log a session", ctaHref: SITE() + (kind === "cheer" ? "/#cohort" : "/#log"),
     footer: footerFor(profile, "partner", "partner emails"),
   });
   await sendEmail({ to: profile.email, subject, html, unsubscribe: unsubLink(profile, "partner"), text: subject + (note ? '\n\n"' + note + '"' : "") + "\n\n" + SITE() });

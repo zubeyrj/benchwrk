@@ -125,5 +125,24 @@
  "lean": 25,
  "opt": [
   5
- ]
+ ],
+ "proj": {
+  "about": "A deployed agent that uses three real tools to do a job end to end. It logs every decision, stops after a set number of steps, handles tool failures and asks for approval before anything risky. One tool is also exposed through the Model Context Protocol (MCP).",
+  "tools": [
+   "Python",
+   "The Anthropic or OpenAI API (tool calling)",
+   "Pydantic",
+   "An MCP server",
+   "Structured logging",
+   "Render or Azure"
+  ],
+  "skills": [
+   "Choosing a workflow or an agent",
+   "Tool design and validation",
+   "Step limits, error paths and approvals",
+   "MCP",
+   "Explaining trade-offs honestly"
+  ],
+  "market": "Agentic systems and workflow automation are the fastest-growing ask in AI engineering adverts, and interviewers probe your judgement on when not to use an agent."
+ }
 }

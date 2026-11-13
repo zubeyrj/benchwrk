@@ -7,7 +7,7 @@ export default withErrors(async function handler(req, res) {
   const t = String(q.t || "").replace(/\.ics$/, "");
   if (!/^[0-9a-f-]{36}$/.test(t)) { res.statusCode = 404; return res.end("Not found"); }
   const { data: p } = await adminClient().from("profiles").select("id").eq("cal_token", t).maybeSingle();
-  if (!p) { res.statusCode = 404; return res.end("This calendar link has been replaced. Get the new one from Benchwrk > Schedule."); }
+  if (!p) { res.statusCode = 404; return res.end("This calendar link has been replaced. Get the new one from benchwrk > Schedule."); }
   const state = (await getDoc("data/users/" + p.id + "/state")) || {};
   res.statusCode = 200;
   res.setHeader("content-type", "text/calendar; charset=utf-8");

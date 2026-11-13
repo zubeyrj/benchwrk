@@ -1,4 +1,4 @@
-// Restores a Benchwrk backup into a Supabase project.
+// Restores a benchwrk backup into a Supabase project.
 //   node scripts/restore.mjs benchwrk-backup-2026-11-15.bwbak            (checks the file, changes nothing)
 //   node scripts/restore.mjs benchwrk-backup-2026-11-15.bwbak --write    (writes the rows)
 // Needs BACKUP_KEY, SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment (never in the repo).

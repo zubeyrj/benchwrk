@@ -1,7 +1,7 @@
 
   /* ---------- The library: "AI Engineering from Scratch" (Rohit Ghumare, MIT), served as static files ----------
      542 lessons with quizzes, 51 coding problems with their own checks, an interview bank of 482 questions,
-     career routes, project challenges and a glossary. Benchwrk adds progress, XP, the tutor and links into
+     career routes, project challenges and a glossary. benchwrk adds progress, XP, the tutor and links into
      its own courses. */
   const LIBP = { lesson: 10, quiz: 20, easy: 30, medium: 45, hard: 60 };
   const L$ = { index: null, idxP: null, lessons: {}, probs: {}, banks: {}, gloss: undefined, harness: null, failed: false };
@@ -91,7 +91,7 @@
     const D = libState().done;
     return '<li><span class="num' + (D[l.id] ? " ok" : "") + '">' + (D[l.id] ? SVG.check : Number(l.id.slice(-2))) + '</span><span class="grow"><a class="ttl" href="#' + l.id + '">' + esc(l.t) + '</a><div class="xs muted">' + (l.phase ? "Phase " + Number(l.phase.n) + ": " + esc(l.phase.title) + " · " : "") + (l.type ? esc(l.type) + " · " : "") + l.min + " min" + (l.q ? " · quiz" : "") + "</div></span></li>";
   }
-  // Library lessons that go deeper on each Benchwrk course.
+  // Library lessons that go deeper on each benchwrk course.
   const COURSE_LIB = {
     m13: ["lib-00-01", "lib-00-10", "lib-00-13"], m0: ["lib-00-01", "lib-00-02", "lib-00-06", "lib-00-08", "lib-00-10"], m1: ["lib-00-13", "lib-00-05", "lib-00-12"],
     m2: ["lib-00-02", "lib-00-12", "lib-00-11"], m3: ["lib-00-04", "lib-11-03", "lib-11-09"], m4: ["lib-00-09", "lib-11-04", "lib-01-14"], m5: ["lib-00-07", "lib-00-03", "lib-17-01"],

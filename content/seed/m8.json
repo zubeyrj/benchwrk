@@ -129,5 +129,23 @@
    "a": 1,
    "e": "Without a baseline you can't tell better from different."
   }
- ]
+ ],
+ "proj": {
+  "about": "An evaluation harness for your RAG app: a set of test questions with known answers, scores for retrieval and for answers, an LLM judge you've checked against your own marks, and tracing for cost and speed. One documented experiment shows a change that made it measurably better.",
+  "tools": [
+   "Python",
+   "pytest",
+   "An LLM-as-judge",
+   "Langfuse tracing",
+   "GitHub Actions"
+  ],
+  "skills": [
+   "Golden datasets",
+   "Retrieval metrics (hit rate, recall at k)",
+   "Judging answers and checking the judge",
+   "Cost and latency monitoring",
+   "Evals that run in CI"
+  ],
+  "market": "Adverts ask for monitoring, observability and responsible AI. Few junior candidates can show measured results, so this is where you stand out."
+ }
 }

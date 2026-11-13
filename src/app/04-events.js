@@ -321,7 +321,7 @@
       const h = Number(document.getElementById("l-h").value), d = document.getElementById("l-d").value || today();
       if (!(h > 0 && h <= 16)) { toast("Enter between 0.25 and 16 hours."); return; }
       addLog(h, d, document.getElementById("l-m").value, document.getElementById("l-n").value.slice(0, 400));
-      toast("Logged " + plural(h, "hour") + " away from Benchwrk."); render(); return;
+      toast("Logged " + plural(h, "hour") + " away from benchwrk."); render(); return;
     }
     if (f.id === "sform") {
       const nm = document.getElementById("s-name").value.trim();

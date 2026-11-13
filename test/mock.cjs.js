@@ -19,7 +19,7 @@ window.__mock = function (seed, opts) {
   const downloads = { save: async (r) => { window.__lastDownload = r.filename; return { status: "saved" }; } };
   window.claude = { use: async (n) => (n === "db" ? db : n === "user" ? user : n === "sample" ? (opts.noSample ? null : sample) : n === "downloads" ? downloads : null) };
   window.__store = store;
-  // Benchwrk's own extras (normally from platform.js): API calls are recorded, not sent.
+  // benchwrk's own extras (normally from platform.js): API calls are recorded, not sent.
   if (opts.bw !== false) {
     window.__api = [];
     const prefs = { weekly: true, streak: true, partner: true };

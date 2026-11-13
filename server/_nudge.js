@@ -80,7 +80,7 @@ const C = {
     ["Still waiting", "Today's lesson is ready when you are. It's been ready for a while."],
     ["Quick one?", "One exercise from {cur}. Ten minutes. We'll stop asking today."]],
   d2: [["{q} days without a session", "{cur} won't learn itself. One exercise tonight?"],
-    ["Hello? It's Benchwrk", "You haven't been in for {q} days. We're not upset. We're just noticing."]],
+    ["Hello? It's benchwrk", "You haven't been in for {q} days. We're not upset. We're just noticing."]],
   d4: [["These reminders don't seem to be working", "We'll keep sending them anyway. Or you could log a session and make them stop."],
     ["{q} days. We're starting to worry", "Your plan has pushed its dates back. Twenty minutes puts it back on track."]],
   d7: [["A whole week off", "Your finish date has slipped. One short session tonight starts pulling it back."],

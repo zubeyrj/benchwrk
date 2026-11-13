@@ -10,7 +10,7 @@ import { leagueSpot } from "../_league.js";
 import { adminClient, pool } from "../_lib.js";
 
 export function nudgeEmail(m, copy) {
-  return { subject: copy.title, html: layout({ preheader: copy.body, heading: copy.title, body: p(esc(copy.body)) + p('<span style="color:#6b7280;font-size:14px">Too much? Change how hard Benchwrk pushes you in Settings.</span>'), cta: "Log a session", ctaHref: SITE() + "/#home", footer: footerFor(m.profile, "streak", "reminder emails") }),
+  return { subject: copy.title, html: layout({ preheader: copy.body, heading: copy.title, body: p(esc(copy.body)) + p('<span style="color:#6b7280;font-size:14px">Too much? Change how hard benchwrk pushes you in Settings.</span>'), cta: "Log a session", ctaHref: SITE() + "/#home", footer: footerFor(m.profile, "streak", "reminder emails") }),
     text: copy.title + "\n\n" + copy.body + "\n\n" + SITE() + "/#home" };
 }
 

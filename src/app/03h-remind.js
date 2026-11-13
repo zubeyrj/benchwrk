@@ -1,6 +1,6 @@
   // Hours a week picked on the public homepage before signing up, if any.
   function homeHpw() { try { const p = JSON.parse(localStorage.getItem("bw-plan") || "null"); return p && Number(p.hpw) >= 3 && Number(p.hpw) <= 40 ? Number(p.hpw) : 0; } catch (e) { return 0; } }
-  /* ---------- Reminders: how hard Benchwrk pushes you, and phone or browser notifications ---------- */
+  /* ---------- Reminders: how hard benchwrk pushes you, and phone or browser notifications ---------- */
   const RLEVELS = [
     ["off", "Off", "No reminders at all. Weekly progress emails are set separately."],
     ["gentle", "Gentle", "An email when your streak is about to end, and one after ten quiet days."],
@@ -26,7 +26,7 @@
     const msg = {
       nokey: "Phone and browser notifications aren't set up on this site yet, so reminders come by email.",
       unsupported: "This browser can't show notifications, so reminders come by email.",
-      "ios-install": "On an iPhone or iPad, add Benchwrk to your Home Screen first: tap Share, then Add to Home Screen, and open it from there. Then come back here.",
+      "ios-install": "On an iPhone or iPad, add benchwrk to your Home Screen first: tap Share, then Add to Home Screen, and open it from there. Then come back here.",
       blocked: "Notifications are blocked for this site. Allow them in your browser's site settings, then reload.",
     }[P.support];
     let body;

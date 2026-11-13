@@ -13,7 +13,7 @@ export default withErrors(async function handler(req, res) {
   if (req.method === "POST") {
     const { test } = await readJson(req);
     if (test !== "email") return fail(res, 400, "Bad request.");
-    const r = await sendEmail({ to: user.email, subject: "Benchwrk test email", text: "Email from Benchwrk works.", html: layout({ heading: "Email works", body: p("This test came from your Benchwrk site at " + SITE() + "."), footer: "Sent because you pressed Send test email in Admin." }) });
+    const r = await sendEmail({ to: user.email, subject: "benchwrk test email", text: "Email from benchwrk works.", html: layout({ heading: "Email works", body: p("This test came from your benchwrk site at " + SITE() + "."), footer: "Sent because you pressed Send test email in Admin." }) });
     return r && r.skipped ? fail(res, 400, "No email service is set up yet. Add the Gmail or Resend settings in Vercel.") : send(res, 200, { sent: true, to: user.email });
   }
   const db = adminClient(), host = req.headers["x-forwarded-host"] || req.headers.host || "";

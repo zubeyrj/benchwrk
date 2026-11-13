@@ -31,7 +31,7 @@ export async function loadPortfolio(slug) {
     const avg = rs.length ? Math.round((rs.reduce((a, g) => a + g.s.reduce((x, y) => x + Number(y || 0), 0) / g.s.length, 0) / rs.length) * 10) / 10 : null;
     return { id: m, title: title[m] || "Project", repo: safeUrl(items[m].repo), demo: safeUrl(items[m].demo), note: String(items[m].note || "").slice(0, 400), at: items[m].at || "", reviews: rs.length, avg, quotes: rs.map((g) => String(g.c || "").trim()).filter((c) => c.length > 12).slice(0, 2) };
   });
-  return { pf, name: S.name || (prof.data && prof.data.name) || "A Benchwrk member", stats: { level: Number(S.lvl) || 1, hours: Math.round(Number(S.hours) || 0), streak: Number(S.streak) || 0, pct: Number(S.pct) || 0, cur: S.cur || "" }, projects, certs: certs.data || [] };
+  return { pf, name: S.name || (prof.data && prof.data.name) || "A benchwrk member", stats: { level: Number(S.lvl) || 1, hours: Math.round(Number(S.hours) || 0), streak: Number(S.streak) || 0, pct: Number(S.pct) || 0, cur: S.cur || "" }, projects, certs: certs.data || [] };
 }
 
 export function renderPortfolio(P, site) {
@@ -42,7 +42,7 @@ export function renderPortfolio(P, site) {
     '<p class="row">' + (x.repo ? '<a href="' + esc(x.repo) + '" rel="nofollow noopener ugc" target="_blank">Code</a>' : "") + (x.demo ? '<a href="' + esc(x.demo) + '" rel="nofollow noopener ugc" target="_blank">Live demo</a>' : "") + (x.at ? '<span class="muted">' + esc(monthYear(x.at)) + "</span>" : "") + "</p>" +
     (show.reviews && x.reviews ? '<p class="rev"><b>' + x.avg + " / 3</b> from " + x.reviews + " peer review" + (x.reviews === 1 ? "" : "s") + (x.quotes.length ? "</p>" + x.quotes.map((q) => "<blockquote>" + esc(q) + "</blockquote>").join("") : "</p>") : "") + "</article>").join("") + "</section>" : "";
   const certs = show.certs && P.certs.length ? "<section><h2>Certificates</h2><ul class=\"certs\">" + P.certs.map((c) => '<li><a href="' + esc(site + "/c/" + c.id) + '">' + esc(c.course_title) + '</a> <span class="muted">' + esc(monthYear(c.issued)) + "</span></li>").join("") + "</ul></section>" : "";
-  const stats = show.stats ? '<div class="stats"><div><b>' + P.stats.hours + "</b>hours of logged study</div><div><b>Level " + P.stats.level + "</b>on Benchwrk</div><div><b>" + P.stats.pct + "%</b>of the AI engineer route" + (P.stats.cur && P.stats.pct < 100 ? ", now on " + esc(P.stats.cur) : "") + "</div></div>" : "";
+  const stats = show.stats ? '<div class="stats"><div><b>' + P.stats.hours + "</b>hours of logged study</div><div><b>Level " + P.stats.level + "</b>on benchwrk</div><div><b>" + P.stats.pct + "%</b>of the AI engineer route" + (P.stats.cur && P.stats.pct < 100 ? ", now on " + esc(P.stats.cur) : "") + "</div></div>" : "";
   return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(P.name)} · AI engineering portfolio</title>${show.index ? "" : '\n<meta name="robots" content="noindex">'}
 <meta name="description" content="${esc(desc)}">
@@ -69,7 +69,7 @@ footer{margin-top:36px;font-size:14px;color:var(--muted);text-align:center}
 <header><p class="k">AI engineering portfolio</p><h1>${esc(P.name)}</h1>${pf.headline ? `<p class="head">${esc(pf.headline)}</p>` : ""}${pf.about ? `<p class="about">${esc(pf.about)}</p>` : ""}
 ${links.length ? '<p class="row">' + links.map((l) => '<a href="' + esc(l[1]) + '" rel="me noopener" target="_blank">' + l[0] + "</a>").join("") + "</p>" : ""}</header>
 ${stats}${proj}${certs}
-<footer>Projects reviewed by other learners on <a href="${esc(site)}">Benchwrk</a>, a free training ground for AI engineers.</footer>
+<footer>Projects reviewed by other learners on <a href="${esc(site)}">benchwrk</a>, a free training ground for AI engineers.</footer>
 </main></body></html>`;
 }
 
@@ -79,7 +79,7 @@ export default withErrors(async function handler(req, res) {
   res.setHeader("content-type", "text/html; charset=utf-8");
   if (!P) {
     res.statusCode = 404;
-    return res.end('<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Portfolio not found · Benchwrk</title></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f1ec;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px"><main style="background:#fff;border-radius:16px;padding:28px;max-width:420px;border:1px solid #e6e0d6"><h1 style="font-size:22px;margin:0 0 8px">No portfolio here</h1><p>This page doesn\'t exist or isn\'t public any more.</p><p><a href="' + esc(site) + '" style="color:#ad3214;font-weight:700">Go to Benchwrk</a></p></main></body></html>');
+    return res.end('<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Portfolio not found · benchwrk</title></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f1ec;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px"><main style="background:#fff;border-radius:16px;padding:28px;max-width:420px;border:1px solid #e6e0d6"><h1 style="font-size:22px;margin:0 0 8px">No portfolio here</h1><p>This page doesn\'t exist or isn\'t public any more.</p><p><a href="' + esc(site) + '" style="color:#ad3214;font-weight:700">Go to benchwrk</a></p></main></body></html>');
   }
   res.statusCode = 200;
   res.setHeader("cache-control", "public, max-age=120");

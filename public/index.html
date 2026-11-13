@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Benchwrk</title>
-<meta name="description" content="Benchwrk: a free training plan from zero to AI engineer. Placement, a dated path, lessons, in-browser coding exercises, quizzes, projects with peer review, accountability partners and a cohort board.">
+<title>benchwrk</title>
+<meta name="description" content="benchwrk: a free training plan from zero to AI engineer. Placement, a dated path, lessons, in-browser coding exercises, quizzes, projects with peer review, accountability partners and a cohort board.">
 <meta name="theme-color" content="#0e1726">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Benchwrk">
-<meta property="og:title" content="Benchwrk: from zero to AI engineer">
+<meta name="apple-mobile-web-app-title" content="benchwrk">
+<meta property="og:title" content="benchwrk: from zero to AI engineer">
 <meta property="og:description" content="A free, dated plan with lessons, coding exercises that run in your browser, real projects and an accountability partner.">
 <meta property="og:image" content="/og-cert.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* Benchwrk: a learning platform for builders. Dark masthead, bright working surfaces,
+/* benchwrk: a learning platform for builders. Dark masthead, bright working surfaces,
    coral for the one action that matters, amber for rewards, a dark code workspace. */
 :root{
   --bg:#f5f6f8;--surface:#fff;--surface-2:#eef1f5;--line:#e1e5eb;--line-2:#cdd3dc;
@@ -808,6 +808,17 @@ hr.soft{border:0;border-top:1px solid var(--line);margin:14px 0}
 .dots{display:flex;gap:5px;align-items:center}.dots i{width:12px;height:12px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line-2)}.dots i.on{background:var(--accent);border-color:var(--accent)}
 .pbar i.half{background:linear-gradient(90deg,var(--accent) 50%,var(--surface-2) 50%)}
 .pqset{border:0;margin:0;padding:0;min-width:0}.pqset legend{padding:0}
+
+/* projects */
+.proj-card{display:block;padding:18px}
+.proj-card.locked{background:var(--surface-2);box-shadow:none}
+.proj-card.locked h3{color:var(--muted)}
+.state.lockd{display:inline-flex;gap:5px;align-items:center;color:var(--muted)}
+.chips-sm{display:flex;flex-wrap:wrap;gap:6px}
+.chips-sm span{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.lock-panel{display:flex;gap:14px;align-items:flex-start;margin:18px 0 0;padding:16px 18px;border-radius:var(--r);background:var(--surface-2);border:1px dashed var(--line-2)}
+.lock-panel svg{flex:none;margin-top:2px;color:var(--muted)}.lock-panel p{margin:2px 0 0;color:var(--muted)}
+.ms-list{counter-reset:ms}
 /* the tutor dock */
 .tutor-cta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 0}
 .dock{position:fixed;right:20px;bottom:20px;z-index:30;display:flex;flex-direction:column;align-items:flex-end;gap:12px;pointer-events:none}
@@ -842,7 +853,7 @@ hr.soft{border:0;border-top:1px solid var(--line);margin:14px 0}
 <a class="skip" href="#app">Skip to content</a>
 <div class="solo" id="shell">
   <header class="mast"><div class="mast-in">
-    <a class="logo" href="#home" aria-label="Benchwrk, Today"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>benchwrk</a>
+    <a class="logo" href="#home" aria-label="benchwrk, Today"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>benchwrk</a>
     <nav id="nav" aria-label="Main"></nav>
     <div id="me"></div>
   </div></header>

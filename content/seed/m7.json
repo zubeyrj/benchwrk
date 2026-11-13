@@ -121,5 +121,26 @@
    "a": 1,
    "e": "Citations must point at real retrieved sources, which you can verify in code."
   }
- ]
+ ],
+ "proj": {
+  "about": "A question-answering app over a set of documents you choose, such as policies, specifications or guidance. It finds the right passages, answers with citations and says plainly when the documents don't hold the answer.",
+  "tools": [
+   "Python",
+   "FastAPI",
+   "Postgres with pgvector",
+   "An embeddings API",
+   "Keyword (BM25) and vector search",
+   "A reranker",
+   "Docker",
+   "Render"
+  ],
+  "skills": [
+   "Ingestion and chunking",
+   "Hybrid retrieval and reranking",
+   "Grounded answers with citations",
+   "Refusal when the answer isn't there",
+   "Deploying a working app"
+  ],
+  "market": "Retrieval-augmented generation (RAG) and vector databases appear in most applied LLM job adverts. It's the project interviewers ask about first."
+ }
 }

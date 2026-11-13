@@ -17,6 +17,7 @@
     if ((m = h.match(/^(lib-\d\d-\d\d)$/))) return { name: "library", sub: "lesson", key: m[1] };
     if ((m = h.match(/^prob-([a-z0-9-]+)$/))) return { name: "problems", sub: "one", key: m[1] };
     if ((m = h.match(/^route-([a-z0-9-]+)$/))) return { name: "routes", sub: "route", key: m[1] };
+    if ((m = h.match(/^project-([a-z0-9-]+)$/))) return { name: "project", key: m[1] };
     if (h === "iv-bank") return { name: "ivbank" };
     if ((m = h.match(/^ivb-([a-z0-9-]+)$/))) return { name: "ivbank", sub: "card", key: m[1] };
     if ((m = h.match(/^ivq-([a-z0-9-]+)$/))) return { name: "ivbank", sub: "q", key: m[1] };
@@ -53,7 +54,7 @@
     const xp = points(), L = levelInfo(xp), st = streak();
     document.getElementById("me").innerHTML = '<span class="chip" title="Weekly streak">' + '<span style="color:#ff8a5c">' + SVG.fire + '</span><span class="n">' + st + '</span></span><span class="chip lvl" title="' + L.into + " of " + L.need + ' XP to the next level"><span style="color:var(--xp)">' + SVG.bolt + '</span><span class="n">Lv ' + L.level + " · " + xp + ' XP</span></span>' + bellHtml() + '<details class="acct"><summary class="avatar" aria-label="Account menu for ' + esc(S.account.name) + '">' + esc((S.account.name || "?").slice(0, 1).toUpperCase()) + '</summary><div class="acct-menu" role="menu"><div class="acct-who"><b>' + esc(S.account.name) + "</b>" + (myEmail ? '<span>' + esc(myEmail) + "</span>" : "") + '</div><a role="menuitem" href="#settings"' + (active === "settings" ? ' aria-current="page"' : "") + ">Settings</a>" + (isOwner ? '<a role="menuitem" href="#admin"' + (active === "admin" ? ' aria-current="page"' : "") + ">Admin</a>" : "") + (window.BW ? '<button role="menuitem" data-act="signout">Sign out</button>' : "") + "</div></details>";
   }
-  const NAVOF = { problems: "practice", glossary: "library", ivbank: "interview", course: "courses", lesson: "courses", ex: "courses", quiz: "courses", cert: "courses", placement: "home" };
+  const NAVOF = { problems: "practice", glossary: "library", ivbank: "interview", project: "projects", course: "courses", lesson: "courses", ex: "courses", quiz: "courses", cert: "courses", placement: "home" };
   function render() {
     const gated = phase !== "ready";
     $shell.classList.toggle("solo", gated);
@@ -66,7 +67,7 @@
       else {
         const r = route();
         renderNav(NAVOF[r.name] || r.name);
-        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, schedule: vSchedule, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, log: vLog, cohort: vCohort, league: vLeague, portfolio: vPortfolio, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
+        const V = { library: vLibrary, problems: (r) => (r.sub === "one" ? vProblem(r) : vProblems()), glossary: vGlossary, routes: vRoutes, ivbank: vIvBank, interview: vInterview, applications: vApplications, career: vCareer, home: vHome, schedule: vSchedule, plan: vPlan, courses: vCourses, practice: vPractice, projects: vProjects, project: vProject, log: vLog, cohort: vCohort, league: vLeague, portfolio: vPortfolio, toolkit: vToolkit, placement: vPlacement, settings: vSettings, admin: vAdmin, course: vCourse, quiz: vQuiz, lesson: vLesson, ex: vExercise, cert: vCert };
         if (r.id && !byId[r.id]) html = vHome();
         else if (r.name === "admin" && !isOwner) html = vHome();
         else html = V[r.name](r) + pageFooter(r);
@@ -90,7 +91,7 @@
   function pageTitle() {
     const r = route(), h = $app.querySelector("h1"), p = NAV.find((x) => x[0] === r.name);
     const t = (h && h.textContent.trim()) || (p && p[1]) || "";
-    document.title = (t ? t.slice(0, 60) + " · " : "") + "Benchwrk";
+    document.title = (t ? t.slice(0, 60) + " · " : "") + "benchwrk";
   }
   window.addEventListener("hashchange", () => {
     render(); window.scrollTo(0, 0);
@@ -157,7 +158,7 @@
   /* ---------- gated views: the sign-up ---------- */
   function vWelcome(kind) {
     const side = '<aside class="auth-side"><div><h1>Become an AI engineer, <em>from zero</em>, one evening at a time.</h1>' +
-      '<p class="lede">Benchwrk is a private training ground for a small cohort. You get a dated plan at your hours, lessons with coding exercises that run in your browser, and three real projects to ship.</p></div>' +
+      '<p class="lede">benchwrk is a private training ground for a small cohort. You get a dated plan at your hours, lessons with coding exercises that run in your browser, and three real projects to ship.</p></div>' +
       '<div class="props">' +
       '<div class="prop"><span class="ico">' + SVG.target + '</span><div><b>A plan built around you</b><span>Rate the tools you\'ve used, take a short placement and skip what you already know.</span></div></div>' +
       '<div class="prop"><span class="ico">' + SVG.code + '</span><div><b>59 exercises, checked as you go</b><span>Python and SQL run in the browser. Hints and a tutor when you\'re stuck.</span></div></div>' +
@@ -167,7 +168,7 @@
       '<div class="pv"><i>3</i><div>Engineering habits<br><span>Starts after</span></div><span></span></div></div></aside>';
     let form;
     if (kind === "noaccess") {
-      form = '<div class="auth-card"><h2 style="font-size:26px">Couldn\'t connect</h2><p class="muted">Benchwrk couldn\'t reach its database. Check your connection and try again.</p>' +
+      form = '<div class="auth-card"><h2 style="font-size:26px">Couldn\'t connect</h2><p class="muted">benchwrk couldn\'t reach its database. Check your connection and try again.</p>' +
         '<div class="row"><button class="btn" data-act="reload">Try again</button><button class="btn line" data-act="signout">Sign out</button></div></div>';
     } else {
       form = '<form id="signup" class="auth-card" novalidate><div class="steps" aria-label="Sign-up steps"><span class="on"><i>1</i>Account</span><span><i>2</i>Your tools</span><span><i>3</i>Placement</span></div>' +
@@ -232,7 +233,7 @@
       return '<div class="hero"><div style="position:relative;z-index:1"><p class="up">Welcome' + (name ? ", " + esc(name) : "") + '. You\'re in.</p><h1>This is your training ground</h1><p class="muted" style="margin:10px 0 18px;max-width:54ch">Build your plan first so you skip what you already know: rate the tools you\'ve used, then answer a few questions. Or start the first course now and do it later.</p>' +
         '<div class="row"><a class="btn lg" href="#placement">' + (S.tools ? "Finish my plan" : "Build my plan") + '</a><a class="btn lg dark" style="background:rgb(255 255 255 / .1)" href="#course-' + (plan().rows[0] ? plan().rows[0].m.id : "") + '">Start learning now</a><button class="link" style="color:inherit" data-act="tour">Show me around</button></div></div>' +
         '<div class="countdown"><div class="cd"><div class="big">' + (S.tools ? 1 : 2) + '<small>' + (S.tools ? "step" : "steps") + ' to your plan</small></div><div class="sub">About ' + (S.tools ? 4 : 6) + ' minutes. Nothing is graded.</div></div><div class="cd"><div class="big">59<small>exercises</small></div><div class="sub">Python and SQL that run right here, with hints and a tutor.</div></div></div></div>' +
-        '<div class="sec"><h2>What\'s in Benchwrk</h2><div class="grid3">' + F.map((f) => '<a class="card node" style="display:block" href="#' + f[0] + '" data-tour="' + f[0] + '"><span class="ico" style="margin-bottom:12px">' + f[1] + '</span><h3>' + f[2] + '</h3><p class="small muted" style="margin:0">' + f[3] + "</p></a>").join("") +
+        '<div class="sec"><h2>What\'s in benchwrk</h2><div class="grid3">' + F.map((f) => '<a class="card node" style="display:block" href="#' + f[0] + '" data-tour="' + f[0] + '"><span class="ico" style="margin-bottom:12px">' + f[1] + '</span><h3>' + f[2] + '</h3><p class="small muted" style="margin:0">' + f[3] + "</p></a>").join("") +
         '<div class="card" style="background:var(--xp-soft);border-color:transparent"><span class="ico xp" style="margin-bottom:12px;background:var(--surface)">' + SVG.fire + '</span><h3>XP, levels and streaks</h3><p class="small muted" style="margin:0">Every lesson, exercise and quiz earns XP. Weekly quests and a streak keep you coming back.</p></div></div></div>' +
         '<div class="sec card"><h2>Your week at ' + S.hpw + ' hours</h2><p class="small muted">Four evenings, a long Saturday and a Sunday review. Change your hours any time in Settings.</p>' + stripHtml(thisWeekDays()) + "</div>";
     }
@@ -251,7 +252,7 @@
       '<div class="cd"><div class="big n">' + CD.route.days + '<small>days</small></div><div class="sub">to your last course, ' + fmtY(CD.route.date) + ". " + cdLine(CD.route.date, CD.route.planned) + ". " + (CD.pace.measured ? "Based on your last 3 weeks: " + r1(CD.pace.avg) + " h a week." : "Based on your " + S.hpw + " hours a week until you have 3 weeks of logs.") + "</div></div></div>";
     const hero = '<div class="hero">' + left + cdHtml + "</div>";
     const placeCard = S.placement ? "" : '<div class="notice row between" style="gap:12px;margin-top:16px"><span><b>Your plan assumes you\'re starting from scratch.</b> Rate your tools and answer a few questions to skip what you already know.</span><a class="btn sm" href="#placement">Personalise my plan</a></div>';
-    const note = placeCard + (notice ? '<p class="notice"><b>From the Benchwrk team:</b> ' + esc(notice.text) + "</p>" : "");
+    const note = placeCard + (notice ? '<p class="notice"><b>From the benchwrk team:</b> ' + esc(notice.text) + "</p>" : "");
     const stats = '<div class="stats">' +
       '<div class="card tight stat"><span class="ico fire">' + SVG.fire + '</span><div><div class="v n">' + si.weeks + '<small> wk</small></div><div class="k">Streak' + (si.freezes ? ", " + plural(si.freezes, "freeze") + " saved" : "") + (si.thisWeek ? "" : ". Log " + r1(Math.max(0, S.hpw * 0.6 - wk)) + " h more to keep it") + "</div></div></div>" +
       '<div class="card tight stat">' + ring(Math.min(1, wk / S.hpw), 44, "var(--ok)", r1(wk) + " of " + S.hpw + " hours") + '<div><div class="v n">' + r1(wk) + "<small> / " + S.hpw + ' h</small></div><div class="k">This week, ' + r1(weekAuto()) + " h counted here</div></div></div>" +
@@ -304,8 +305,9 @@
   function vPlan(r) {
     const p = plan(), now = new Date(), wiNow = weekIndex(p, now), byW = hoursByWeek(), cur = activeRow(p), CD = countdowns();
     const focus = r && r.week ? r.week - 1 : -1;
-    const lateBy = CD.route ? dayDiff(CD.route.date, CD.route.planned) : 0;
-    const paceTxt = !hasActivity() ? "Dates move as you study." : lateBy > 6 ? "At your recent pace you'll finish about " + plural(Math.round(lateBy / 7), "week") + " later than this." : lateBy < -6 ? "At your recent pace you'll finish about " + plural(Math.round(-lateBy / 7), "week") + " early." : "You're on pace.";
+    const wkTxt = (d) => plural(Math.max(1, Math.round(Math.abs(d) / 7)), "week");
+    const paceTxt = p.slip > 6 ? "Your progress is behind the original plan, so the dates have moved " + wkTxt(p.slip) + " later (it was " + fmt(p.base) + ")." : p.slip < -6 ? "You're ahead, so the dates have moved " + wkTxt(p.slip) + " earlier." : "You're on track. Dates move as you go: fall behind and they move later, get ahead and they move earlier.";
+    void CD;
     const head = '<h1>Your plan</h1><p class="lede">Start applying from <b>' + fmtLong(p.applyAt) + "</b>. Last course done by <b>" + fmtLong(p.end) + "</b>. " + paceTxt + "</p>";
     const facts = '<dl class="facts">' +
       '<div><dt>Hours a week</dt><dd class="n">' + p.hpw + '</dd><dd><a href="#schedule">Change your week</a></dd></div>' +
@@ -318,7 +320,7 @@
     const inWeek = wiNow >= 0 ? coursesInWeek(p, wiNow) : p.rows.slice(0, 1);
     const thisWeek = '<div class="card sec plan-now"><div class="row between"><h2 style="margin:0">' + (wiNow < 0 ? "Your plan starts " + fmt(gridStart(p)) : wiNow >= p.weeks ? "Past your planned finish" : "This week: week " + (wiNow + 1) + " of " + p.weeks) + '</h2><span class="small muted">' + fmt(ws) + " to " + fmt(addDays(ws, 6)) + "</span></div>" +
       '<div class="pn-grid"><div><p class="small muted" style="margin:10px 0 4px">Working on</p>' + (cur ? '<a class="ttl" href="#course-' + cur.m.id + '">' + esc(cur.m.title) + "</a>" + '<span class="bar thin" style="margin-top:8px"><i style="--f:' + courseFrac(cur.m.id).toFixed(3) + '"></i></span><p class="xs muted" style="margin:4px 0 0">' + Math.round(courseFrac(cur.m.id) * 100) + "% done" + (inWeek.length > 1 || (inWeek[0] && cur && inWeek[0].m.id !== cur.m.id) ? ". Planned this week: " + inWeek.map((x) => esc(x.m.title)).join(", ") : "") + "</p>" : "<b>Every course is done</b>") + "</div>" +
-      '<div><p class="small muted" style="margin:10px 0 4px">Study time</p><b class="n" style="font-size:22px">' + r1(wh) + '</b> <span class="muted">of ' + p.hpw + ' h</span><span class="bar ok thin" style="margin-top:8px"><i style="--f:' + Math.min(1, wh / p.hpw).toFixed(3) + '"></i></span><p class="xs muted" style="margin:4px 0 0">' + r1(wa) + " h counted on Benchwrk, " + r1(Math.max(0, wh - wa)) + ' h logged. <a href="#log">Log time away</a></p></div></div></div>';
+      '<div><p class="small muted" style="margin:10px 0 4px">Study time</p><b class="n" style="font-size:22px">' + r1(wh) + '</b> <span class="muted">of ' + p.hpw + ' h</span><span class="bar ok thin" style="margin-top:8px"><i style="--f:' + Math.min(1, wh / p.hpw).toFixed(3) + '"></i></span><p class="xs muted" style="margin:4px 0 0">' + r1(wa) + " h counted on benchwrk, " + r1(Math.max(0, wh - wa)) + ' h logged. <a href="#log">Log time away</a></p></div></div></div>';
     // The route, course by course
     const rows = p.rows, ci = cur ? rows.indexOf(cur) : rows.length;
     let ph = 0, tl = '<ol class="tl">';
@@ -372,6 +374,7 @@
   function vCourse(r0) {
     const id = r0.id, m = byId[id], p = plan(), r = p.rows.find((x) => x.m.id === id), idx = MOD.indexOf(m), lx = LX[id];
     if (!lx) { needLX(id).then(() => { if (route().id === id) render(); }); return courseHead(m, r, p) + '<div class="sec">' + loading(200) + "</div>"; }
+    const gate = projGate(id); if (gate) return courseHead(m, r, p) + gate;
     const st = S.mods[id] || {}, q = quizInfo(id), prev = MOD[idx - 1], next = MOD[idx + 1];
     const short = r && (r.lv === "testout" || r.lv === "fast");
     const lvNote = (short ? '<div class="notice row between" style="gap:12px"><span>' + (r.lv === "testout" ? "<b>Prove it.</b> Your placement says you know this. Pass the quiz at 80% and mark it tested out, or work through whatever you miss." : "<b>Fast track.</b> Skim the lessons you know and spend the time on the exercises and the build.") + '</span><button class="btn line sm" data-act="learnfull" data-id="' + id + '">Take the full course instead</button></div>' : "") +
@@ -429,7 +432,7 @@
   function vLesson(r) {
     const id = r.id, m = byId[id], lx = LX[id];
     if (!lx) { needLX(id).then(() => { if (route().id === id) render(); }); return loading(400); }
-    const L = lx.lessons[r.i];
+    const L = lx.lessons[r.i], gate = projGate(id); if (gate) return gate;
     if (!L) return '<div class="empty"><h3>That lesson doesn\'t exist</h3><p><a href="#course-' + id + '">Back to ' + esc(m.title) + "</a></p></div>";
     const ch = (S.mods[id] && S.mods[id].checks) || {}, read = !!ch[r.i], last = r.i === lx.lessons.length - 1;
     const toc = '<ol class="toc">' + lx.lessons.map((x, i) => '<li><a class="' + (ch[i] ? "ok" : "") + '" href="#lesson-' + id + "-" + i + '"' + (i === r.i ? ' aria-current="page"' : "") + '><span class="n">' + (ch[i] ? SVG.check.replace('width="18" height="18"', 'width="12" height="12"') : i + 1) + '</span><span style="flex:1">' + esc(x.t) + "</span></a></li>").join("") + "</ol>";
@@ -453,7 +456,7 @@
   function vExercise(r) {
     const id = r.id, m = byId[id], lx = LX[id];
     if (!lx || !codeLoaded) { Promise.all([needLX(id), loadCode()]).then(() => { if (route().name === "ex") render(); }); return loading(400); }
-    const ex = lx.ex.find((x) => x.id === r.ex);
+    const ex = lx.ex.find((x) => x.id === r.ex), gate = projGate(id); if (gate) return gate;
     if (!ex) return '<div class="empty"><h3>That exercise doesn\'t exist</h3><p><a href="#course-' + id + '">Back to ' + esc(m.title) + "</a></p></div>";
     const k = exKey(id, ex.id), st = ((S.mods[id] || {}).ex || {})[ex.id] || {}, res = ui.exres[k], i = lx.ex.indexOf(ex);
     const code = codeDoc && codeDoc[k] != null ? codeDoc[k] : ex.start;

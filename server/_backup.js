@@ -41,7 +41,7 @@ export function encrypt(obj, pass) {
   return Buffer.concat([MAGIC, salt, iv, c.getAuthTag(), body]);
 }
 export function decrypt(buf, pass) {
-  if (!buf.subarray(0, 5).equals(MAGIC)) throw new Error("Not a Benchwrk backup file.");
+  if (!buf.subarray(0, 5).equals(MAGIC)) throw new Error("Not a benchwrk backup file.");
   const salt = buf.subarray(5, 21), iv = buf.subarray(21, 33), tag = buf.subarray(33, 49), key = crypto.scryptSync(pass, salt, 32);
   const d = crypto.createDecipheriv("aes-256-gcm", key, iv); d.setAuthTag(tag);
   let plain;

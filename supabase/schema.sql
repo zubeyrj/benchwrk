@@ -1,4 +1,4 @@
--- Benchwrk database. Run once in the Supabase SQL editor (Project > SQL > New query > paste > Run).
+-- benchwrk database. Run once in the Supabase SQL editor (Project > SQL > New query > paste > Run).
 -- Safe to re-run: every statement is idempotent.
 
 -- ---------------------------------------------------------------------------

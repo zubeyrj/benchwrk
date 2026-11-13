@@ -198,7 +198,7 @@ let BASE = '';
   ok('certificate download offered', /certificate-programming-from-zero\.svg/.test(await p.evaluate(() => window.__lastDownload)));
   await p.click('[data-act="certshare"]'); await p.waitForTimeout(250);
   ok('certificate share link', (await p.inputValue('#cert-url')) === 'https://benchwork.test/c/0123456789abcdef' && await p.evaluate(() => window.__cert.course === 'm13' && window.__cert.name === 'Z'));
-  ok('add to LinkedIn link', /linkedin\.com\/profile\/add\?startTask=CERTIFICATION_NAME.*organizationName=Benchwrk.*certUrl=/.test(await p.getAttribute('a[href*="linkedin.com"]', 'href')));
+  ok('add to LinkedIn link', /linkedin\.com\/profile\/add\?startTask=CERTIFICATION_NAME.*organizationName=benchwrk.*certUrl=/.test(await p.getAttribute('a[href*="linkedin.com"]', 'href')));
   await shot(p, '13b-cert-share', false);
 
   // 8. practice
@@ -210,14 +210,21 @@ let BASE = '';
 
   // 9. projects
   await go(p, 'projects', 800);
+  ok('projects page lists portfolio projects and smaller builds', (await p.$$('.proj-card')).length >= 9 && /Portfolio project 1/.test(await p.textContent('main')));
+  ok('projects show tools and time', /pgvector/.test(await p.textContent('main')) && /About 40 hours/.test(await p.textContent('main')));
+  ok('later projects are locked with an opening date', (await p.$$('.proj-card.locked')).length >= 2 && /Opens when you finish/.test(await p.textContent('main')));
+  await go(p, 'project-m7', 600);
+  ok('project page explains what, why, tools and when', /What you'll build/.test(await p.textContent('main')) && /Why employers care/.test(await p.textContent('main')) && /Tools you'll use/.test(await p.textContent('main')));
+  await shot(p, '15a-project');
   await p.check('input[data-cp="m7:0"]'); await p.waitForTimeout(200);
   await p.click('[data-act="shareopen"][data-id="m7"]'); await p.waitForTimeout(150); await p.fill('#s-repo-m7', 'https://github.com/z/rag-school'); await p.click('form[data-sub="m7"] button[type=submit]'); await p.waitForTimeout(300);
   ok('project shared', await p.evaluate(() => !!(window.__store.get('subs/u1') || {}).items));
   ok('review received shown', /Clear README/.test(await p.textContent('main')));
-  await p.click('[data-act="revopen"]'); await p.waitForTimeout(150);
+  await go(p, 'projects', 500); await p.click('[data-act="revopen"]'); await p.waitForTimeout(150);
   for (let i = 0; i < 4; i++) await p.check(`form[data-rev] input[name="rv${i}"][value="3"]`);
   await p.fill('#rv-c', 'Strong citations.'); await p.click('form[data-rev] button[type=submit]'); await p.waitForTimeout(300);
   ok('review saved', await p.evaluate(() => !!((window.__store.get('reviews/u1') || {}).given || {})['u2:m7']));
+  await go(p, 'project-m7', 500);
   await shot(p, '15-projects'); await overflow(p, 'projects');
 
   // 10. other pages
@@ -239,7 +246,7 @@ let BASE = '';
   // screen readers: page changes move focus to the heading and name the tab; messages go to one live region
   await go(p, 'library', 600);
   ok('page change focuses the heading', await p.evaluate(() => document.activeElement && document.activeElement.tagName === 'H1' && /Library/.test(document.activeElement.textContent)));
-  ok('tab title names the page', /^Library · Benchwrk$/.test(await p.title()));
+  ok('tab title names the page', /^Library · benchwrk$/.test(await p.title()));
   await go(p, 'league', 300); await p.click('[data-act="lgleave"]'); await p.waitForTimeout(300);
   ok('toasts are announced', /left the leagues/.test(await p.textContent('#sr-live')));
   await p.click('[data-act="lgjoin"]'); await p.waitForTimeout(300);
@@ -328,6 +335,7 @@ let BASE = '';
   await go(p, 'home', 500);
   ok('Today shows the specialism', /Your specialism/.test(await p.textContent('main')));
   await go(p, 'projects', 600);
+  await p.click('details.sec summary'); await p.waitForTimeout(100);
   ok('project challenges from the library', /Project challenges from the library/.test(await p.textContent('main')) && (await p.$$('.sec .grid3 a[href*="github.com/rohitg00"]')).length === 9);
   await go(p, 'iv-bank', 500);
   ok('interview question bank', /Question bank/.test(await p.textContent('h1')) && (await p.$$('main .tile')).length > 10);
@@ -622,7 +630,7 @@ let BASE = '';
   await p.click('.tbl details.more summary'); await p.waitForTimeout(80);
   await p.click('.tbl .more-menu [data-act="block"]'); await p.waitForTimeout(200);
   ok('blocked member hidden from the board', !/Amira/.test(await p.textContent('.tbl')));
-  await go(p, 'projects', 400);
+  await go(p, 'project-m7', 400);
   ok('blocked reviewer hidden', !/Clear README, add latency numbers/.test(await p.textContent('main')));
   await go(p, 'settings', 300);
   await p.click('[data-act="block"][data-id="u2"]'); await p.waitForTimeout(200);
@@ -662,7 +670,7 @@ let BASE = '';
     const hp = await page({ state: { account: { name: 'Hana' }, hpw: 14, start: '2026-11-09', mods: { m13: { checks: { 0: td } } }, log: [{ id: 'a1', d: td, h: 0.5, m: 'm13', n: 'CS50 video' }], act: { [td]: 3600 } } });
     await hp.waitForTimeout(800); await go(hp, 'home', 500);
     ok('Today shows the dashboard once you have started, even without the placement', /Personalise my plan/.test(await hp.textContent('main')) && /Continue/.test(await hp.textContent('.hero')));
-    ok('today splits counted and logged time', /Today: 1\.5 h/.test(await hp.textContent('.today-line')) && /1 h counted on Benchwrk, 30 min logged/.test(await hp.textContent('.today-line')));
+    ok('today splits counted and logged time', /Today: 1\.5 h/.test(await hp.textContent('.today-line')) && /1 h counted on benchwrk, 30 min logged/.test(await hp.textContent('.today-line')));
     await shot(hp, '22b-home-hours', false);
     const tick = await hp.$('[data-act="tick"]');
     if (tick) {
@@ -675,7 +683,7 @@ let BASE = '';
     const sum = await hp.evaluate(() => window.__store.get('learners/u1'));
     ok('cohort summary names the real course, with counted hours', sum.cur === 'Programming from zero' && sum.wauto === 1 && sum.week >= 1.5, JSON.stringify({ cur: sum.cur, wauto: sum.wauto, week: sum.week }));
     await go(hp, 'log', 500);
-    ok('study log shows counted time and asks only for time away', /Counted on Benchwrk/.test(await hp.textContent('main')) && /Log time away from Benchwrk/.test(await hp.textContent('#logform')));
+    ok('study log shows counted time and asks only for time away', /Counted on benchwrk/.test(await hp.textContent('main')) && /Log time away from benchwrk/.test(await hp.textContent('#logform')));
     await go(hp, 'plan', 500); await shot(hp, '05b-plan-unplaced');
     ok('plan without placement offers to personalise', /starting from scratch/.test(await hp.textContent('main')) && (await hp.$$('.tl-row')).length > 5);
     await hp.close();

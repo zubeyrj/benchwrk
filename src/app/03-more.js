@@ -60,41 +60,6 @@
       '<div class="row" style="margin-top:20px"><button class="btn" data-act="psave">Save my plan</button><button class="btn line" data-act="pstart">Retake the questions</button></div></div>';
   }
 
-  /* ---------- Projects and peer review ---------- */
-  function vProjects() {
-    subscribeShared();
-    const intro = '<h1>Projects</h1><p class="lede">Three deployed projects are the evidence that gets you hired. Tick checkpoints as you go, then share each one for peer review: two reviews from the cohort before you call it done.</p>';
-    if (PROJECTS.some((id) => !LX[id])) { Promise.all(PROJECTS.map(needLX)).then(() => { if (route().name === "projects") render(); }); return intro + loading(300); }
-    const mine = (subs || []).find((s) => s.id === uid) || { items: {} };
-    let html = intro;
-    PROJECTS.forEach((id, n) => {
-      const m = byId[id], lx = LX[id], st = S.mods[id] || {}, cp = st.cp || {}, item = (mine.items || {})[id];
-      const got = (reviews || []).filter((rv) => !isBlocked(rv.id)).map((rv) => ({ by: rv.name || "A member", byId: rv.id, r: (rv.given || {})[uid + ":" + id], self: rv.id === uid })).filter((x) => x.r && !x.self);
-      const cps = (lx.checkpoints || []);
-      html += '<div class="card sec"><div class="row between"><h2 style="margin:0">Project ' + (n + 1) + ": " + esc(m.title.replace(/: project \d/i, "")) + '</h2><span class="state">' + Object.keys(cp).length + " of " + cps.length + " checkpoints</span></div>" +
-        '<div class="cols" style="margin-top:14px"><div><ul class="checks">' + cps.map((c, i) => '<li><label><input type="checkbox" data-cp="' + id + ":" + i + '"' + (cp[i] ? " checked" : "") + "><span>" + esc(c) + "</span></label></li>").join("") + "</ul>" +
-        (!item && !ui.shareOpen[id] ? '<div class="sec tight"><button class="btn line" data-act="shareopen" data-id="' + id + '">Share for review</button></div>' : item && !ui.shareOpen[id] ? '<div class="sec tight"><h3>Shared with the cohort</h3><p class="small">' + [item.repo ? '<a href="' + esc(item.repo) + '" target="_blank" rel="noopener">Repository</a>' : "", item.demo ? '<a href="' + esc(item.demo) + '" target="_blank" rel="noopener">Live demo</a>' : ""].filter(Boolean).join(" · ") + '<span class="muted"> on ' + fmt(parseDate(item.at)) + '</span></p><button class="link" data-act="shareopen" data-id="' + id + '">Edit the links</button></div>' :
-        '<form class="sec tight" data-sub="' + id + '"><h3>' + (item ? "Your shared project" : "Share for review") + '</h3><div class="two"><div class="field"><label for="s-repo-' + id + '">Repository URL</label><input type="url" id="s-repo-' + id + '" value="' + esc(item ? item.repo : "") + '" placeholder="https://github.com/…"></div><div class="field"><label for="s-demo-' + id + '">Live demo URL</label><input type="url" id="s-demo-' + id + '" value="' + esc(item ? item.demo : "") + '" placeholder="https://…"></div></div>' +
-        '<div class="field"><label for="s-note-' + id + '">What should reviewers look at?</label><textarea id="s-note-' + id + '" maxlength="600">' + esc(item ? item.note : "") + "</textarea></div>" +
-        '<button class="btn" type="submit">' + (item ? "Update" : "Share with the cohort") + "</button></form>") + "</div>" +
-        "<aside class=\"flat\"><h3>Reviews received</h3>" + (got.length ? '<ul class="rl">' + got.map((x) => '<li><span class="grow"><b>' + esc(x.by) + "</b> " + moreMenu(x.byId, x.by, "review", id, "Review of your " + m.title) + ' <span class="n">' + x.r.s.reduce((a, b) => a + b, 0) + " / " + x.r.s.length * 3 + '</span><div class="small muted">' + esc(x.r.c || "") + "</div></span></li>").join("") + "</ul>" : '<p class="small muted">' + (item ? "None yet. Ask someone on the cohort table." : "Share the project to get reviews.") + "</p>") + "</aside></div></div>";
-    });
-    const queue = (subs || []).filter((s) => s.id !== uid && !isBlocked(s.id) && !((cohort || []).find((c) => c.id === s.id) || {}).suspended).flatMap((s) => PROJECTS.filter((id) => s.items && s.items[id]).map((id) => ({ s, id, it: s.items[id] })));
-    const myGiven = ((reviews || []).find((r) => r.id === uid) || {}).given || {};
-    const ideas = (CT.TK.ideas || []);
-    if (ideas.length) html += '<div class="sec"><h2>More things to build</h2><p class="muted" style="max-width:66ch">Building beats watching. Once a topic makes sense, build something small with it. Each idea links to the course that teaches the skill.</p><div class="grid3" style="margin-top:14px">' + ideas.map((x) => '<a class="card node" style="display:block" href="#course-' + esc(x[2]) + '"><h3>' + esc(x[0]) + '</h3><p class="small muted" style="margin:0">' + esc(x[1]) + "</p></a>").join("") + "</div></div>";
-    html += '<div class="card sec"><h2>Review the cohort</h2><p class="muted">Each review earns ' + PTS.rev + " points. Score four things from 1 (not yet) to 3 (strong) and leave one useful sentence.</p>" +
-      (queue.length ? '<ul class="rl">' + queue.map((q) => {
-        const key = q.s.id + ":" + q.id, done = myGiven[key], open = ui.revOpen === key, rub = (LX[q.id] && LX[q.id].rubric) || [];
-        return '<li style="display:block"><div class="row between"><span><b>' + esc(q.s.name || "A member") + "</b>, " + esc(byId[q.id].title.replace(/: project \d/i, "")) + '</span><span class="row">' + (q.it.repo ? '<a href="' + esc(q.it.repo) + '" target="_blank" rel="noopener">Repo</a>' : "") + (q.it.demo ? '<a href="' + esc(q.it.demo) + '" target="_blank" rel="noopener">Demo</a>' : "") +
-          '<button class="btn sm' + (done ? " line" : "") + '" data-act="revopen" data-k="' + key + '">' + (done ? "Edit review" : "Review") + "</button>" + moreMenu(q.s.id, q.s.name, "project", q.id, (q.s.name || "A member") + "'s " + byId[q.id].title) + "</span></div>" + (q.it.note ? '<p class="small muted" style="margin:6px 0 0">' + esc(q.it.note) + "</p>" : "") +
-          (open ? '<form class="sec tight" data-rev="' + key + '">' + rub.map((c, i) => '<fieldset style="margin:0 0 12px"><legend class="small">' + esc(c) + '</legend><div class="seg" style="max-width:360px;grid-template-columns:repeat(3,1fr)">' + [1, 2, 3].map((v) => '<label><input type="radio" name="rv' + i + '" value="' + v + '"' + (done && done.s[i] === v ? " checked" : "") + "><span>" + ["Not yet", "Getting there", "Strong"][v - 1] + "</span></label>").join("") + "</div></fieldset>").join("") +
-            '<div class="field"><label for="rv-c">One useful sentence</label><textarea id="rv-c" maxlength="400">' + esc(done ? done.c : "") + '</textarea></div><button class="btn" type="submit">Send review</button></form>' : "") + "</li>";
-      }).join("") + "</ul>" : '<p class="small muted">' + (subs === null ? "Loading shared projects…" : "Nobody else has shared a project yet.") + "</p>") + "</div>";
-    html += projectChallenges();
-    return html;
-  }
-
   /* ---------- Log ---------- */
   function vLog() {
     const by = hoursByWeek(), mon = mondayOf(new Date()), weeks = [];
@@ -106,12 +71,12 @@
     const opts = '<option value="">General</option>' + MOD.filter((m) => inPlan(m.id)).map((m) => '<option value="' + m.id + '"' + (cur && cur.m.id === m.id ? " selected" : "") + ">" + esc(m.title) + "</option>").join("");
     const rows = logRows();
     const list = rows.length ? '<ul class="rl">' + rows.slice(0, 80).map((x) => '<li><span class="state n" style="width:60px;color:var(--ink)">' + fmt(parseDate(x.d)) + '</span><span class="n" style="width:62px"><b>' + fmtH(x.h) + '</b></span><span class="grow">' +
-      (x.auto ? 'Counted on Benchwrk<br><span class="xs muted">Active time on study pages</span></span><span class="tag">Automatic</span>' : esc(byId[x.e.m] ? byId[x.e.m].title : "General") + (x.e.n ? '<br><span class="xs muted">' + esc(x.e.n) + "</span>" : "") + '</span><button class="link xs" data-act="dellog" data-id="' + esc(x.e.id) + '" aria-label="Delete the ' + esc(fmt(parseDate(x.d))) + ' entry">Delete</button>') + "</li>").join("") + "</ul>"
-      : '<div class="empty"><h3>No study time yet</h3><p>Open a lesson and it starts counting. Log anything you do away from Benchwrk with the form.</p></div>';
+      (x.auto ? 'Counted on benchwrk<br><span class="xs muted">Active time on study pages</span></span><span class="tag">Automatic</span>' : esc(byId[x.e.m] ? byId[x.e.m].title : "General") + (x.e.n ? '<br><span class="xs muted">' + esc(x.e.n) + "</span>" : "") + '</span><button class="link xs" data-act="dellog" data-id="' + esc(x.e.id) + '" aria-label="Delete the ' + esc(fmt(parseDate(x.d))) + ' entry">Delete</button>') + "</li>").join("") + "</ul>"
+      : '<div class="empty"><h3>No study time yet</h3><p>Open a lesson and it starts counting. Log anything you do away from benchwrk with the form.</p></div>';
     const auto = autoH(today());
     return '<h1>Study log</h1><p class="lede"><span class="n">' + r1(totalHours()) + "</span> hours studied, " + (streak() ? plural(streak(), "week") + " streak" : "no streak yet") + ". " + r1(thisWeekHours()) + " of " + S.hpw + " hours this week.</p>" +
       '<div class="cols sec" style="margin-top:24px"><div class="stack"><div class="card"><h2>Weekly hours</h2>' + chart + '<p class="xs muted" style="margin:0">Green weeks hit your target. This week is in orange.</p></div><div class="card"><h2>Sessions</h2>' + list + "</div>" + HOURS_HELP + "</div>" +
-      '<aside><form id="logform" class="card"><h2>Log time away from Benchwrk</h2><p class="small muted">Today so far: ' + fmtH(auto) + " counted here automatically. Only log time spent elsewhere.</p>" +
+      '<aside><form id="logform" class="card"><h2>Log time away from benchwrk</h2><p class="small muted">Today so far: ' + fmtH(auto) + " counted here automatically. Only log time spent elsewhere.</p>" +
       '<div class="two"><div class="field"><label for="l-d">Date</label><input id="l-d" type="date" value="' + today() + '" max="' + today() + '" required></div>' +
       '<div class="field"><label for="l-h">Hours</label><input id="l-h" type="number" min="0.25" max="16" step="0.25" value="1" required></div></div>' +
       '<div class="field"><label for="l-m">Course</label><select id="l-m">' + opts + "</select></div>" +
@@ -188,11 +153,11 @@
     const google = bw.provider === "google";
     return '<div class="card sec"><h2>Account</h2><p class="muted">Signed in as <b>' + esc(bw.email || "") + "</b>" + (google ? " with Google" : "") + ".</p>" +
       '<div class="row">' + (google ? "" : '<button class="btn line" data-act="pwreset">Change my password</button>') + '<button class="btn line" data-act="signout">Sign out</button></div>' + (ui.pwSent ? '<p class="small muted" role="status">We\'ve emailed you a link to choose a new password.</p>' : "") + "</div>" +
-      '<div class="card sec"><h2>Emails</h2><p class="muted">Choose what Benchwrk sends you. Account emails such as password resets always arrive.</p>' +
+      '<div class="card sec"><h2>Emails</h2><p class="muted">Choose what benchwrk sends you. Account emails such as password resets always arrive.</p>' +
       [["weekly", "Weekly progress", "Sunday evening: your hours, streak, XP and your partner's week."], ["streak", "Reminder emails", "The reminders set above, when they can\'t reach you as notifications."], ["partner", "Partner messages", "When your accountability partner cheers or nudges you."]]
         .map((t) => '<label class="toggle"><span><b>' + t[1] + '</b><br><span class="small muted">' + t[2] + '</span></span><input type="checkbox" data-pref="' + t[0] + '"' + (pr[t[0]] !== false ? " checked" : "") + (ui.prefs ? "" : " disabled") + "></label>").join("") + "</div>" +
       '<div class="card sec"><h2>Study schedule</h2><p class="muted">Your study days and times, and the link that puts them in your phone or Google Calendar, are on the <a href="#schedule">Schedule</a> page.</p></div>' +
-      '<div class="card sec"><h2>Your data</h2><p class="muted">Download everything Benchwrk holds about you, or delete your account and all of it for good.</p>' +
+      '<div class="card sec"><h2>Your data</h2><p class="muted">Download everything benchwrk holds about you, or delete your account and all of it for good.</p>' +
       '<div class="row"><button class="btn line" data-act="export"' + (ui.exporting ? " disabled" : "") + ">" + (ui.exporting ? "Preparing…" : "Download my data") + "</button></div>" +
       (ui.delOpen ? '<form id="delform" class="sec" style="margin-top:16px"><p><b>This can\'t be undone.</b> Your progress, projects, reviews, certificates and account are erased.</p><div class="field" style="max-width:280px"><label for="del-confirm">Type DELETE to confirm</label><input id="del-confirm" autocomplete="off"' + (ui.delErr ? ' aria-invalid="true" aria-describedby="del-err"' : "") + ">" + (ui.delErr ? '<p class="err" id="del-err">' + esc(ui.delErr) + "</p>" : "") + '</div><div class="row"><button class="btn" type="submit" style="background:var(--fail);border-color:var(--fail)"' + (ui.deleting ? " disabled" : "") + ">" + (ui.deleting ? "Deleting…" : "Delete my account") + '</button><button class="btn line" type="button" data-act="delcancel">Keep my account</button></div></form>'
         : '<button class="btn line" data-act="delopen" style="color:var(--fail);margin-top:10px">Delete my account</button>') + "</div>";
@@ -213,19 +178,19 @@
     const r = calRange(cal), tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Europe/London";
     const until = r.end.getFullYear() + String(r.end.getMonth() + 1).padStart(2, "0") + String(r.end.getDate()).padStart(2, "0") + "T235959Z";
     const site = (BWX() && BWX().site) || location.origin;
-    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwrk//Study plan//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//benchwrk//Study plan//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
       "UID:benchwork-" + uid + "-" + Date.now() + "@benchwork", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
       "DTSTART;TZID=" + tz + ":" + icsLocal(r.first), "DTEND;TZID=" + tz + ":" + icsLocal(r.stop),
       "RRULE:FREQ=WEEKLY;BYDAY=" + cal.days.join(",") + ";UNTIL=" + until,
-      "SUMMARY:Benchwrk study session", "DESCRIPTION:Open Benchwrk and continue from Today: " + site, "URL:" + site,
-      "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:Benchwrk in 15 minutes", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
+      "SUMMARY:benchwrk study session", "DESCRIPTION:Open benchwrk and continue from Today: " + site, "URL:" + site,
+      "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:benchwrk in 15 minutes", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
   }
   function googleCalUrl(cal) {
     if (!cal.days.length) return "https://calendar.google.com/";
     const r = calRange(cal), site = (BWX() && BWX().site) || location.origin;
     const until = r.end.getFullYear() + String(r.end.getMonth() + 1).padStart(2, "0") + String(r.end.getDate()).padStart(2, "0");
-    return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent("Benchwrk study session") + "&dates=" + icsLocal(r.first) + "/" + icsLocal(r.stop) +
-      "&details=" + encodeURIComponent("Open Benchwrk and continue from Today: " + site) + "&recur=" + encodeURIComponent("RRULE:FREQ=WEEKLY;BYDAY=" + cal.days.join(",") + ";UNTIL=" + until);
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent("benchwrk study session") + "&dates=" + icsLocal(r.first) + "/" + icsLocal(r.stop) +
+      "&details=" + encodeURIComponent("Open benchwrk and continue from Today: " + site) + "&recur=" + encodeURIComponent("RRULE:FREQ=WEEKLY;BYDAY=" + cal.days.join(",") + ";UNTIL=" + until);
   }
   function saveFile(name, data, type) {
     if (downloads) return downloads.save({ filename: name, data, mimeType: type });
@@ -318,7 +283,7 @@
   function certShare(m) {
     const url = ui.certUrl && ui.certUrl[m.id]; if (!url) return "";
     const st = S.mods[m.id] || {}, d = parseDate(st.done || today());
-    const li = "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=" + encodeURIComponent(m.title) + "&organizationName=Benchwrk&issueYear=" + d.getFullYear() + "&issueMonth=" + (d.getMonth() + 1) + "&certUrl=" + encodeURIComponent(url) + "&certId=" + encodeURIComponent(url.split("/").pop());
+    const li = "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=" + encodeURIComponent(m.title) + "&organizationName=benchwrk&issueYear=" + d.getFullYear() + "&issueMonth=" + (d.getMonth() + 1) + "&certUrl=" + encodeURIComponent(url) + "&certId=" + encodeURIComponent(url.split("/").pop());
     return '<div class="card sec" style="margin-top:16px"><h2>Share it</h2><p class="muted">Anyone with this link can check your certificate is real. It shows your display name, the course and the date.</p>' +
       '<div class="sharebox"><input id="cert-url" readonly value="' + esc(url) + '" aria-label="Certificate link"><button class="btn line" data-act="copycert">Copy</button></div>' +
       '<div class="row"><a class="btn" target="_blank" rel="noopener" href="' + esc(li) + '">Add to LinkedIn</a><a class="btn line" target="_blank" rel="noopener" href="' + esc(url) + '">Open the public page</a></div></div>';
@@ -388,14 +353,14 @@
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ui.dock && ui.dock.open && document.getElementById("tutor-dock").contains(document.activeElement)) closeDock(); });
   function tutorContext(key) {
-    const base = "You are the tutor inside Benchwrk, a course that takes beginners to applied AI engineer roles. Write in British English, plainly, without em dashes. Keep answers under 160 words unless asked for more. Use short code examples in fenced blocks when they help." + learnForTutor();
+    const base = "You are the tutor inside benchwrk, a course that takes beginners to applied AI engineer roles. Write in British English, plainly, without em dashes. Keep answers under 160 words unless asked for more. Use short code examples in fenced blocks when they help." + learnForTutor();
     let m;
     if ((m = key.match(/^lesson-(m\d+)-(\d+)$/))) { const L = LX[m[1]].lessons[Number(m[2])]; return base + "\n\nThe learner is reading this lesson from the course " + byId[m[1]].title + ":\n<lesson title=\"" + L.t + "\">\n" + L.md + "\n</lesson>\nAnswer their question about it. If they ask something unrelated to learning, steer them back."; }
     if ((m = key.match(/^ex-(m\d+)\.(\w+)$/))) {
       const ex = LX[m[1]].ex.find((x) => x.id === m[2]), k = m[1] + "." + m[2], code = (document.getElementById("code") || {}).value || (codeDoc && codeDoc[k]) || ex.start, res = ui.exres[k];
       return base + "\n\nThe learner is solving a coding exercise. Never give the full solution or more than three lines of corrected code. Point at the specific line or idea that is wrong, explain why and suggest the next step.\n<exercise title=\"" + ex.t + "\" language=\"" + (ex.kind === "sql" ? "SQL" : "Python") + "\">\n" + ex.md + "\n</exercise>\n<their_code>\n" + code + "\n</their_code>\n<last_result>\n" + (res && !res.running ? (res.error ? "Error: " + res.error + "\n" : "") + res.tests.map((t) => (t[1] ? "PASS " : "FAIL ") + t[0] + (t[2] ? ": " + t[2] : "")).join("\n") : "Not run yet") + "\n</last_result>";
     }
-    if ((m = key.match(/^(lib-\d\d-\d\d)$/)) && L$.lessons[m[1]]) { const L = L$.lessons[m[1]]; return base + "\n\nThe learner is reading this lesson from the Benchwrk library (AI Engineering from Scratch):\n<lesson title=\"" + L.t + "\">\n" + L.md.slice(0, 14000) + "\n</lesson>\nAnswer their question about it. Point to the part of the lesson that helps."; }
+    if ((m = key.match(/^(lib-\d\d-\d\d)$/)) && L$.lessons[m[1]]) { const L = L$.lessons[m[1]]; return base + "\n\nThe learner is reading this lesson from the benchwrk library (AI Engineering from Scratch):\n<lesson title=\"" + L.t + "\">\n" + L.md.slice(0, 14000) + "\n</lesson>\nAnswer their question about it. Point to the part of the lesson that helps."; }
     if ((m = key.match(/^prob-([a-z0-9-]+)$/)) && L$.probs[m[1]]) {
       const P = L$.probs[m[1]], res = ui.probRes && ui.probRes[m[1]], code = (ui.probCode && ui.probCode[m[1]]) || P.starter;
       const fails = res && res.results ? res.results.filter((x) => x.status !== "pass").slice(0, 5).map((x) => "- " + x.name + ": " + x.message).join("\n") : "(not run yet)";
@@ -450,7 +415,7 @@
   function showWelcome() {
     const name = firstName();
     const el = document.createElement("div"); el.className = "welcome-modal"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wm-t");
-    el.innerHTML = '<div class="wm-card"><span class="wm-badge">' + SVG.check.replace('width="18" height="18"', 'width="34" height="34"') + '</span><p class="label" style="color:var(--accent-text)">Step one done</p><h2 id="wm-t">Welcome to Benchwrk' + (name ? ", " + esc(name) : "") + '</h2><p class="muted">You\'ve made the hardest move: you started. Your account is ready, and every evening from here moves you closer to your first AI engineering role.</p>' +
+    el.innerHTML = '<div class="wm-card"><span class="wm-badge">' + SVG.check.replace('width="18" height="18"', 'width="34" height="34"') + '</span><p class="label" style="color:var(--accent-text)">Step one done</p><h2 id="wm-t">Welcome to benchwrk' + (name ? ", " + esc(name) : "") + '</h2><p class="muted">You\'ve made the hardest move: you started. Your account is ready, and every evening from here moves you closer to your first AI engineering role.</p>' +
       '<div class="wm-xp"><span class="ico xp">' + SVG.bolt + '</span><div><b>Level 1: Starter</b><span class="bar xp thin" style="margin-top:6px"><i style="--f:.04"></i></span></div></div>' +
       '<div class="row" style="justify-content:center;margin-top:20px"><button class="btn lg" data-act="tour">Show me around</button><button class="btn lg line" data-act="welcomedone">Skip the tour</button></div></div>';
     document.body.appendChild(el);

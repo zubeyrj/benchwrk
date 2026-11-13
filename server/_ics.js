@@ -27,13 +27,13 @@ export function buildCalendar(state, { uid, site, now = new Date() }) {
   try { new Intl.DateTimeFormat("en-GB", { timeZone: tz }); } catch (e) { tz = "Europe/London"; }
   const stamp = now.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
   const until = (okDate(s.until) ? s.until : new Date(now.getTime() + 364 * 864e5).toISOString().slice(0, 10)).replace(/-/g, "") + "T235959Z";
-  const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwrk//Study week//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Benchwrk", "X-WR-TIMEZONE:" + tz, "REFRESH-INTERVAL;VALUE=DURATION:PT6H", "X-PUBLISHED-TTL:PT6H"];
+  const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//benchwrk//Study week//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:benchwrk", "X-WR-TIMEZONE:" + tz, "REFRESH-INTERVAL;VALUE=DURATION:PT6H", "X-PUBLISHED-TTL:PT6H"];
   WEEK.forEach((w, i) => {
     const d = days[w]; if (!d || !okTime(d.t)) return;
     const m = Math.max(10, Math.min(480, Math.round(Number(d.m) || 0))), start = firstOn(i, d.t, tz, now);
     L.push("BEGIN:VEVENT", "UID:bw-" + uid + "-" + w + "@benchwork", "DTSTAMP:" + stamp, "DTSTART;TZID=" + tz + ":" + start, "DTEND;TZID=" + tz + ":" + addMins(start, m),
-      "RRULE:FREQ=WEEKLY;BYDAY=" + w + ";UNTIL=" + until, "SUMMARY:Benchwrk study session", "DESCRIPTION:Open Benchwrk and pick up where you left off: " + site, "URL:" + site,
-      "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", "DESCRIPTION:Benchwrk in 10 minutes", "END:VALARM", "END:VEVENT");
+      "RRULE:FREQ=WEEKLY;BYDAY=" + w + ";UNTIL=" + until, "SUMMARY:benchwrk study session", "DESCRIPTION:Open benchwrk and pick up where you left off: " + site, "URL:" + site,
+      "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", "DESCRIPTION:benchwrk in 10 minutes", "END:VALARM", "END:VEVENT");
   });
   (Array.isArray(s.ms) ? s.ms.slice(0, 30) : []).forEach((x, i) => {
     if (!Array.isArray(x) || !okDate(x[0])) return;
