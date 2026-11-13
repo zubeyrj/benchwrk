@@ -20,7 +20,7 @@
     return "";
   }
   function noteResume() {
-    if (phase !== "ready" || !S.placement) return;
+    if (phase !== "ready") return;
     const r = route(); if (!resumable(r)) return;
     const h = location.hash.slice(1), title = (($app.querySelector("h1") || {}).textContent || "").trim().slice(0, 90);
     if (!title) return;

@@ -35,7 +35,7 @@ The route is personal (placement trims what each member already knows into Start
 
 ## Brand Commitments
 
-- Name: Benchwork (renamed from Applied AI Line in November 2026). Logo: a lowercase b whose bowl is a progress ring.
+- Name: Benchwrk (renamed from Applied AI Line in November 2026). Logo: a lowercase b whose bowl is a progress ring.
 - Language: British English, no Oxford comma, no em dashes, plain and direct.
 
 ## Evidence on Hand

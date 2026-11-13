@@ -16,7 +16,7 @@ for (const f of fs.readdirSync(path.join(root, "content/seedx"))) {
   (d.lessons || []).forEach((l, i) => scan(l.md, d.id + " lesson " + (i + 1)));
   (d.ex || []).forEach((x) => scan(x.md, d.id + " exercise " + x.id));
 }
-const UA = "Mozilla/5.0 (compatible; BenchworkLinkCheck/1.0)";
+const UA = "Mozilla/5.0 (compatible; BenchwrkLinkCheck/1.0)";
 async function check(url) {
   for (const method of ["HEAD", "GET"]) {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 15000);

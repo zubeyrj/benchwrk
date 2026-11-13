@@ -1,4 +1,4 @@
-// GET /api/me-export -> every record Benchwork holds about the signed-in member (UK GDPR access request).
+// GET /api/me-export -> every record Benchwrk holds about the signed-in member (UK GDPR access request).
 import { adminClient, fail, requireUser, send, withErrors } from "./_lib.js";
 
 export default withErrors(async function handler(req, res) {
@@ -21,6 +21,6 @@ export default withErrors(async function handler(req, res) {
     account: { id, email: user.email, created_at: user.created_at, sign_in: (user.app_metadata && user.app_metadata.provider) || "email" },
     profile: profile.data, private_records: mine.data || [], shared_with_cohort: shared.data || [],
     certificates: certs.data || [], ai_usage: usage.data || [], emails_sent: emails.data || [], notification_devices: devices.data || [], portfolio: portfolio.data || null,
-    note: "Tutor conversations are not stored on Benchwork's servers; they are sent to Anthropic to generate each answer. Mock interviews you keep are in private_records.",
+    note: "Tutor conversations are not stored on Benchwrk's servers; they are sent to Anthropic to generate each answer. Mock interviews you keep are in private_records.",
   });
 });

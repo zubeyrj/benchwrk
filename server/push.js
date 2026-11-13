@@ -32,7 +32,7 @@ export default withErrors(async function handler(req, res) {
   if (body.action === "test") {
     if (!pushReady()) return fail(res, 503, "Notifications aren't set up on this site yet.", "unavailable");
     if ((await sentSince(user.id, "pushtest", new Date(Date.now() - 864e5).toISOString())) >= 5) return fail(res, 429, "That's enough tests for today.", "daily_cap");
-    const r = await pushTo(user.id, { title: "Notifications are on", body: "This is what a Benchwork reminder looks like. They get less polite if you skip.", url: SITE() + "/#home", tag: "bw-test" });
+    const r = await pushTo(user.id, { title: "Notifications are on", body: "This is what a Benchwrk reminder looks like. They get less polite if you skip.", url: SITE() + "/#home", tag: "bw-test" });
     await logEmail(user.id, "pushtest", null);
     return send(res, 200, r);
   }

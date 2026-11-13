@@ -78,18 +78,19 @@
     afterRender();
   }
   function afterRender() {
+    renderDock();
     const ta = document.querySelector(".editor textarea");
     if (ta && window.AILRunner && AILRunner.state() === "cold") AILRunner.warm();
     document.querySelectorAll("[data-focus]").forEach((el) => { el.scrollIntoView({ block: "center" }); el.removeAttribute("data-focus"); });
     if (phase === "ready" && lastLevel === null) lastLevel = levelInfo(points()).level;
-    if (phase === "ready" && S.placement) { const fresh = claimQuests(); if (fresh.length) setTimeout(() => celebrate("Quest complete: " + fresh[0].title, "+" + fresh.reduce((a, q) => a + q.xp, 0) + " XP"), 250); }
+    if (phase === "ready" && (S.placement || hasActivity())) { const fresh = claimQuests(); if (fresh.length) setTimeout(() => celebrate("Quest complete: " + fresh[0].title, "+" + fresh.reduce((a, q) => a + q.xp, 0) + " XP"), 250); }
   }
   // On a page change: name the tab after the page and move focus to its heading, so a screen reader
   // starts reading the new page instead of staying on a link that no longer exists.
   function pageTitle() {
     const r = route(), h = $app.querySelector("h1"), p = NAV.find((x) => x[0] === r.name);
     const t = (h && h.textContent.trim()) || (p && p[1]) || "";
-    document.title = (t ? t.slice(0, 60) + " · " : "") + "Benchwork";
+    document.title = (t ? t.slice(0, 60) + " · " : "") + "Benchwrk";
   }
   window.addEventListener("hashchange", () => {
     render(); window.scrollTo(0, 0);
@@ -156,7 +157,7 @@
   /* ---------- gated views: the sign-up ---------- */
   function vWelcome(kind) {
     const side = '<aside class="auth-side"><div><h1>Become an AI engineer, <em>from zero</em>, one evening at a time.</h1>' +
-      '<p class="lede">Benchwork is a private training ground for a small cohort. You get a dated plan at your hours, lessons with coding exercises that run in your browser, and three real projects to ship.</p></div>' +
+      '<p class="lede">Benchwrk is a private training ground for a small cohort. You get a dated plan at your hours, lessons with coding exercises that run in your browser, and three real projects to ship.</p></div>' +
       '<div class="props">' +
       '<div class="prop"><span class="ico">' + SVG.target + '</span><div><b>A plan built around you</b><span>Rate the tools you\'ve used, take a short placement and skip what you already know.</span></div></div>' +
       '<div class="prop"><span class="ico">' + SVG.code + '</span><div><b>59 exercises, checked as you go</b><span>Python and SQL run in the browser. Hints and a tutor when you\'re stuck.</span></div></div>' +
@@ -166,7 +167,7 @@
       '<div class="pv"><i>3</i><div>Engineering habits<br><span>Starts after</span></div><span></span></div></div></aside>';
     let form;
     if (kind === "noaccess") {
-      form = '<div class="auth-card"><h2 style="font-size:26px">Couldn\'t connect</h2><p class="muted">Benchwork couldn\'t reach its database. Check your connection and try again.</p>' +
+      form = '<div class="auth-card"><h2 style="font-size:26px">Couldn\'t connect</h2><p class="muted">Benchwrk couldn\'t reach its database. Check your connection and try again.</p>' +
         '<div class="row"><button class="btn" data-act="reload">Try again</button><button class="btn line" data-act="signout">Sign out</button></div></div>';
     } else {
       form = '<form id="signup" class="auth-card" novalidate><div class="steps" aria-label="Sign-up steps"><span class="on"><i>1</i>Account</span><span><i>2</i>Your tools</span><span><i>3</i>Placement</span></div>' +
@@ -193,11 +194,22 @@
   }
 
   /* ---------- Today ---------- */
+  // A course runs as one sequence: each lesson, then the exercises that practise it, then the quiz.
+  function courseSteps(m, lx) {
+    const st = S.mods[m.id] || {}, ch = st.checks || {}, exs = st.ex || {}, out = [], exl = (lx && lx.ex) || [];
+    const n = lx && lx.lessons.length ? lx.lessons.length : m.lessons.length;
+    for (let i = 0; i < n; i++) {
+      const L = lx && lx.lessons[i];
+      out.push({ kind: "lesson", i, done: !!ch[i], opt: optLesson(m, i), href: "#lesson-" + m.id + "-" + i, title: L ? L.t : String(m.lessons[i]).replace(/<[^>]+>/g, ""), mins: L ? L.min : null });
+      exl.forEach((e, k) => { if (e.l === i) out.push({ kind: "ex", e, k, done: !!(exs[e.id] && exs[e.id].ok), href: "#ex-" + m.id + "-" + e.id, title: e.t }); });
+    }
+    exl.forEach((e, k) => { if (e.l == null || e.l >= n) out.push({ kind: "ex", e, k, done: !!(exs[e.id] && exs[e.id].ok), href: "#ex-" + m.id + "-" + e.id, title: e.t }); });
+    return out;
+  }
   function nextStep(m) {
-    const ch = (S.mods[m.id] && S.mods[m.id].checks) || {}, lx = LX[m.id];
-    const li = m.lessons.findIndex((_, i) => !ch[i]);
-    if (li >= 0) return { href: "#lesson-" + m.id + "-" + li, label: "Continue: lesson " + (li + 1), title: lx && lx.lessons[li] ? lx.lessons[li].t : m.lessons[li], mins: lx && lx.lessons[li] ? lx.lessons[li].min : null };
-    if (lx && lx.ex) { const exs = (S.mods[m.id] && S.mods[m.id].ex) || {}; const e = lx.ex.find((x) => !(exs[x.id] && exs[x.id].ok)); if (e) return { href: "#ex-" + m.id + "-" + e.id, label: "Continue: solve the exercise", title: e.t }; }
+    const lx = LX[m.id], steps = courseSteps(m, lx), nx = steps.find((x) => !x.done && !x.opt);
+    if (nx && nx.kind === "lesson") { const li = nx.i; return { href: nx.href, label: "Continue: lesson " + (li + 1), title: nx.title, mins: nx.mins }; }
+    if (nx) return { href: nx.href, label: "Continue: practise it", title: nx.title };
     if (quizInfo(m.id).best < 80) return { href: "#quiz-" + m.id, label: "Take the quiz", title: "Five questions, pass mark 80%" };
     return { href: "#course-" + m.id, label: "Finish the course", title: "Mark it complete and get your certificate" };
   }
@@ -207,7 +219,7 @@
   }
   function vHome() {
     const name = firstName();
-    if (!S.tools || !S.placement) {
+    if (!S.placement && !hasActivity()) {
       const F = [
         ["courses", SVG.book, "Courses", "15 courses in four tracks, from your first line of code to job interviews. Short lessons with a quick check after each."],
         ["practice", SVG.target, "Practice", "Ten-question rounds with instant feedback. Questions you miss come back until they stick."],
@@ -217,14 +229,14 @@
         ["log", SVG.clock, "Log", "Log a session in ten seconds. Your streak, countdown and dates all come from it."],
         ["toolkit", SVG.bolt, "Toolkit", "Your weekly rhythm, the software to install, which certification to take and what it costs."],
       ];
-      return '<div class="hero"><div style="position:relative;z-index:1"><p class="up">Welcome' + (name ? ", " + esc(name) : "") + '. You\'re in.</p><h1>This is your training ground</h1><p class="muted" style="margin:10px 0 18px;max-width:54ch">Have a look around first. When you\'re ready, two short steps build your personal plan: rate the tools you\'ve used, then a quick placement.</p>' +
-        '<div class="row"><a class="btn lg" href="#placement">' + (S.tools ? "Finish my plan" : "Build my plan") + '</a><button class="btn lg dark" style="background:rgb(255 255 255 / .1)" data-act="tour">Show me around</button></div></div>' +
+      return '<div class="hero"><div style="position:relative;z-index:1"><p class="up">Welcome' + (name ? ", " + esc(name) : "") + '. You\'re in.</p><h1>This is your training ground</h1><p class="muted" style="margin:10px 0 18px;max-width:54ch">Build your plan first so you skip what you already know: rate the tools you\'ve used, then answer a few questions. Or start the first course now and do it later.</p>' +
+        '<div class="row"><a class="btn lg" href="#placement">' + (S.tools ? "Finish my plan" : "Build my plan") + '</a><a class="btn lg dark" style="background:rgb(255 255 255 / .1)" href="#course-' + (plan().rows[0] ? plan().rows[0].m.id : "") + '">Start learning now</a><button class="link" style="color:inherit" data-act="tour">Show me around</button></div></div>' +
         '<div class="countdown"><div class="cd"><div class="big">' + (S.tools ? 1 : 2) + '<small>' + (S.tools ? "step" : "steps") + ' to your plan</small></div><div class="sub">About ' + (S.tools ? 4 : 6) + ' minutes. Nothing is graded.</div></div><div class="cd"><div class="big">59<small>exercises</small></div><div class="sub">Python and SQL that run right here, with hints and a tutor.</div></div></div></div>' +
-        '<div class="sec"><h2>What\'s in Benchwork</h2><div class="grid3">' + F.map((f) => '<a class="card node" style="display:block" href="#' + f[0] + '" data-tour="' + f[0] + '"><span class="ico" style="margin-bottom:12px">' + f[1] + '</span><h3>' + f[2] + '</h3><p class="small muted" style="margin:0">' + f[3] + "</p></a>").join("") +
+        '<div class="sec"><h2>What\'s in Benchwrk</h2><div class="grid3">' + F.map((f) => '<a class="card node" style="display:block" href="#' + f[0] + '" data-tour="' + f[0] + '"><span class="ico" style="margin-bottom:12px">' + f[1] + '</span><h3>' + f[2] + '</h3><p class="small muted" style="margin:0">' + f[3] + "</p></a>").join("") +
         '<div class="card" style="background:var(--xp-soft);border-color:transparent"><span class="ico xp" style="margin-bottom:12px;background:var(--surface)">' + SVG.fire + '</span><h3>XP, levels and streaks</h3><p class="small muted" style="margin:0">Every lesson, exercise and quiz earns XP. Weekly quests and a streak keep you coming back.</p></div></div></div>' +
         '<div class="sec card"><h2>Your week at ' + S.hpw + ' hours</h2><p class="small muted">Four evenings, a long Saturday and a Sunday review. Change your hours any time in Settings.</p>' + stripHtml(thisWeekDays()) + "</div>";
     }
-    const pr = progress(), p = pr.p, cur = currentRow(p), CD = countdowns(), si = streakInfo(), xp = points(), L = levelInfo(xp), wk = thisWeekHours();
+    const pr = progress(), p = pr.p, cur = activeRow(p), CD = countdowns(), si = streakInfo(), xp = points(), L = levelInfo(xp), wk = thisWeekHours();
     if (cur && !LX[cur.m.id]) needLX(cur.m.id).then(() => { if (route().name === "home") render(); });
     const wi = weekIndex(p, new Date());
     let left;
@@ -238,10 +250,11 @@
     const cdHtml = '<div class="countdown">' + (CD.course ? '<div class="cd"><div class="big n">' + CD.course.days + "<small>days</small></div><div class=\"sub\">to finish " + esc(CD.course.row.m.title) + ", around " + fmt(CD.course.date) + ". " + cdLine(CD.course.date, CD.course.planned) + "</div></div>" : "") +
       '<div class="cd"><div class="big n">' + CD.route.days + '<small>days</small></div><div class="sub">to your last course, ' + fmtY(CD.route.date) + ". " + cdLine(CD.route.date, CD.route.planned) + ". " + (CD.pace.measured ? "Based on your last 3 weeks: " + r1(CD.pace.avg) + " h a week." : "Based on your " + S.hpw + " hours a week until you have 3 weeks of logs.") + "</div></div></div>";
     const hero = '<div class="hero">' + left + cdHtml + "</div>";
-    const note = notice ? '<p class="notice"><b>From the Benchwork team:</b> ' + esc(notice.text) + "</p>" : "";
+    const placeCard = S.placement ? "" : '<div class="notice row between" style="gap:12px;margin-top:16px"><span><b>Your plan assumes you\'re starting from scratch.</b> Rate your tools and answer a few questions to skip what you already know.</span><a class="btn sm" href="#placement">Personalise my plan</a></div>';
+    const note = placeCard + (notice ? '<p class="notice"><b>From the Benchwrk team:</b> ' + esc(notice.text) + "</p>" : "");
     const stats = '<div class="stats">' +
       '<div class="card tight stat"><span class="ico fire">' + SVG.fire + '</span><div><div class="v n">' + si.weeks + '<small> wk</small></div><div class="k">Streak' + (si.freezes ? ", " + plural(si.freezes, "freeze") + " saved" : "") + (si.thisWeek ? "" : ". Log " + r1(Math.max(0, S.hpw * 0.6 - wk)) + " h more to keep it") + "</div></div></div>" +
-      '<div class="card tight stat">' + ring(Math.min(1, wk / S.hpw), 44, "var(--ok)", r1(wk) + " of " + S.hpw + " hours") + '<div><div class="v n">' + r1(wk) + "<small> / " + S.hpw + ' h</small></div><div class="k">This week</div></div></div>' +
+      '<div class="card tight stat">' + ring(Math.min(1, wk / S.hpw), 44, "var(--ok)", r1(wk) + " of " + S.hpw + " hours") + '<div><div class="v n">' + r1(wk) + "<small> / " + S.hpw + ' h</small></div><div class="k">This week, ' + r1(weekAuto()) + " h counted here</div></div></div>" +
       '<div class="card tight stat"><span class="ico xp">' + SVG.bolt + '</span><div style="flex:1"><div class="v n">Lv ' + L.level + " <small>" + esc(L.title) + '</small></div><span class="bar xp thin"><i style="--f:' + L.f.toFixed(3) + '"></i></span><div class="k" style="margin-top:4px">' + (L.need - L.into) + " XP to level " + (L.level + 1) + "</div></div></div>" +
       '<div class="card tight stat"><span class="ico blue">' + SVG.flag + '</span><div><div class="v n">' + fmt(p.applyAt) + '</div><div class="k">Start applying</div></div></div></div>';
     const Q = quests();
@@ -249,7 +262,7 @@
     const due = MOD.filter((m) => inPlan(m.id) && reviewDue(m.id)), missN = Object.keys(S.miss).length;
     const review = (due.length || missN) ? '<div class="card"><h2>Keep it fresh</h2><ul class="rl">' + due.map((m) => '<li><span class="grow"><a class="ttl" href="#quiz-' + m.id + '">Quiz review due: ' + esc(m.title) + '</a></span><span class="state">+50 XP</span></li>').join("") + (missN ? '<li><span class="grow"><a class="ttl" href="#practice">Practise ' + plural(missN, "question") + ' you missed</a></span><span class="state">Practice</span></li>' : "") + "</ul></div>" : "";
     return remindBanner() + resumeCard() + hero + note + stats + '<div class="cols sec" style="margin-top:20px"><div class="stack">' +
-      '<div class="card"><div class="row between"><h2 style="margin:0">Your week</h2><div class="row"><button class="btn line sm" data-act="qlog" data-h="1">Log 1 hour</button><button class="btn line sm" data-act="qlog" data-h="2">Log 2 hours</button></div></div><div style="margin-top:14px">' + stripHtml(thisWeekDays()) + "</div></div>" +
+      weekCard() +
       '<div class="card"><div class="row between"><h2 style="margin:0">Your path</h2><a class="link small" href="#plan">See the dated plan</a></div>' + pathHtml(p, 5) + "</div></div>" +
       "<aside>" + homeSchedCard() + remindAskCard() + homeLeagueCard() + homeCareerCard() + homeRouteCard() + partnerCard() + questHtml + review + "</aside></div>";
   }
@@ -287,32 +300,46 @@
   }
 
   /* ---------- Plan ---------- */
+  // One page that answers three questions in order: when do I finish, what am I doing this week, and what comes next.
   function vPlan(r) {
-    const p = plan(), wiNow = weekIndex(p, new Date()), lb = loggedByDate(), rh = rhythm(), byW = hoursByWeek();
-    const applyW = weekIndex(p, addDays(p.applyAt, -1)), focus = r && r.week ? r.week - 1 : -1;
-    const head = S.placement
-      ? '<h1>Your training plan</h1><p class="lede">' + p.weeks + " weeks at " + p.hpw + " hours a week, " + fmtY(gridStart(p)) + " to " + fmtY(p.end) + ", on the " + (isFull() ? "full" : "lean") + ' path. Logging a session fills its cell.</p><p class="small"><a href="#settings" data-act="topath">' + (isFull() ? "Switch to the lean path" : "See the full path and optional extras") + "</a></p>"
-      : '<h1>The full plan</h1><p class="lede">Every course at full length. Your tool ratings and the placement trim what you already know.</p><div class="row" style="margin-top:16px"><a class="btn" href="#placement">' + (S.tools ? "Take the placement" : "Rate your tools") + "</a></div>";
-    const legend = '<div class="legend">' + [["learn", "Learn"], ["build", "Build"], ["project", "Project"], ["review", "Review"]].map((k) => '<span class="tag k-' + k[0] + '">' + k[1] + "</span>").join("") + '<span class="tag" style="--c:var(--accent)">This week</span></div>';
-    let rows = "";
+    const p = plan(), now = new Date(), wiNow = weekIndex(p, now), byW = hoursByWeek(), cur = activeRow(p), CD = countdowns();
+    const focus = r && r.week ? r.week - 1 : -1;
+    const lateBy = CD.route ? dayDiff(CD.route.date, CD.route.planned) : 0;
+    const paceTxt = !hasActivity() ? "Dates move as you study." : lateBy > 6 ? "At your recent pace you'll finish about " + plural(Math.round(lateBy / 7), "week") + " later than this." : lateBy < -6 ? "At your recent pace you'll finish about " + plural(Math.round(-lateBy / 7), "week") + " early." : "You're on pace.";
+    const head = '<h1>Your plan</h1><p class="lede">Start applying from <b>' + fmtLong(p.applyAt) + "</b>. Last course done by <b>" + fmtLong(p.end) + "</b>. " + paceTxt + "</p>";
+    const facts = '<dl class="facts">' +
+      '<div><dt>Hours a week</dt><dd class="n">' + p.hpw + '</dd><dd><a href="#schedule">Change your week</a></dd></div>' +
+      '<div><dt>Path</dt><dd>' + (isFull() ? "Full" : "Lean") + '</dd><dd><a href="#settings" data-act="topath">' + (isFull() ? "Switch to lean" : "See the full path") + "</a></dd></div>" +
+      '<div><dt>Length</dt><dd class="n">' + plural(p.weeks, "week") + '</dd><dd class="muted">' + p.total + " hours of study</dd></div>" +
+      '<div><dt>First offer, roughly</dt><dd>' + fmtY(p.race) + '</dd><dd class="muted">Interviews take about six weeks</dd></div></dl>';
+    const place = S.placement ? "" : '<div class="notice row between" style="gap:12px"><span><b>This plan assumes you\'re starting from scratch.</b> Answer a few questions on the tools you\'ve used and skip what you already know.</span><a class="btn sm" href="#placement">' + (S.tools ? "Answer the questions" : "Personalise my plan") + "</a></div>";
+    // This week
+    const ws = addDays(gridStart(p), 7 * Math.max(0, wiNow)), wh = byW[isoDate(mondayOf(now))] || 0, wa = weekAuto();
+    const inWeek = wiNow >= 0 ? coursesInWeek(p, wiNow) : p.rows.slice(0, 1);
+    const thisWeek = '<div class="card sec plan-now"><div class="row between"><h2 style="margin:0">' + (wiNow < 0 ? "Your plan starts " + fmt(gridStart(p)) : wiNow >= p.weeks ? "Past your planned finish" : "This week: week " + (wiNow + 1) + " of " + p.weeks) + '</h2><span class="small muted">' + fmt(ws) + " to " + fmt(addDays(ws, 6)) + "</span></div>" +
+      '<div class="pn-grid"><div><p class="small muted" style="margin:10px 0 4px">Working on</p>' + (cur ? '<a class="ttl" href="#course-' + cur.m.id + '">' + esc(cur.m.title) + "</a>" + '<span class="bar thin" style="margin-top:8px"><i style="--f:' + courseFrac(cur.m.id).toFixed(3) + '"></i></span><p class="xs muted" style="margin:4px 0 0">' + Math.round(courseFrac(cur.m.id) * 100) + "% done" + (inWeek.length > 1 || (inWeek[0] && cur && inWeek[0].m.id !== cur.m.id) ? ". Planned this week: " + inWeek.map((x) => esc(x.m.title)).join(", ") : "") + "</p>" : "<b>Every course is done</b>") + "</div>" +
+      '<div><p class="small muted" style="margin:10px 0 4px">Study time</p><b class="n" style="font-size:22px">' + r1(wh) + '</b> <span class="muted">of ' + p.hpw + ' h</span><span class="bar ok thin" style="margin-top:8px"><i style="--f:' + Math.min(1, wh / p.hpw).toFixed(3) + '"></i></span><p class="xs muted" style="margin:4px 0 0">' + r1(wa) + " h counted on Benchwrk, " + r1(Math.max(0, wh - wa)) + ' h logged. <a href="#log">Log time away</a></p></div></div></div>';
+    // The route, course by course
+    const rows = p.rows, ci = cur ? rows.indexOf(cur) : rows.length;
+    let ph = 0, tl = '<ol class="tl">';
+    rows.forEach((x, i) => {
+      if (x.m.phase !== ph) { ph = x.m.phase; tl += '<li class="tl-phase" aria-hidden="true">' + esc(PHASES[ph]) + "</li>"; }
+      const f = courseFrac(x.m.id), st = x.done ? "done" : i === ci ? "cur" : i < ci ? "open" : "next";
+      const state = x.done ? '<span class="state ok">' + TICK + " Done</span>" : i === ci ? '<span class="state">' + Math.round(f * 100) + "% done</span>" : f > 0 ? '<span class="state">' + Math.round(f * 100) + "% done</span>" : '<span class="state">Starts ' + fmt(x.sd) + "</span>";
+      tl += '<li class="tl-row ' + st + '"><span class="tl-dot" aria-hidden="true">' + (x.done ? SVG.check : i + 1) + '</span><div class="tl-body"><a class="ttl" href="#course-' + x.m.id + '">' + esc(x.m.title) + "</a>" + (x.m.extra && !isFull() ? ' <span class="tag extra">Extra</span>' : "") + (x.lv ? " " + lvTag(x.lv) : "") +
+        '<div class="xs muted">' + fmt(x.sd) + " to " + fmt(x.ed) + ", " + x.hours + " h, " + weekRange(p, x).toLowerCase() + "</div>" + (i === ci ? '<span class="bar thin" style="margin-top:6px;max-width:320px"><i style="--f:' + f.toFixed(3) + '"></i></span>' : "") + "</div>" + state + "</li>";
+      if (x.m.id === p.applyAfter) tl += '<li class="tl-ms"><span class="tl-dot" aria-hidden="true">' + SVG.flag.replace('width="20" height="20"', 'width="15" height="15"') + '</span><div class="tl-body"><b>Start applying</b><div class="xs muted">From ' + fmtY(p.applyAt) + ". Two live projects are enough to apply for " + (S.goal === "adjacent" ? "AI-adjacent roles" : "junior AI engineering roles") + ". The rest of the plan carries on while you apply.</div></div></li>";
+    });
+    tl += '<li class="tl-ms end"><span class="tl-dot" aria-hidden="true">' + finishFlag() + '</span><div class="tl-body"><b>First offer</b><div class="xs muted">Around ' + fmtY(p.race) + ", about six weeks after your last course.</div></div></li></ol>";
+    // Week by week, collapsed
+    let wk = "";
     for (let i = 0; i < p.weeks; i++) {
-      const ws = addDays(gridStart(p), 7 * i), crs = coursesInWeek(p, i);
-      let cells = "";
-      rh.forEach((d, j) => {
-        const iso = isoDate(addDays(ws, j)), lg = lb[iso] || 0;
-        const f = d.hours ? Math.min(1, lg / d.hours) : lg ? 1 : 0;
-        const cellCls = f >= 1 ? " full" : f > 0 ? " part" : "";
-        cells += '<td><div class="c k-' + d.kind + (d.hours ? "" : " rest") + cellCls + '" title="' + esc(d.name + " " + fmt(addDays(ws, j)) + ": " + (d.hours ? d.hours + " h " + d.label : "rest") + (lg ? ", " + r1(lg) + " h logged" : "")) + '"><i style="--f:' + f + '"></i><em><b>' + (lg ? r1(lg) : d.hours || "") + "</b></em></div></td>";
-      });
-      const wh = byW[isoDate(ws)] || 0;
-      rows += '<tr id="w' + (i + 1) + '" class="' + (i === wiNow ? "now" : i === focus ? "focus" : i < wiNow ? "done-wk" : "") + '"' + (i === focus ? " data-focus" : "") + '><td class="wk"><b class="n">W' + (i + 1) + "</b><span>" + fmt(ws) + "</span></td>" +
-        '<td class="crs">' + crs.slice(0, 2).map((x) => '<a href="#course-' + x.m.id + '">' + esc(x.m.title) + "</a>").join("") + "</td>" + cells +
-        '<td class="tot n">' + (wh ? r1(wh) : "0") + " / " + p.hpw + "</td></tr>";
-      if (i === applyW) rows += '<tr class="ms"><td colspan="10"><span class="hl">Start applying</span> <span class="xs muted" style="font-weight:400">from ' + fmtY(p.applyAt) + (S.goal === "adjacent" ? ", AI-adjacent roles first" : "") + ". Begin the first three lessons of Job search and interviews.</span></td></tr>";
+      const s0 = addDays(gridStart(p), 7 * i), h = byW[isoDate(s0)] || 0, crs = coursesInWeek(p, i);
+      wk += '<tr id="w' + (i + 1) + '" class="' + (i === wiNow ? "now" : i === focus ? "focus" : "") + '"' + (i === focus ? " data-focus" : "") + '><th scope="row"><b class="n">' + (i + 1) + "</b></th><td>" + fmt(s0) + "</td><td>" + crs.map((x) => '<a href="#course-' + x.m.id + '">' + esc(x.m.title) + "</a>").join("<br>") + '</td><td class="r n">' + (i <= wiNow ? r1(h) + " / " + p.hpw : p.hpw) + "</td></tr>";
     }
-    rows += '<tr class="ms"><td colspan="10"><div class="finish">' + finishFlag() + '<span>Race day: first offer <span class="xs muted" style="font-weight:400">around ' + fmtY(p.race) + ". Interview rounds usually take about six weeks after the last course.</span></span></div></td></tr>";
-    const table = '<div class="plan-wrap"><table class="plan"><thead><tr><th scope="col">Week</th><th scope="col">Courses</th>' + rh.map((d) => '<th scope="col">' + esc(d.name) + "</th>").join("") + '<th scope="col" style="text-align:right">Hours</th></tr></thead><tbody>' + rows + "</tbody></table></div>";
-    return head + legend + table;
+    const weeks = '<details class="card sec weeks-tbl"' + (focus >= 0 ? " open" : "") + '><summary><h2 style="display:inline;margin:0">Week by week</h2> <span class="small muted">' + plural(p.weeks, "week") + "</span></summary>" +
+      '<div class="tblwrap" style="margin-top:14px"><table class="tbl"><caption class="sr">Your plan week by week: dates, courses and hours</caption><thead><tr><th scope="col">Week</th><th scope="col">Starts</th><th scope="col">Courses</th><th scope="col" class="r">Hours</th></tr></thead><tbody>' + wk + "</tbody></table></div></details>";
+    return head + place + facts + thisWeek + '<div class="sec"><h2>Course by course</h2>' + tl + "</div>" + weeks;
   }
 
   /* ---------- Courses ---------- */
@@ -345,29 +372,57 @@
   function vCourse(r0) {
     const id = r0.id, m = byId[id], p = plan(), r = p.rows.find((x) => x.m.id === id), idx = MOD.indexOf(m), lx = LX[id];
     if (!lx) { needLX(id).then(() => { if (route().id === id) render(); }); return courseHead(m, r, p) + '<div class="sec">' + loading(200) + "</div>"; }
-    const st = S.mods[id] || {}, ch = st.checks || {}, q = quizInfo(id), exs = st.ex || {}, prev = MOD[idx - 1], next = MOD[idx + 1];
-    const lvNote = r && r.lv === "testout" ? '<p class="notice"><b>Prove it.</b> Your placement says you know this. Pass the quiz at 80% and mark it tested out, or work through whatever you miss.</p>'
-      : r && r.lv === "fast" ? '<p class="notice"><b>Fast track.</b> Skim the lessons you know and spend the time on the exercises and the build.</p>' : "";
-    const lessonsLeft = m.lessons.filter((_, i) => !ch[i]).length, exLeft = lx.ex.filter((e) => !(exs[e.id] && exs[e.id].ok)).length;
-    const gradient = !r || !r.done ? '<p class="small" style="margin:0 0 4px"><b>' + (lessonsLeft + exLeft ? plural(lessonsLeft, "lesson") + " and " + plural(exLeft, "exercise") + " to go" : "Only the quiz to go") + "</b>" + (q.best >= 80 ? "" : ", then the quiz.") + "</p>" : "";
-    const subOf = (t, L) => { if (!L) return ""; const raw = String(t).replace(/<[^>]+>/g, ""); if (raw.toLowerCase().indexOf(L.t.toLowerCase()) === 0) return raw.slice(L.t.length).replace(/^[\s:,]+/, ""); return raw === L.t ? "" : raw; };
-    const lessons = '<ol class="rl">' + m.lessons.map((t, i) => { const L = lx.lessons[i], sub = subOf(t, L); return '<li><span class="num' + (ch[i] ? " ok" : "") + '">' + (ch[i] ? SVG.check : i + 1) + '</span><span class="grow">' + (L ? '<a class="ttl" href="#lesson-' + id + "-" + i + '">' + esc(L.t) + "</a>" : "<b>" + rich(t) + "</b>") + (sub ? '<div class="xs muted">' + esc(sub.charAt(0).toUpperCase() + sub.slice(1)) + "</div>" : "") + "</span>" + '<span class="state' + (ch[i] ? " ok" : "") + '">' + (ch[i] ? "Read" : optLesson(m, i) ? "Optional" : L ? L.min + " min" : "") + "</span></li>"; }).join("") + "</ol>";
-    const exList = lx.ex.length ? '<div class="card"><h2>Exercises</h2><ol class="rl">' + lx.ex.map((e, i) => { const s = exs[e.id] || {}; return '<li><span class="num' + (s.ok ? " ok" : "") + '">' + (s.ok ? SVG.check : i + 1) + '</span><span class="grow"><a class="ttl" href="#ex-' + id + "-" + e.id + '">' + esc(e.t) + '</a><div class="xs muted">' + (e.kind === "sql" ? "SQL" : e.mode === "write-tests" ? "Python: write the tests" : "Python") + '</div></span><span class="state' + (s.ok ? " ok" : "") + '">' + (s.ok ? (s.sol ? "Solved with the answer" : "+" + PTS.ex + " XP earned") : "+" + PTS.ex + " XP") + "</span></li>"; }).join("") + "</ol></div>" : "";
+    const st = S.mods[id] || {}, q = quizInfo(id), prev = MOD[idx - 1], next = MOD[idx + 1];
+    const short = r && (r.lv === "testout" || r.lv === "fast");
+    const lvNote = (short ? '<div class="notice row between" style="gap:12px"><span>' + (r.lv === "testout" ? "<b>Prove it.</b> Your placement says you know this. Pass the quiz at 80% and mark it tested out, or work through whatever you miss." : "<b>Fast track.</b> Skim the lessons you know and spend the time on the exercises and the build.") + '</span><button class="btn line sm" data-act="learnfull" data-id="' + id + '">Take the full course instead</button></div>' : "") +
+      (S.lf && S.lf[id] ? '<div class="notice row between" style="gap:12px"><span>You chose to take this course in full.</span><button class="btn line sm" data-act="learnfull" data-id="' + id + '">Use my placement result</button></div>' : "");
+    const steps = courseSteps(m, lx), todo = steps.filter((x) => !x.done && !x.opt), nx = nextStep(m);
+    let n = 0;
+    const stepHtml = '<ol class="csteps">' + steps.map((x) => {
+      n++;
+      const ico = x.done ? SVG.check : x.kind === "lesson" ? SVG.book.replace('width="20" height="20"', 'width="16" height="16"') : SVG.code.replace('width="20" height="20"', 'width="16" height="16"');
+      const L = x.kind === "lesson" ? lx.lessons[x.i] : null, sub = x.kind === "lesson" ? (L && L.lib && L.lib.length ? "Read, then go deeper in the library" : "Read") + (x.mins ? ", " + x.mins + " min" : "") : "Practise: " + (x.e.kind === "sql" ? "SQL" : x.e.mode === "write-tests" ? "Python, write the tests" : "Python") + " in your browser";
+      return '<li class="cstep ' + x.kind + (x.done ? " done" : "") + (nx && nx.href === x.href ? " next" : "") + '"><span class="cs-ico" aria-hidden="true">' + ico + '</span><span class="grow"><a class="ttl" href="' + x.href + '">' + esc(x.title) + "</a>" + '<span class="xs muted">' + sub + "</span></span>" +
+        '<span class="state' + (x.done ? " ok" : "") + '">' + (x.done ? (x.kind === "lesson" ? "Read" : "Solved") : x.opt ? "Optional" : nx && nx.href === x.href ? "Up next" : x.kind === "ex" ? "+" + PTS.ex + " XP" : "") + "</span></li>";
+    }).join("") +
+      '<li class="cstep quiz' + (q.best >= 80 ? " done" : "") + '"><span class="cs-ico" aria-hidden="true">' + (q.best >= 80 ? SVG.check : SVG.target.replace('width="20" height="20"', 'width="16" height="16"')) + '</span><span class="grow"><a class="ttl" href="#quiz-' + id + '">Course quiz</a><span class="xs muted">Five questions from a bank of ' + poolOf(id).length + ", pass mark 80%" + (q.attempts ? ". Best so far " + q.best + "%" : "") + "</span></span>" + (reviewDue(id) ? '<span class="tag behind">Review due</span>' : '<span class="state' + (q.best >= 80 ? " ok" : "") + '">' + (q.best >= 80 ? "Passed" : "+" + PTS.quiz + " XP") + "</span>") + "</li></ol>";
     const canDone = q.best >= 80;
     const doneBtn = r && r.done ? '<a class="btn" href="#cert-' + id + '">View certificate</a><button class="btn line" data-act="reopen" data-id="' + id + '">Reopen course</button>'
       : '<button class="btn" data-act="complete" data-id="' + id + '"' + (canDone ? "" : " disabled") + ">" + (r && r.lv === "testout" ? "Mark as tested out" : "Mark course complete") + "</button>" + (canDone ? "" : '<span class="xs muted">Pass the quiz at 80% first.</span>');
     const res = resourceList(m);
-    const bank = m.bank ? '<div class="card"><h2>Interview question bank</h2>' + m.bank.map((b) => "<h3 style=\"margin-top:16px\">" + esc(b.type) + '</h3><ul class="rl">' + b.qs.map((x) => '<li><span class="grow"><b>' + esc(x[0]) + '</b><div class="small muted">' + esc(x[1]) + "</div></span></li>").join("") + "</ul>").join("") + "</div>" : "";
+    const bank = m.bank ? '<details class="card"><summary><h2 style="display:inline">Interview question bank</h2></summary>' + m.bank.map((b) => "<h3 style=\"margin-top:16px\">" + esc(b.type) + '</h3><ul class="rl">' + b.qs.map((x) => '<li><span class="grow"><b>' + esc(x[0]) + '</b><div class="small muted">' + esc(x[1]) + "</div></span></li>").join("") + "</ul>").join("") + "</details>" : "";
     const project = PROJECTS.includes(id) ? '<div class="card"><h2>Project checkpoints</h2><p class="muted">Tick checkpoints and share your project for peer review on the Projects page.</p><a class="btn line" href="#projects">Open Projects</a></div>' : "";
-    const mock = m.interview ? '<div class="card">' + tutorBlock("interview-" + id, "Mock interview", "Practise in writing: the tutor asks one question at a time from the question bank and gives feedback on each answer.", "Start a mock interview") + "</div>" : "";
+    const mock = m.interview && sample ? '<div class="card"><h2>Mock interview</h2>' + tutorBlock("interview-" + id, "Mock interview", "The tutor asks one question at a time from the question bank and gives feedback on each answer.", "Start a mock interview") + "</div>" : "";
+    const startCard = '<div class="card start-card"><div><p class="small muted" style="margin:0 0 2px">' + (todo.length ? (steps.length - todo.length ? "Up next" : "Start here") : q.best >= 80 ? "All done" : "Last step") + '</p><b>' + esc(nx.title) + '</b><p class="xs muted" style="margin:2px 0 0">' + (todo.length ? plural(todo.filter((x) => x.kind === "lesson").length, "lesson") + " and " + plural(todo.filter((x) => x.kind === "ex").length, "exercise") + " to go, then the quiz" : q.best >= 80 ? "Mark the course complete to get your certificate" : "Pass the quiz at 80%") + '</p></div><a class="btn" href="' + nx.href + '">' + esc(nx.label) + "</a></div>";
     return courseHead(m, r, p) + lvNote +
-      '<div class="cols sec" style="margin-top:20px"><div class="stack"><div class="card"><div class="row between"><h2 style="margin:0">Lessons</h2>' + gradient + "</div>" + lessons + "</div>" + exList +
-      '<div class="card"><div class="row between"><h2 style="margin:0">Quiz</h2>' + (reviewDue(id) ? '<span class="tag behind">Review due</span>' : "") + '</div><p class="muted" style="margin-top:8px">Five questions drawn from a bank of ' + poolOf(id).length + ", so each attempt is different. Pass mark 80%." + (q.attempts ? " Best so far <b style=\"color:var(--ink)\">" + q.best + "%</b>." : "") + '</p><a class="btn' + (lessonsLeft + exLeft ? " line" : "") + '" href="#quiz-' + id + '">' + (q.attempts ? "Take it again" : "Take the quiz") + "</a></div>" +
-      '<div class="card"><h2>Build</h2><p>' + rich(m.build) + '</p><h3 style="margin-top:16px">How to learn this</h3><p class="muted" style="margin:0">' + esc(m.method) + "</p></div>" + project + bank + mock +
+      '<div class="cols sec" style="margin-top:20px"><div class="stack">' + startCard +
+      '<div class="card"><h2 style="margin:0">How this course runs</h2><p class="small muted" style="margin:6px 0 4px">Read a lesson, then practise it straight away. Exercises run in your browser and check your answer. Finish with the quiz, then the build.</p>' + stepHtml + "</div>" +
+      '<div class="card"><h2>Build</h2><p>' + rich(m.build) + '</p><h3 style="margin-top:16px">How to learn this</h3><p class="muted" style="margin:0">' + esc(m.method) + "</p></div>" + project + mock + bank +
       '<div class="row">' + doneBtn + "</div></div>" +
       '<aside><div class="card"><h3>You\'ll be able to</h3><ul style="margin:0;padding-left:18px" class="small">' + m.outcomes.map((o) => "<li>" + esc(o) + "</li>").join("") + "</ul></div>" +
       '<div class="card"><h3>Resources</h3>' + res + "</div>" + courseLibCard(m) + "</aside></div>" +
       '<div class="sec row between">' + (prev ? '<a class="btn line" href="#course-' + prev.id + '">Previous: ' + esc(prev.title) + "</a>" : "<span></span>") + (next ? '<a class="btn line" href="#course-' + next.id + '">Next: ' + esc(next.title) + "</a>" : "") + "</div>";
+  }
+
+  // Where to learn more: the library chapters matched to this lesson, then the course's best outside resource.
+  function libLinks(ids) {
+    if (!ids || !ids.length) return "";
+    const I = idx(); if (!I) return '<p class="xs muted">Loading the library…</p>';
+    const ls = ids.map(lessonMeta).filter(Boolean);
+    return ls.length ? '<ul class="rl">' + ls.map(libRow).join("") + "</ul>" : "";
+  }
+  function learnMore(m, L) {
+    const lib = L && L.lib && L.lib.length ? libLinks(L.lib) : "", top = (m.resources || [])[0];
+    if (!lib && !top) return "";
+    return '<div class="card sec"><h2>Read this in more depth</h2>' + (lib ? '<p class="small muted">From the library: longer chapters on the same idea, with code you can run.</p>' + lib : "") +
+      (top ? '<p class="small" style="margin:' + (lib ? "12px" : "0") + ' 0 0">Prefer a course or video? <a href="' + esc(top.url) + '" target="_blank" rel="noopener">' + esc(top.t) + '</a> <span class="muted">(' + esc(top.by) + ", " + esc(top.cost) + ')</span>. Every resource for this course is on the <a href="#course-' + m.id + '">course page</a>.</p>' : "") + "</div>";
+  }
+  function starterNote(ex) {
+    const st = String(ex.start || "");
+    if (/bug/i.test(ex.t)) return "The code is broken on purpose: finding and fixing the bugs is the exercise.";
+    if (/^\s*def /m.test(st)) return "Why is some code already there? The checks call a function with exactly this name and inputs, so the first line is fixed for you. Writing the body is the exercise.";
+    if (ex.kind === "sql" && st.trim()) return "The starter gives the table names so the checks can run your query. You write the rest.";
+    return "Write your answer in the editor, then run the checks.";
   }
 
   /* ---------- lesson reader ---------- */
@@ -379,13 +434,17 @@
     const ch = (S.mods[id] && S.mods[id].checks) || {}, read = !!ch[r.i], last = r.i === lx.lessons.length - 1;
     const toc = '<ol class="toc">' + lx.lessons.map((x, i) => '<li><a class="' + (ch[i] ? "ok" : "") + '" href="#lesson-' + id + "-" + i + '"' + (i === r.i ? ' aria-current="page"' : "") + '><span class="n">' + (ch[i] ? SVG.check.replace('width="18" height="18"', 'width="12" height="12"') : i + 1) + '</span><span style="flex:1">' + esc(x.t) + "</span></a></li>").join("") + "</ol>";
     const qc = L.check ? (() => { const k = id + "-" + r.i, a = ui.quiz["lc-" + k]; return '<div class="card sec"><h2>Quick check</h2>' + mcq(L.check, "lc-" + k, { attr: 'data-lc="' + k + '"', done: a != null, chosen: a }) + "</div>"; })() : "";
-    const nextHref = last ? (lx.ex.length ? "#ex-" + id + "-" + lx.ex[0].id : "#quiz-" + id) : "#lesson-" + id + "-" + (r.i + 1);
-    const nextLabel = last ? (lx.ex.length ? "Start the exercises" : "Take the quiz") : "Next lesson";
+    const steps = courseSteps(m, lx), si = steps.findIndex((x) => x.kind === "lesson" && x.i === r.i), after = steps[si + 1];
+    const nextHref = after ? after.href : "#quiz-" + id;
+    const nextLabel = after ? (after.kind === "ex" ? "Practise it" : "Next lesson") : "Take the quiz";
+    const mine = lx.ex.filter((e) => e.l === r.i), exs = (S.mods[id] && S.mods[id].ex) || {};
+    const practise = mine.length ? '<div class="card sec"><h2>Practise this</h2><p class="small muted">Straight after reading is the best time. These run in your browser and check your answer.</p><ul class="rl">' + mine.map((e) => '<li><span class="num' + (exs[e.id] && exs[e.id].ok ? " ok" : "") + '">' + (exs[e.id] && exs[e.id].ok ? SVG.check : SVG.code.replace('width="20" height="20"', 'width="14" height="14"')) + '</span><span class="grow"><a class="ttl" href="#ex-' + id + "-" + e.id + '">' + esc(e.t) + '</a></span><span class="state">' + (exs[e.id] && exs[e.id].ok ? "Solved" : "+" + PTS.ex + " XP") + "</span></li>").join("") + "</ul></div>" : "";
+    const deeper = learnMore(m, L);
     const readN = Object.keys(ch).length;
     return '<p class="crumb"><a href="#courses">Courses</a> / <a href="#course-' + id + '">' + esc(m.title) + "</a> / Lesson " + (r.i + 1) + " of " + lx.lessons.length + "</p>" +
-      '<div class="cols"><article><div class="card pad-lg"><h1>' + esc(L.t) + '</h1><p class="meta"><span>' + L.min + " min read</span><span>+" + PTS.lesson + " XP</span></p>" + lessonNudge(m, lx, r.i) + '<div class="prose" style="margin-top:20px">' + md(L.md) + "</div></div>" + qc +
+      '<div class="cols"><article><div class="card pad-lg"><h1>' + esc(L.t) + '</h1><p class="meta"><span>' + L.min + " min read</span><span>+" + PTS.lesson + " XP</span></p>" + lessonNudge(m, lx, r.i) + '<div class="prose" style="margin-top:20px">' + md(L.md) + "</div></div>" + qc + practise + deeper +
       '<div class="row sec">' + (read ? '<a class="btn lg" href="' + nextHref + '">' + nextLabel + '</a><span class="state ok">' + TICK + " Read</span>" : '<button class="btn lg" data-act="lread" data-id="' + id + '" data-i="' + r.i + '" data-next="' + nextHref + '">Mark as read, ' + nextLabel.toLowerCase() + "</button>") + "</div>" +
-      '<div class="card sec">' + tutorBlock("lesson-" + id + "-" + r.i, "Ask the tutor", "Stuck on something in this lesson? Ask in your own words.", null) + "</div></article>" +
+      tutorBlock("lesson-" + id + "-" + r.i, "Ask the tutor", "Stuck on something in this lesson? Ask in your own words.", null) + "</article>" +
       '<aside><div class="card"><div class="row between" style="margin-bottom:8px"><h3 style="margin:0">' + esc(m.title) + '</h3><span class="xs muted n">' + readN + "/" + lx.lessons.length + '</span></div><span class="bar thin" style="margin-bottom:10px"><i style="--f:' + (readN / lx.lessons.length).toFixed(3) + '"></i></span>' + toc + "</div></aside></div>";
   }
 
@@ -400,14 +459,18 @@
     const code = codeDoc && codeDoc[k] != null ? codeDoc[k] : ex.start;
     const hintsShown = Math.min(st.hints || 0, ex.hints.length);
     const canSol = (st.runs || 0) >= 2 || hintsShown >= ex.hints.length;
-    const next = lx.ex[i + 1];
+    const steps = courseSteps(m, lx), si = steps.findIndex((x) => x.kind === "ex" && x.e.id === ex.id), after = steps[si + 1];
+    const next = after && after.kind === "ex" ? after.e : null, afterLesson = after && after.kind === "lesson" ? after : null;
+    const LL = ex.l != null ? lx.lessons[ex.l] : null;
+    const learnFirst = '<div class="card"><h3>Learn this first</h3>' + (LL ? '<p class="small" style="margin:0 0 8px">This practises <a href="#lesson-' + id + "-" + ex.l + '">Lesson ' + (ex.l + 1) + ": " + esc(LL.t) + "</a>. Read it, then come back: your code is saved as you type.</p>" : '<p class="small" style="margin:0 0 8px">This draws on the lessons in <a href="#course-' + id + '">' + esc(m.title) + "</a>.</p>") +
+      libLinks(LL && LL.lib) + '<p class="xs muted" style="margin:8px 0 0">' + starterNote(ex) + "</p></div>";
     const pyState = ex.kind === "sql" ? "SQLite in your browser" : { cold: "Python starts on first run", loading: "Starting Python…", ready: "Python ready", failed: "Python couldn't start" }[window.AILRunner ? AILRunner.state() : "failed"];
     let out = "";
     if (res && res.running) out = '<div class="console"><div class="head"><p class="verdict thinking" role="status">Running the checks…</p></div></div>';
     else if (res) {
       const all = !res.error && res.tests.length && res.tests.every((t) => t[1]);
       out = '<div class="console results" role="status"><div class="head"><p class="verdict ' + (all ? "pass" : "fail") + '">' + (all ? "All checks pass" : res.error ? "Your code raised an error" : res.tests.filter((t) => !t[1]).length + " of " + res.tests.length + " checks failing") + "</p>" +
-        (all ? (next ? '<a class="btn sm" href="#ex-' + id + "-" + next.id + '">Next exercise</a>' : '<a class="btn sm" href="#quiz-' + id + '">Take the quiz</a>') : "") + "</div>" +
+        (all ? (next ? '<a class="btn sm" href="#ex-' + id + "-" + next.id + '">Next exercise</a>' : afterLesson ? '<a class="btn sm" href="' + afterLesson.href + '">Next lesson</a>' : '<a class="btn sm" href="#quiz-' + id + '">Take the quiz</a>') : "") + "</div>" +
         (res.error ? '<div class="out err">' + esc(res.error) + "</div>" : "") +
         (res.tests.length ? "<ul>" + res.tests.map((t) => '<li class="' + (t[1] ? "pass" : "fail") + '">' + (t[1] ? TICK : CROSS) + "<span>" + esc(t[0]) + (t[2] ? '<span class="why">' + esc(t[2]) + "</span>" : "") + "</span></li>").join("") + "</ul>" : "") +
         (res.table && res.table.columns.length ? '<div style="overflow-x:auto;border-top:1px solid var(--line)"><table class="sqltbl"><thead><tr>' + res.table.columns.map((c) => "<th>" + esc(c) + "</th>").join("") + "</tr></thead><tbody>" + res.table.values.map((row) => "<tr>" + row.map((v) => "<td>" + esc(v) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>" : "") +
@@ -420,10 +483,10 @@
       '<p class="xs muted" style="margin:0">' + (ex.kind === "sql" ? "Your query runs on a fresh copy of the tables and the rows are compared with the expected answer." : ex.mode === "write-tests" ? "Your tests run against a correct version and some broken ones." : "Your code runs, then a set of checks. Use print() freely: output shows in the console.") + "</p></div>" +
       '<div class="card"><h3>Stuck?</h3><div class="row"><button class="btn line sm" data-act="hint" data-id="' + id + '" data-ex="' + ex.id + '"' + (hintsShown >= ex.hints.length ? " disabled" : "") + ">" + (hintsShown >= ex.hints.length ? "No more hints" : "Show a hint (" + (ex.hints.length - hintsShown) + " left)") + "</button>" +
       '<button class="btn line sm" data-act="sol" data-id="' + id + '" data-ex="' + ex.id + '"' + (canSol && !ui.solShown[k] ? "" : " disabled") + ">" + (ui.solArm[k] ? "Click again to see the answer" : "Show the answer") + "</button></div>" +
-      (canSol ? "" : '<p class="xs muted" style="margin:8px 0 0">The answer unlocks after two runs or every hint. Solving it yourself earns ' + PTS.ex + " XP; with the answer, " + PTS.exSol + ".</p>") + hints + "</div>" + sol + "</div>" +
+      (canSol ? "" : '<p class="xs muted" style="margin:8px 0 0">The answer unlocks after two runs or every hint. Solving it yourself earns ' + PTS.ex + " XP; with the answer, " + PTS.exSol + ".</p>") + hints + "</div>" + learnFirst + sol + "</div>" +
       '<div><div class="editor"><div class="bar-top"><span><span class="dots"><i></i><i></i><i></i></span>' + (ex.kind === "sql" ? "query.sql" : "solution.py") + '</span><span id="pystate">' + esc(pyState) + '</span></div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Your code" data-k="' + k + '">' + esc(code) + "</textarea></div>" +
       '<div class="row" style="margin-top:12px"><button class="btn lg" data-act="run" data-id="' + id + '" data-ex="' + ex.id + '"' + (res && res.running ? " disabled" : "") + '>Run the checks</button><button class="btn line" data-act="resetcode" data-id="' + id + '" data-ex="' + ex.id + '">Reset</button><span class="xs muted">Ctrl or Cmd + Enter runs</span></div>' +
-      out + '<div class="card sec">' + tutorBlock("ex-" + k, "Ask the tutor", "The tutor sees the exercise, your code and the last result. It gives hints, not answers.", null) + "</div></div></div>";
+      out + tutorBlock("ex-" + k, "Ask the tutor", "The tutor sees the exercise, your code and the last result. It gives hints, not answers.", null) + "</div></div>";
   }
 
   /* ---------- quiz ---------- */
@@ -466,6 +529,6 @@
     return '<div class="narrow"><div class="pbar" aria-hidden="true">' + P.qs.map((_, i) => '<i class="' + (i <= P.i ? "on" : "") + '"></i>').join("") + "</div>" +
       '<p class="xs muted">Question <span class="n">' + (P.i + 1) + " of " + P.qs.length + "</span> · " + esc(byId[q.mid].title) + '</p><p class="pq">' + rich(q.q) + "</p>" +
       q.o.map((o, j) => '<button class="popt' + (a != null ? (j === q.a ? " right" : j === a ? " wrong" : "") : "") + '" data-act="ppick" data-i="' + j + '"' + (a != null ? " disabled" : "") + ">" + rich(o) + "</button>").join("") +
-      (a != null ? '<p class="notice" style="background:' + (a === q.a ? "var(--ok-soft)" : "var(--fail-soft)") + '">' + (a === q.a ? "<b>Right.</b> " : "<b>Not quite.</b> ") + rich(q.e || "") + '</p><button class="btn lg" data-act="pnext">' + (P.i === P.qs.length - 1 ? "See my score" : "Next question") + "</button>" : "") +
+      (a != null ? '<p class="notice" style="background:' + (a === q.a ? "var(--ok-soft)" : "var(--fail-soft)") + '">' + (a === q.a ? "<b>Right.</b> " : "<b>Not quite.</b> ") + rich(q.e || "") + ' <a href="#course-' + q.mid + '">Revisit ' + esc(byId[q.mid].title) + '</a></p><button class="btn lg" data-act="pnext">' + (P.i === P.qs.length - 1 ? "See my score" : "Next question") + "</button>" : "") +
       '<p style="margin-top:22px"><button class="link" data-act="pexit">Stop practising</button></p></div>';
   }

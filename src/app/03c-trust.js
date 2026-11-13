@@ -63,7 +63,7 @@
       if (rv.id === uid || isBlocked(rv.id)) return;
       Object.keys(rv.given || {}).forEach((k) => { const [to, proj] = k.split(":"); if (to === uid) add(dts(rv.given[k].at), (rv.name || "A member") + " reviewed your " + ((byId[proj] && byId[proj].title) || "project"), "#projects", "review"); });
     });
-    if (notice && notice.text) add(notice.ts || dts(notice.at), "From the Benchwork team: " + notice.text, "#home", "notice");
+    if (notice && notice.text) add(notice.ts || dts(notice.at), "From the Benchwrk team: " + notice.text, "#home", "notice");
     myReports.filter((r) => r.status === "resolved" && r.resolvedAt).forEach((r) => add(r.resolvedAt, "Your report about " + (r.label || "a member") + " was reviewed. Thank you.", "#settings", "report"));
     remindNotif(add);
     const now = Date.now();
@@ -194,7 +194,7 @@
       try {
         const r = await window.BW.api("/api/backup", {}, { raw: true });
         if (!r.ok) { let m = "The backup didn't work."; try { m = (await r.json()).error || m; } catch (x) { /* not json */ } throw new Error(m); }
-        const blob = await r.blob(), name = (/filename="([^"]+)"/.exec(r.headers.get("content-disposition") || "") || [])[1] || "benchwork-backup.bwbak";
+        const blob = await r.blob(), name = (/filename="([^"]+)"/.exec(r.headers.get("content-disposition") || "") || [])[1] || "benchwrk-backup.bwbak";
         const url = URL.createObjectURL(blob), link = document.createElement("a"); link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
         toast("Backup downloaded. Keep it somewhere safe.");
       } catch (x) { toast((x && x.message) || "The backup didn't work."); }

@@ -1,6 +1,6 @@
 // GET /api/jobs?q=AI engineer&where=London&remote=1 -> live job adverts from official job-board APIs.
 // Uses Adzuna and Reed when their free keys are set, plus Remotive and Arbeitnow, which need none.
-// (Scraping LinkedIn or Indeed breaks their terms, so Benchwork only reads feeds that are offered for this.)
+// (Scraping LinkedIn or Indeed breaks their terms, so Benchwrk only reads feeds that are offered for this.)
 import { htmlToText } from "./_html.js";
 import { env, fail, requireUser, send, withErrors } from "./_lib.js";
 

@@ -28,15 +28,15 @@ export function profileBlock(p) {
 
 export function decodePrompt({ job, profile, courses }) {
   return {
-    system: "You are an expert interview coach decoding a job description for a learner on Benchwork, a course that takes people from zero to applied AI engineer. " + STYLE + "\n\n" +
+    system: "You are an expert interview coach decoding a job description for a learner on Benchwrk, a course that takes people from zero to applied AI engineer. " + STYLE + "\n\n" +
       "Rules:\n- Only claim what the job text or the candidate profile shows. If you infer, say so in the field and lower the confidence.\n" +
       "- Fit verdict is exactly one of: Strong Fit, Investable Stretch, Long-Shot Stretch, Weak Fit.\n" +
       "- Fit confidence is Medium when you have the job text and a profile, Limited if the job text is thin (under about 120 words).\n" +
       "- Frameable gaps can be closed with a story, a framing or a few weeks of work. Structural gaps can't be bridged with narrative (for example a required degree, right to work, or years of experience far above theirs).\n" +
-      "- Map prep actions to the Benchwork course titles provided where one fits.\n" +
+      "- Map prep actions to the Benchwrk course titles provided where one fits.\n" +
       "- If the text isn't a job description at all, set is_job to false and leave the rest minimal.\n\n" +
       "Reply with only a JSON object, no prose, in this shape:\n" +
-      '{"is_job":true,"title":"","company":"","seniority":"early|mid|senior","summary":"two sentences on what the job really is","competencies":[{"name":"","why":"","quote":"short quote from the job"}],"must_haves":[""],"nice_to_haves":[""],"fit":{"verdict":"","confidence":"Medium","signals":["what drove the verdict"],"frameable_gaps":[""],"structural_gaps":[""]},"likely_rounds":[{"format":"screen|behavioural|technical|design|loop","why":""}],"prep":[{"action":"","course":"Benchwork course title or empty"}],"red_flags":[""]}\n' +
+      '{"is_job":true,"title":"","company":"","seniority":"early|mid|senior","summary":"two sentences on what the job really is","competencies":[{"name":"","why":"","quote":"short quote from the job"}],"must_haves":[""],"nice_to_haves":[""],"fit":{"verdict":"","confidence":"Medium","signals":["what drove the verdict"],"frameable_gaps":[""],"structural_gaps":[""]},"likely_rounds":[{"format":"screen|behavioural|technical|design|loop","why":""}],"prep":[{"action":"","course":"Benchwrk course title or empty"}],"red_flags":[""]}\n' +
       "Give 4 or 5 competencies in priority order, at most 4 prep actions.",
     messages: [{ role: "user", content: jobBlock(job) + "\n\n" + profileBlock(profile) + "\n\n<benchwork_courses>\n" + clip((courses || []).join("\n"), 3000) + "\n</benchwork_courses>\n\nDecode this job for this candidate." }],
   };
@@ -52,7 +52,7 @@ export function askPrompt({ job, decoded, profile, setup, transcript, bank }) {
   else if (last && last.kind === "followup") allowed = mains >= N ? ["END"] : ["QUESTION " + (mains + 1)];
   else allowed = mains >= N ? ["FOLLOWUP", "END"] : ["FOLLOWUP", "QUESTION " + (mains + 1)];
   const comp = decoded && decoded.competencies ? decoded.competencies.map((c) => "- " + c.name + ": " + c.why).join("\n") : "";
-  const system = "You are the interviewer for this job" + (job.company ? " at " + clip(job.company, 120) : "") + ". This is a realistic mock interview on Benchwork. " + STYLE + "\n\n" +
+  const system = "You are the interviewer for this job" + (job.company ? " at " + clip(job.company, 120) : "") + ". This is a realistic mock interview on Benchwrk. " + STYLE + "\n\n" +
     "Format: " + F.label + ". " + F.brief + "\n" +
     "Total main questions: " + N + ". Candidate band: " + (BANDS[setup.band] || BANDS.early).split(":")[0] + ".\n" +
     (comp ? "Competencies to cover, in priority order:\n" + comp + "\n" : "") +
@@ -103,7 +103,7 @@ export function scorePrompt({ job, decoded, profile, setup, transcript, self }) 
   const F = FORMATS[setup.format] || FORMATS.behavioural;
   const convo = transcript.map((t) => (t.role === "interviewer" ? "INTERVIEWER" + (t.kind === "question" ? " (Q" + t.n + ")" : t.kind === "followup" ? " (follow-up)" : "") + ": " : "CANDIDATE" + spokenTag(t.dl) + ": ") + clip(t.text, 4000)).join("\n\n");
   const spoken = transcript.some((t) => spokenTag(t.dl));
-  const system = "You are an expert interview coach scoring a mock interview on Benchwork. " + STYLE + "\n\n" +
+  const system = "You are an expert interview coach scoring a mock interview on Benchwrk. " + STYLE + "\n\n" +
     (spoken ? "Some answers were spoken and transcribed by the browser, so ignore missing punctuation and odd word breaks. Tags like [spoken 1:50, 150 wpm, 4 fillers] give length, pace and filler words; mention delivery only where it changed how the answer would land.\n" : "") +
     "Score each main question (including its follow-up) on five dimensions, 1 to 5:\n" +
     "- Substance: evidence quality and depth.\n- Structure: narrative clarity and flow.\n- Relevance: fit to the question and the job.\n- Credibility: believability and proof (specifics, numbers, what they personally did).\n" +
@@ -117,7 +117,7 @@ export function scorePrompt({ job, decoded, profile, setup, transcript, self }) 
     "- Hire signal is one of: Strong Hire, Hire, Mixed, No Hire, judged for this job at this band.\n" +
     "- Confidence is High, Medium or Low, with the reason (for example few answers, or a thin job description).\n" +
     "- stronger_answer is an outline in the candidate's voice using only facts from their profile or answers, marked [add your number] where a number is missing. Never invent achievements.\n" +
-    "- next_step recommends one concrete Benchwork action (a course, adding a story, or redoing this interview).\n\n" +
+    "- next_step recommends one concrete Benchwrk action (a course, adding a story, or redoing this interview).\n\n" +
     "Reply with only a JSON object in this shape:\n" +
     '{"band":"","confidence":"High|Medium|Low","confidence_reason":"","hire_signal":"","scores":{"substance":0,"structure":0,"relevance":0,"credibility":0,"differentiation":0},"self_delta":"over|under|accurate","self_note":"","what_i_heard":"","what_is_working":[""],"gaps_to_close":[""],"priority_move":"","next_step":"","best_question":1,"weakest_question":1,"scope_note":"","questions":[{"n":1,"question":"","heard":"","scores":{"substance":0,"structure":0,"relevance":0,"credibility":0,"differentiation":0},"note":"","stronger_answer":""}],"story_ideas":[""]}\n' +
     "Overall scores are averages of the per-question scores, one decimal place. 2 or 3 items in each list.";

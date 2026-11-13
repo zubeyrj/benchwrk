@@ -1,4 +1,4 @@
-// Benchwork service worker: makes the site installable and quick to reopen, and shows reminders.
+// Benchwrk service worker: makes the site installable and quick to reopen, and shows reminders.
 // App files: network first, cached copy when offline. API and database calls are never cached.
 const CACHE = "benchwork-v2";
 const SHELL = ["/", "/index.html", "/app.js", "/platform.js", "/runner.js", "/config.js", "/harness.txt", "/icon.svg", "/manifest.webmanifest"];
@@ -15,7 +15,7 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : "" }; }
-  e.waitUntil(self.registration.showNotification(d.title || "Benchwork", { body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", tag: d.tag || "bw", renotify: true, data: { url: d.url || "/#home" } }));
+  e.waitUntil(self.registration.showNotification(d.title || "Benchwrk", { body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", tag: d.tag || "bw", renotify: true, data: { url: d.url || "/#home" } }));
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();

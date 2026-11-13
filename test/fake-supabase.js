@@ -1,4 +1,4 @@
-// An in-memory stand-in for the parts of supabase-js Benchwork uses. Works in Node and in the browser.
+// An in-memory stand-in for the parts of supabase-js Benchwrk uses. Works in Node and in the browser.
 // Access rules are not modelled here; test/rls.test.mjs checks those against real Postgres.
 (function (root) {
   function makeFakeSupabase(opts) {

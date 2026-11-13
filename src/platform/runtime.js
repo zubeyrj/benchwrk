@@ -1,5 +1,5 @@
 // The runtime the app talks to: window.claude.use("db" | "user" | "sample" | "downloads").
-// Backed by Supabase (documents table, auth, realtime) and Benchwork's own API routes.
+// Backed by Supabase (documents table, auth, realtime) and Benchwrk's own API routes.
 
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const idOf = (p) => p.split("/").pop();

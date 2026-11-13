@@ -1,7 +1,7 @@
 
   /* ---------- The library: "AI Engineering from Scratch" (Rohit Ghumare, MIT), served as static files ----------
      542 lessons with quizzes, 51 coding problems with their own checks, an interview bank of 482 questions,
-     career routes, project challenges and a glossary. Benchwork adds progress, XP, the tutor and links into
+     career routes, project challenges and a glossary. Benchwrk adds progress, XP, the tutor and links into
      its own courses. */
   const LIBP = { lesson: 10, quiz: 20, easy: 30, medium: 45, hard: 60 };
   const L$ = { index: null, idxP: null, lessons: {}, probs: {}, banks: {}, gloss: undefined, harness: null, failed: false };
@@ -91,7 +91,7 @@
     const D = libState().done;
     return '<li><span class="num' + (D[l.id] ? " ok" : "") + '">' + (D[l.id] ? SVG.check : Number(l.id.slice(-2))) + '</span><span class="grow"><a class="ttl" href="#' + l.id + '">' + esc(l.t) + '</a><div class="xs muted">' + (l.phase ? "Phase " + Number(l.phase.n) + ": " + esc(l.phase.title) + " · " : "") + (l.type ? esc(l.type) + " · " : "") + l.min + " min" + (l.q ? " · quiz" : "") + "</div></span></li>";
   }
-  // Library lessons that go deeper on each Benchwork course.
+  // Library lessons that go deeper on each Benchwrk course.
   const COURSE_LIB = {
     m13: ["lib-00-01", "lib-00-10", "lib-00-13"], m0: ["lib-00-01", "lib-00-02", "lib-00-06", "lib-00-08", "lib-00-10"], m1: ["lib-00-13", "lib-00-05", "lib-00-12"],
     m2: ["lib-00-02", "lib-00-12", "lib-00-11"], m3: ["lib-00-04", "lib-11-03", "lib-11-09"], m4: ["lib-00-09", "lib-11-04", "lib-01-14"], m5: ["lib-00-07", "lib-00-03", "lib-17-01"],
@@ -100,7 +100,7 @@
     m10: ["lib-11-12", "lib-11-11", "lib-14-27", "lib-18-15", "lib-17-20", "lib-17-25"], m11: ["lib-17-01"],
   };
   function libPicks(I) {
-    const cur = MOD.length && S.placement ? currentRow(progress().p) : null;
+    const cur = MOD.length ? activeRow(progress().p) : null;
     const ids = cur ? COURSE_LIB[cur.m.id] || [] : COURSE_LIB.m13;
     return ids.map(lessonMeta).filter(Boolean);
   }
@@ -131,7 +131,7 @@
       (pre.length ? '<details class="lib-pre"><summary>Warm up: ' + plural(pre.length, "question") + ' before you read</summary><div style="margin-top:10px">' + pre.map((q, k) => mcq(q, "lp-" + id + "-" + k, { attr: 'data-lq="' + id + ":p" + k + '"', done: ui.quiz["lp-" + id + "-" + k] != null, chosen: ui.quiz["lp-" + id + "-" + k] })).join("") + "</div></details>" : "") +
       '<div class="prose lib-prose" style="margin-top:20px">' + richMd(L.md, L) + "</div></div>" + quizSec +
       '<div class="row sec">' + (done ? '<span class="state ok">' + TICK + " Read</span>" : '<button class="btn lg" data-act="libdone" data-id="' + id + '">Mark as read</button>') + (next ? '<a class="btn line lg" href="#' + next.id + '">Next: ' + esc(next.t) + "</a>" : "") + "</div>" +
-      '<div class="card sec">' + tutorBlock(id, "Ask the tutor", "Stuck on something in this lesson? Ask in your own words.", null) + "</div></article>" +
+      tutorBlock(id, "Ask the tutor", "Stuck on something in this lesson? Ask in your own words.", null) + "</article>" +
       '<aside><div class="card"><h3>Code for this lesson</h3><p class="small muted">' + (L.code.length ? "The lesson's runnable code lives in the original repository: " + esc(L.code.slice(0, 4).join(", ")) + (L.code.length > 4 ? " and more" : "") + "." : "Open the lesson's folder on GitHub.") + '</p><div class="row"><a class="btn line sm" href="' + esc(L.gh) + '" target="_blank" rel="noopener">Open on GitHub</a><a class="btn line sm" href="' + esc(L.site) + '" target="_blank" rel="noopener">Original site</a></div></div>' +
       '<div class="card"><h3>In this phase</h3><ol class="toc">' + ls.map((x) => '<li><a class="' + (LS.done[x.id] ? "ok" : "") + '" href="#' + x.id + '"' + (x.id === id ? ' aria-current="page"' : "") + '><span class="n">' + Number(x.id.slice(-2)) + "</span>" + esc(x.t) + "</a></li>").join("") + "</ol></div>" +
       (prev ? '<a class="btn line wide" href="#' + prev.id + '">Previous: ' + esc(prev.t) + "</a>" : "") + "</aside></div>" + credit(I);
@@ -174,12 +174,12 @@
     return '<p class="crumb"><a href="#practice">Quizzes</a> / <a href="#problems">Coding problems</a></p>' +
       '<div class="ex"><div class="card pad-lg"><div class="row between"><h1 style="margin:0">' + esc(P.title) + '</h1><span class="tag">' + esc(P.difficulty) + "</span></div>" + '<p class="meta"><span>' + P.minutes + " min</span><span>+" + (LIBP[P.difficulty] || LIBP.easy) + " XP</span><span>Python, NumPy</span></p>" +
       '<div class="prose lib-prose">' + richMd(P.problem) + "</div>" +
-      (lesson ? '<p class="small">Learn it first: <a href="#' + lesson.id + '">' + esc(lesson.t) + "</a></p>" : "") +
+      (lesson ? '<div class="learn-first"><b>Learn this first</b><p class="small" style="margin:4px 0 0"><a href="#' + lesson.id + '">' + esc(lesson.t) + "</a>" + (lesson.phase ? ' <span class="muted">(library, phase ' + Number(lesson.phase.n) + ", " + (lesson.min || "") + " min)</span>" : "") + ". Read it, then come back: your code stays in the editor.</p></div>" : "") +
       (P.hints.length ? '<div class="sec tight"><h3>Hints</h3>' + P.hints.slice(0, shown).map((h, k) => '<div class="hint"><b>Hint ' + (k + 1) + "</b>" + richMd(h) + "</div>").join("") + (shown < P.hints.length ? '<button class="btn line sm" data-act="probhint" data-id="' + P.id + '">Show hint ' + (shown + 1) + " of " + P.hints.length + "</button>" : "") + "</div>" : "") +
       (st.ok ? '<div class="sec tight"><h3>What to know now</h3><div class="prose small">' + richMd(P.notes) + '</div><details><summary>Reference solution</summary><pre><code>' + esc(P.solution) + "</code></pre></details></div>" : "") + "</div>" +
       '<div><div class="editor"><div class="bar-top"><span>solution.py</span><span>' + esc(P.entry.join(", ")) + '</span></div><textarea id="prob-code" spellcheck="false" aria-label="Your code" data-prob="' + P.id + '">' + esc(code) + "</textarea></div>" +
       '<div class="row" style="margin-top:12px"><button class="btn" data-act="probrun" data-id="' + P.id + '"' + (res && res.running ? " disabled" : "") + '>Run the checks</button><button class="btn line" data-act="probreset" data-id="' + P.id + '">Reset to the starter</button>' + (st.ok ? '<span class="state ok">' + TICK + " Solved</span>" : "") + "</div>" + out +
-      '<div class="card sec">' + tutorBlock("prob-" + P.id, "Ask the tutor", "Stuck? The tutor sees the problem, your code and the failing checks, and won't hand you the answer.", null) + "</div></div></div>" + credit(I);
+      tutorBlock("prob-" + P.id, "Ask the tutor", "Stuck? The tutor sees the problem, your code and the failing checks, and won't hand you the answer.", null) + "</div></div>" + credit(I);
   }
 
   /* ----- glossary ----- */

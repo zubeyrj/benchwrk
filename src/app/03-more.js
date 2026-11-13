@@ -1,42 +1,63 @@
 
-  /* ---------- placement: tools first, then the quiz ---------- */
-  function placementDiag(st) { return CT.DIAG.filter((q) => domainRating(q.d, st || S) !== 0); }
+  /* ---------- placement: tools first, then a short ladder of questions per tool ---------- */
+  // Each tool has up to six questions, easiest first. Two misses (or "Not sure") end that tool's ladder,
+  // so people who know little answer few questions and people who know a lot reach the hard ones.
+  function placementDiag(st) { st = st || S; return CT.DIAG.filter((q) => (q.t ? !st.tools || st.tools[q.t] !== 0 : domainRating(q.d, st) !== 0)); }
+  const ladderOn = () => CT.DIAG.some((q) => q.t);
+  function placeMiss(P) { const m = {}; P.hist.forEach((i) => { const q = P.diag[i]; if (q.t && P.ans[i] !== q.a) m[q.t] = (m[q.t] || 0) + 1; }); return m; }
+  function placeNext(P, from) { const m = placeMiss(P); for (let j = from; j < P.diag.length; j++) { const q = P.diag[j]; if (!q.t || (m[q.t] || 0) < 2) return j; } return -1; }
+  function newPlacement() { const diag = placementDiag(); const P = { stage: "q", i: 0, ans: {}, hist: [], diag, lf: Object.assign({}, S.lf) }; if (!diag.length) P.stage = "result"; return P; }
+  const STEPS = (n) => '<div class="steps" aria-label="Steps to your plan"><span' + (n === 1 ? ' class="on" aria-current="step"' : "") + '><i>1</i>Your tools</span><span' + (n === 2 ? ' class="on" aria-current="step"' : "") + "><i>2</i>Questions</span><span" + (n === 3 ? ' class="on" aria-current="step"' : "") + "><i>3</i>Your plan</span></div>";
   function vPlacement() {
     const P = ui.place;
     if (!P) {
       if (!S.tools) ui.place = { stage: "tools", tools: {} };
-      else return '<div class="narrow"><div class="steps"><span><i>1</i>Account</span><span><i>2</i>Your tools</span><span class="on"><i>3</i>Placement</span></div><h1>Placement</h1><p class="lede">Short questions in the areas you said you\'ve used decide which courses you take in full, fast-track or skip by passing a quiz.</p>' +
-        '<ul class="card small" style="padding:18px 18px 18px 38px;margin:18px 0"><li>About ' + Math.max(2, Math.round(placementDiag().length * 0.45)) + " minutes. No notes and no searching.</li><li>Pick \"Not sure\" instead of guessing: a lucky guess skips a course you need.</li><li>You can retake it from Settings. Your progress stays.</li></ul>" +
-        (S.placement ? '<p class="xs muted">You last took it on ' + fmtY(parseDate(S.placement.at)) + ".</p>" : "") +
-        '<div class="row"><button class="btn" data-act="pstart">Start the placement</button><button class="btn line" data-act="retools">Change my tool ratings</button></div></div>';
+      else {
+        const n = placementDiag().length, tools = Array.from(new Set(placementDiag().map((q) => q.t).filter(Boolean)));
+        return '<div class="narrow">' + STEPS(2) + '<h1>Placement questions</h1><p class="lede">' + (ladderOn() ? "Up to six questions for each tool you've used, starting easy and getting harder. Two misses on a tool moves you on to the next one." : "Short questions in the areas you've used.") + " Your answers decide which courses you take in full, fast-track or skip by passing a quiz.</p>" +
+          '<ul class="card small" style="padding:18px 18px 18px 38px;margin:18px 0"><li>' + (tools.length ? plural(tools.length, "tool") + ", at most " + n + " questions" : plural(n, "question")) + ". Most people finish in 5 to 10 minutes.</li><li>Pick <b>Not sure</b> instead of guessing: a lucky guess can skip a course you need.</li><li>Whatever the result, you can still choose to take any course in full.</li><li>You can retake it from Settings. Your progress stays.</li></ul>" +
+          (S.placement ? '<p class="xs muted">You last took it on ' + fmtY(parseDate(S.placement.at)) + ".</p>" : "") +
+          '<div class="row"><button class="btn" data-act="pstart">Start the questions</button><button class="btn line" data-act="retools">Change my tool ratings</button></div></div>';
+      }
     }
     const Q = ui.place;
     if (Q.stage === "tools") {
       const t = Q.tools, all = TOOLS.every((x) => t[x[0]] != null);
-      return '<div class="narrow" style="max-width:860px"><div class="steps"><span><i>1</i>Account</span><span class="on"><i>2</i>Your tools</span><span><i>3</i>Placement</span></div><h1>How much have you used each of these?</h1><p class="lede">Be honest: anything you\'ve never used starts from the beginning and skips its placement questions. Nobody else sees this.</p>' +
-        '<div class="rate" style="margin-top:24px">' + TOOLS.map((x) => '<div class="rrow" role="radiogroup" aria-label="' + esc(x[1]) + '"><b>' + esc(x[1]) + "<small>" + esc(x[2]) + '</small></b><div class="seg">' +
+      return '<div class="narrow" style="max-width:860px">' + STEPS(1) + '<h1>How much have you used each of these?</h1><p class="lede">Be honest. Anything you\'ve never used starts from the beginning and skips its questions. Nobody else sees this.</p>' +
+        '<div class="rate" style="margin-top:24px">' + TOOLS.map((x) => '<div class="rrow" role="radiogroup" aria-labelledby="tl-' + x[0] + '"><b id="tl-' + x[0] + '">' + esc(x[1]) + "<small>" + esc(x[2]) + '</small></b><div class="seg">' +
           RATES.map((lab, v) => '<label><input type="radio" name="tool-' + x[0] + '" value="' + v + '" data-tool="' + x[0] + '"' + (t[x[0]] === v ? " checked" : "") + "><span>" + lab + "</span></label>").join("") + "</div></div>").join("") + "</div>" +
-        '<div class="row" style="margin-top:22px"><button class="btn" data-act="toolsave"' + (all ? "" : " disabled") + '>Continue to the placement</button><span class="xs muted" id="toolcount">' + TOOLS.filter((x) => t[x[0]] != null).length + " of " + TOOLS.length + " rated</span></div></div>";
+        '<div class="row" style="margin-top:22px"><button class="btn" data-act="toolsave"' + (all ? "" : " disabled") + '>Continue to the questions</button><span class="xs muted" id="toolcount" aria-live="polite">' + TOOLS.filter((x) => t[x[0]] != null).length + " of " + TOOLS.length + " rated</span></div></div>";
     }
     const D = Q.diag;
     if (Q.stage === "q") {
-      const q = D[Q.i];
-      return '<div class="narrow"><div class="steps"><span><i>1</i>Account</span><span><i>2</i>Your tools</span><span class="on"><i>3</i>Placement</span></div><div class="pbar" aria-hidden="true">' + D.map((_, i) => '<i class="' + (i <= Q.i ? "on" : "") + '"></i>').join("") + "</div>" +
-        '<p class="xs muted">Question <span class="n">' + (Q.i + 1) + " of " + D.length + "</span>, " + esc(DOMAINS[q.d]) + '</p><p class="pq">' + rich(q.q) + "</p>" +
+      const q = D[Q.i], tools = Array.from(new Set(D.map((x) => x.t).filter(Boolean)));
+      const tName = q.t ? (TOOLS.find((x) => x[0] === q.t) || [])[1] : DOMAINS[q.d];
+      const ti = q.t ? tools.indexOf(q.t) : -1, ofT = q.t ? D.filter((x) => x.t === q.t).length : 0;
+      const bar = q.t ? '<div class="pbar" aria-hidden="true">' + tools.map((t, k) => '<i class="' + (k < ti ? "on" : k === ti ? "on half" : "") + '"></i>').join("") + "</div>" : '<div class="pbar" aria-hidden="true">' + D.map((_, i) => '<i class="' + (i <= Q.i ? "on" : "") + '"></i>').join("") + "</div>";
+      const where = q.t ? esc(tName) + ", question " + q.lv + " of up to " + ofT + ' <span class="muted">(tool ' + (ti + 1) + " of " + tools.length + ")</span>" : "Question " + (Q.i + 1) + " of " + D.length + ", " + esc(tName);
+      const diff = q.t ? ["", "Warm-up", "Easy", "Everyday", "Solid", "Tricky", "Advanced"][q.lv] || "" : "";
+      return '<div class="narrow">' + STEPS(2) + bar +
+        '<p class="small" id="pq-where">' + where + (diff ? ' <span class="tag">' + diff + "</span>" : "") + '</p><fieldset class="pqset"><legend class="pq">' + rich(q.q) + "</legend>" +
         q.o.map((o, j) => '<button class="popt" data-act="pick" data-i="' + j + '">' + rich(o) + "</button>").join("") +
-        '<button class="popt unsure" data-act="pick" data-i="-1">Not sure</button>' +
-        (Q.i > 0 ? '<button class="link" data-act="pback">Back to question ' + Q.i + "</button>" : "") + "</div>";
+        '<button class="popt unsure" data-act="pick" data-i="-1">Not sure</button></fieldset>' +
+        '<div class="row" style="margin-top:8px">' + (Q.hist.length ? '<button class="link" data-act="pback">Back</button>' : "") + (q.t ? '<button class="link" data-act="pskiptool">I don\'t know ' + esc(tName) + " well, skip to the next tool</button>" : "") + "</div></div>";
     }
     const scores = scorePlacement(Q.ans, D);
-    const temp = Object.assign({}, S, { placement: { scores } });
-    const tp = plan(temp), full = plan(Object.assign({}, temp, { placement: null, tools: null })), saved = full.total - tp.total;
-    const bars = Object.keys(DOMAINS).map((d) => { const s = scores[d] || 0, z = domainRating(d) === 0; return '<div class="dbar"><span>' + esc(DOMAINS[d]) + '</span><span class="bar"><i style="--f:' + Math.max(0.02, s / 100) + '"></i></span><span>' + (z ? '<span class="tag start">New to you</span>' : lvTag(levelOf(s))) + "</span></div>"; }).join("");
-    return '<div class="narrow"><h1>Your starting point</h1><p class="lede">Your plan is <b class="n">' + tp.weeks + " weeks</b> at " + tp.hpw + " hours a week, finishing " + fmtY(tp.end) + (saved > 0 ? ". Your ratings and answers cut " + saved + " hours from the full plan." : ".") + "</p>" +
-      (needZero(temp) ? '<p class="notice">You start with <b>Programming from zero</b>: 40 hours of basics in your browser, nothing to install.</p>' : "") +
-      (saved > 0 ? '<p class="notice" style="background:var(--ok-soft)"><b>Head start: ' + plural(Math.round(saved / tp.hpw), "week") + ' saved.</b> What you already know counts. You begin ' + Math.round((100 * saved) / full.total) + '% of the way along the full route.</p>' : "") +
-      '<div class="card sec">' + bars + "</div>" +
-      '<p class="xs muted" style="margin-top:12px"><b>Start here</b>: the full course. <b>Fast track</b>: about 60% of the time, focus on the exercises and build. <b>Prove it</b>: pass the course quiz at 80% to skip it. Projects, certification and interview courses always run full length.</p>' +
-      '<div class="row" style="margin-top:20px"><button class="btn" data-act="psave">Save my plan</button><button class="btn line" data-act="pstart">Retake the placement</button></div></div>';
+    const temp = Object.assign({}, S, { placement: { scores }, lf: Q.lf || {} });
+    const tp = plan(temp), full = plan(Object.assign({}, temp, { placement: null, tools: null, lf: {} })), saved = full.total - tp.total;
+    const tl = toolLadder(Q.ans, D);
+    const toolRows = ladderOn() ? TOOLS.map((x) => {
+      const r = S.tools ? S.tools[x[0]] : null, L = tl[x[0]], sc = L ? Math.round((100 * L.got) / L.of) : 0;
+      return '<div class="dbar"><span>' + esc(x[1]) + '</span><span class="dots" role="img" aria-label="' + (r === 0 ? "Not tested" : (L ? L.got : 0) + " of " + (L ? L.of : 6) + " right") + '">' + (r === 0 ? '<span class="xs muted">You said you haven\'t used it</span>' : Array.from({ length: L ? L.of : 6 }, (_, k) => '<i class="' + (k < (L ? L.got : 0) ? "on" : "") + '"></i>').join("")) + "</span><span>" + (r === 0 ? '<span class="tag start">New to you</span>' : lvTag(levelOf(sc))) + "</span></div>";
+    }).join("") : Object.keys(DOMAINS).map((d) => { const s = scores[d] || 0, z = domainRating(d) === 0; return '<div class="dbar"><span>' + esc(DOMAINS[d]) + '</span><span class="bar"><i style="--f:' + Math.max(0.02, s / 100) + '"></i></span><span>' + (z ? '<span class="tag start">New to you</span>' : lvTag(levelOf(s))) + "</span></div>"; }).join("");
+    const shortened = plan(Object.assign({}, temp, { lf: {} })).rows.filter((r) => r.lv === "fast" || r.lv === "testout");
+    const choose = shortened.length ? '<div class="card sec"><h2>Want to learn any of these in full anyway?</h2><p class="small muted">Your answers shorten these courses. Tick any you\'d rather take from the start: it adds the hours back to your plan. You can change this later on each course page.</p><ul class="checks">' +
+      shortened.map((r) => '<li><label><input type="checkbox" data-plf="' + r.m.id + '"' + ((Q.lf || {})[r.m.id] ? " checked" : "") + "><span><b>" + esc(r.m.title) + "</b> " + lvTag(r.lv) + ' <span class="xs muted">' + Math.round(r.m.lean && !isFull() ? r.m.lean : r.m.hours) + " h in full</span></span></label></li>").join("") + "</ul></div>" : "";
+    return '<div class="narrow">' + STEPS(3) + '<h1>Your starting point</h1><p class="lede">Your plan is <b class="n">' + tp.weeks + " weeks</b> at " + tp.hpw + " hours a week, finishing " + fmtY(tp.end) + (saved > 0 ? ". What you already know cuts " + saved + " hours." : ".") + "</p>" +
+      (needZero(temp) ? '<p class="notice">You start with <b>Programming from zero</b>: the basics in your browser, nothing to install.</p>' : "") +
+      '<div class="card sec">' + toolRows + "</div>" +
+      '<p class="xs muted" style="margin-top:12px"><b>Start here</b>: the full course. <b>Fast track</b>: about 60% of the time, focus on the exercises and build. <b>Prove it</b>: pass the course quiz at 80% to skip it. Projects and interview courses always run full length.</p>' + choose +
+      '<div class="row" style="margin-top:20px"><button class="btn" data-act="psave">Save my plan</button><button class="btn line" data-act="pstart">Retake the questions</button></div></div>';
   }
 
   /* ---------- Projects and peer review ---------- */
@@ -79,20 +100,23 @@
     const by = hoursByWeek(), mon = mondayOf(new Date()), weeks = [];
     for (let i = 11; i >= 0; i--) { const d = addDays(mon, -7 * i); weeks.push({ d, h: by[isoDate(d)] || 0, cur: i === 0 }); }
     const max = Math.max(S.hpw * 1.3, ...weeks.map((w) => w.h), 1);
-    const chart = '<div class="weeks" role="img" aria-label="Hours logged in each of the last 12 weeks"><div class="target" style="bottom:' + (100 * S.hpw) / max + '%"><span class="n">' + S.hpw + " h target</span></div>" +
+    const chart = '<div class="weeks" role="img" aria-label="Hours studied in each of the last 12 weeks: ' + weeks.map((w) => fmt(w.d) + " " + r1(w.h)).join(", ") + '"><div class="target" style="bottom:' + (100 * S.hpw) / max + '%"><span class="n">' + S.hpw + " h target</span></div>" +
       weeks.map((w) => '<div class="wk' + (w.h >= S.hpw ? " hit" : "") + (w.cur ? " cur" : "") + '"><i style="height:' + (100 * w.h) / max + '%" title="' + r1(w.h) + ' hours"></i><em>' + fmt(w.d) + "</em></div>").join("") + "</div>";
-    const cur = S.placement ? currentRow(plan()) : null;
-    const opts = MOD.filter((m) => inPlan(m.id)).map((m) => '<option value="' + m.id + '"' + (cur && cur.m.id === m.id ? " selected" : "") + ">" + esc(m.title) + "</option>").join("");
-    const list = S.log.length ? '<ul class="rl">' + S.log.slice(0, 60).map((e) => '<li><span class="state n" style="width:60px;color:var(--ink)">' + fmt(parseDate(e.d)) + '</span><span class="n" style="width:56px"><b>' + r1(e.h) + ' h</b></span><span class="grow">' + esc(byId[e.m] ? byId[e.m].title : "General") + (e.n ? '<br><span class="xs muted">' + esc(e.n) + "</span>" : "") + '</span><button class="link xs" data-act="dellog" data-id="' + esc(e.id) + '">Delete</button></li>').join("") + "</ul>"
-      : '<div class="empty"><h3>No sessions yet</h3><p>Log tonight\'s session with the form. Your plan fills cell by cell as you go.</p></div>';
-    return '<h1>Study log</h1><p class="lede"><span class="n">' + r1(totalHours()) + "</span> hours logged, " + (streak() ? plural(streak(), "week") + " streak" : "no streak yet") + ". Logging takes ten seconds and keeps your dates honest.</p>" +
-      '<div class="cols sec" style="margin-top:24px"><div class="stack"><div class="card"><h2>Weekly hours</h2>' + chart + '<p class="xs muted" style="margin:0">Green weeks hit your target. This week is in orange.</p></div><div class="card"><h2>Sessions</h2>' + list + "</div></div>" +
-      '<aside><form id="logform" class="card"><h2>Log a session</h2>' +
-      '<div class="two"><div class="field"><label for="l-d">Date</label><input id="l-d" type="date" value="' + today() + '" required></div>' +
-      '<div class="field"><label for="l-h">Hours</label><input id="l-h" type="number" min="0.25" max="16" step="0.25" value="2" required></div></div>' +
+    const cur = MOD.length ? activeRow(plan()) : null;
+    const opts = '<option value="">General</option>' + MOD.filter((m) => inPlan(m.id)).map((m) => '<option value="' + m.id + '"' + (cur && cur.m.id === m.id ? " selected" : "") + ">" + esc(m.title) + "</option>").join("");
+    const rows = logRows();
+    const list = rows.length ? '<ul class="rl">' + rows.slice(0, 80).map((x) => '<li><span class="state n" style="width:60px;color:var(--ink)">' + fmt(parseDate(x.d)) + '</span><span class="n" style="width:62px"><b>' + fmtH(x.h) + '</b></span><span class="grow">' +
+      (x.auto ? 'Counted on Benchwrk<br><span class="xs muted">Active time on study pages</span></span><span class="tag">Automatic</span>' : esc(byId[x.e.m] ? byId[x.e.m].title : "General") + (x.e.n ? '<br><span class="xs muted">' + esc(x.e.n) + "</span>" : "") + '</span><button class="link xs" data-act="dellog" data-id="' + esc(x.e.id) + '" aria-label="Delete the ' + esc(fmt(parseDate(x.d))) + ' entry">Delete</button>') + "</li>").join("") + "</ul>"
+      : '<div class="empty"><h3>No study time yet</h3><p>Open a lesson and it starts counting. Log anything you do away from Benchwrk with the form.</p></div>';
+    const auto = autoH(today());
+    return '<h1>Study log</h1><p class="lede"><span class="n">' + r1(totalHours()) + "</span> hours studied, " + (streak() ? plural(streak(), "week") + " streak" : "no streak yet") + ". " + r1(thisWeekHours()) + " of " + S.hpw + " hours this week.</p>" +
+      '<div class="cols sec" style="margin-top:24px"><div class="stack"><div class="card"><h2>Weekly hours</h2>' + chart + '<p class="xs muted" style="margin:0">Green weeks hit your target. This week is in orange.</p></div><div class="card"><h2>Sessions</h2>' + list + "</div>" + HOURS_HELP + "</div>" +
+      '<aside><form id="logform" class="card"><h2>Log time away from Benchwrk</h2><p class="small muted">Today so far: ' + fmtH(auto) + " counted here automatically. Only log time spent elsewhere.</p>" +
+      '<div class="two"><div class="field"><label for="l-d">Date</label><input id="l-d" type="date" value="' + today() + '" max="' + today() + '" required></div>' +
+      '<div class="field"><label for="l-h">Hours</label><input id="l-h" type="number" min="0.25" max="16" step="0.25" value="1" required></div></div>' +
       '<div class="field"><label for="l-m">Course</label><select id="l-m">' + opts + "</select></div>" +
-      '<div class="field"><label for="l-n">Note</label><textarea id="l-n" maxlength="400" placeholder="What you built, where you got stuck"></textarea><p class="hint">Optional. Only you can see it.</p></div>' +
-      '<button class="btn wide" type="submit">Log session</button></form></aside></div>';
+      '<div class="field"><label for="l-n">What did you do?</label><textarea id="l-n" maxlength="400" placeholder="Watched CS50 week 2, built the API locally"></textarea><p class="hint">Optional. Only you can see it.</p></div>' +
+      '<button class="btn wide" type="submit">Log time</button></form></aside></div>';
   }
 
   /* ---------- Cohort ---------- */
@@ -113,9 +137,9 @@
     if (!CO.length) return intro + scope + partnerSec;
     const rows = CO.slice().sort((a, b) => (Number(b.pts) || 0) - (Number(a.pts) || 0) || (Number(b.pct) || 0) - (Number(a.pct) || 0)).map((c, i) => {
       const pct = Math.max(0, Math.min(100, Number(c.pct) || 0)), mine = c.id === uid;
-      return '<tr class="' + (mine ? "me-row" : "") + '"><td class="n"><b>' + (i + 1) + "</b></td><td><b>" + esc(c.name || "A member") + (mine ? " (you)" : "") + "</b> " + moreMenu(c.id, c.name, "member", "", c.name) + '<div class="xs muted">Level ' + (Number(c.lvl) || 1) + " · " + (c.goal === "adjacent" ? "AI-adjacent first" : "AI engineer") + '</div></td><td class="small">' + esc(c.cur || "") + '</td><td class="n">' + (Number(c.pts) || 0) + '</td><td class="n">' + r1(Number(c.week) || 0) + '</td><td class="n">' + (Number(c.streak) || 0) + '</td><td style="min-width:150px"><div class="row" style="gap:8px;flex-wrap:nowrap"><span class="bar" style="flex:1"><i style="--f:' + pct / 100 + '"></i></span><span class="n small">' + pct + "%</span></div></td></tr>";
+      return '<tr class="' + (mine ? "me-row" : "") + '"><td class="n"><b>' + (i + 1) + "</b></td><td><b>" + esc(c.name || "A member") + (mine ? " (you)" : "") + "</b> " + moreMenu(c.id, c.name, "member", "", c.name) + '<div class="xs muted">Level ' + (Number(c.lvl) || 1) + " · " + (c.goal === "adjacent" ? "AI-adjacent first" : "AI engineer") + '</div></td><td class="small">' + esc(c.cur || "") + '</td><td class="n">' + (Number(c.pts) || 0) + '</td><td class="n">' + r1(Number(c.week) || 0) + (c.wauto != null ? '<div class="xs muted">' + r1(Number(c.wauto) || 0) + " counted here</div>" : "") + '</td><td class="n">' + (Number(c.streak) || 0) + '</td><td style="min-width:150px"><div class="row" style="gap:8px;flex-wrap:nowrap"><span class="bar" style="flex:1"><i style="--f:' + pct / 100 + '"></i></span><span class="n small">' + pct + "%</span></div></td></tr>";
     }).join("");
-    return intro + scope + partnerSec + '<div class="sec"><h2>The table</h2><div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Member</th><th>Current course</th><th class="r">XP</th><th class="r">This week (h)</th><th class="r">Streak (wk)</th><th>Route done</th></tr></thead><tbody>' + rows + "</tbody></table></div></div>";
+    return intro + scope + partnerSec + '<div class="sec"><h2>The table</h2><div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>Member</th><th>Current course</th><th class="r">XP</th><th class="r">Hours this week</th><th class="r">Streak (wk)</th><th>Route done</th></tr></thead><tbody>' + rows + "</tbody></table></div></div>";
   }
 
   /* ---------- Toolkit ---------- */
@@ -164,18 +188,18 @@
     const google = bw.provider === "google";
     return '<div class="card sec"><h2>Account</h2><p class="muted">Signed in as <b>' + esc(bw.email || "") + "</b>" + (google ? " with Google" : "") + ".</p>" +
       '<div class="row">' + (google ? "" : '<button class="btn line" data-act="pwreset">Change my password</button>') + '<button class="btn line" data-act="signout">Sign out</button></div>' + (ui.pwSent ? '<p class="small muted" role="status">We\'ve emailed you a link to choose a new password.</p>' : "") + "</div>" +
-      '<div class="card sec"><h2>Emails</h2><p class="muted">Choose what Benchwork sends you. Account emails such as password resets always arrive.</p>' +
+      '<div class="card sec"><h2>Emails</h2><p class="muted">Choose what Benchwrk sends you. Account emails such as password resets always arrive.</p>' +
       [["weekly", "Weekly progress", "Sunday evening: your hours, streak, XP and your partner's week."], ["streak", "Reminder emails", "The reminders set above, when they can\'t reach you as notifications."], ["partner", "Partner messages", "When your accountability partner cheers or nudges you."]]
         .map((t) => '<label class="toggle"><span><b>' + t[1] + '</b><br><span class="small muted">' + t[2] + '</span></span><input type="checkbox" data-pref="' + t[0] + '"' + (pr[t[0]] !== false ? " checked" : "") + (ui.prefs ? "" : " disabled") + "></label>").join("") + "</div>" +
       '<div class="card sec"><h2>Study schedule</h2><p class="muted">Your study days and times, and the link that puts them in your phone or Google Calendar, are on the <a href="#schedule">Schedule</a> page.</p></div>' +
-      '<div class="card sec"><h2>Your data</h2><p class="muted">Download everything Benchwork holds about you, or delete your account and all of it for good.</p>' +
+      '<div class="card sec"><h2>Your data</h2><p class="muted">Download everything Benchwrk holds about you, or delete your account and all of it for good.</p>' +
       '<div class="row"><button class="btn line" data-act="export"' + (ui.exporting ? " disabled" : "") + ">" + (ui.exporting ? "Preparing…" : "Download my data") + "</button></div>" +
       (ui.delOpen ? '<form id="delform" class="sec" style="margin-top:16px"><p><b>This can\'t be undone.</b> Your progress, projects, reviews, certificates and account are erased.</p><div class="field" style="max-width:280px"><label for="del-confirm">Type DELETE to confirm</label><input id="del-confirm" autocomplete="off"' + (ui.delErr ? ' aria-invalid="true" aria-describedby="del-err"' : "") + ">" + (ui.delErr ? '<p class="err" id="del-err">' + esc(ui.delErr) + "</p>" : "") + '</div><div class="row"><button class="btn" type="submit" style="background:var(--fail);border-color:var(--fail)"' + (ui.deleting ? " disabled" : "") + ">" + (ui.deleting ? "Deleting…" : "Delete my account") + '</button><button class="btn line" type="button" data-act="delcancel">Keep my account</button></div></form>'
         : '<button class="btn line" data-act="delopen" style="color:var(--fail);margin-top:10px">Delete my account</button>') + "</div>";
   }
   function calMinutes(cal) { return Math.max(20, Math.round(((S.hpw * 60) / Math.max(1, cal.days.length)) / 5) * 5); }
   function calRange(cal) {
-    const cd = MOD.length && S.placement ? countdowns() : null;
+    const cd = MOD.length ? countdowns() : null;
     const startD = parseDate(today()), end = cd && cd.route && cd.route.planned ? cd.route.planned : addDays(startD, 7 * 26);
     const [hh, mm] = (cal.time || "19:00").split(":").map(Number);
     const first = new Date(startD); const want = cal.days.map((d) => DAYS.findIndex((x) => x[0] === d));
@@ -189,19 +213,19 @@
     const r = calRange(cal), tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Europe/London";
     const until = r.end.getFullYear() + String(r.end.getMonth() + 1).padStart(2, "0") + String(r.end.getDate()).padStart(2, "0") + "T235959Z";
     const site = (BWX() && BWX().site) || location.origin;
-    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwork//Study plan//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwrk//Study plan//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
       "UID:benchwork-" + uid + "-" + Date.now() + "@benchwork", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
       "DTSTART;TZID=" + tz + ":" + icsLocal(r.first), "DTEND;TZID=" + tz + ":" + icsLocal(r.stop),
       "RRULE:FREQ=WEEKLY;BYDAY=" + cal.days.join(",") + ";UNTIL=" + until,
-      "SUMMARY:Benchwork study session", "DESCRIPTION:Open Benchwork and continue from Today: " + site, "URL:" + site,
-      "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:Benchwork in 15 minutes", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
+      "SUMMARY:Benchwrk study session", "DESCRIPTION:Open Benchwrk and continue from Today: " + site, "URL:" + site,
+      "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:Benchwrk in 15 minutes", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
   }
   function googleCalUrl(cal) {
     if (!cal.days.length) return "https://calendar.google.com/";
     const r = calRange(cal), site = (BWX() && BWX().site) || location.origin;
     const until = r.end.getFullYear() + String(r.end.getMonth() + 1).padStart(2, "0") + String(r.end.getDate()).padStart(2, "0");
-    return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent("Benchwork study session") + "&dates=" + icsLocal(r.first) + "/" + icsLocal(r.stop) +
-      "&details=" + encodeURIComponent("Open Benchwork and continue from Today: " + site) + "&recur=" + encodeURIComponent("RRULE:FREQ=WEEKLY;BYDAY=" + cal.days.join(",") + ";UNTIL=" + until);
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent("Benchwrk study session") + "&dates=" + icsLocal(r.first) + "/" + icsLocal(r.stop) +
+      "&details=" + encodeURIComponent("Open Benchwrk and continue from Today: " + site) + "&recur=" + encodeURIComponent("RRULE:FREQ=WEEKLY;BYDAY=" + cal.days.join(",") + ";UNTIL=" + until);
   }
   function saveFile(name, data, type) {
     if (downloads) return downloads.save({ filename: name, data, mimeType: type });
@@ -274,7 +298,7 @@
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" role="img" aria-label="Certificate: ' + x(m.title) + '">' +
       '<rect width="1100" height="720" fill="#ffffff"/><rect width="1100" height="150" fill="#0e1726"/><circle cx="1010" cy="40" r="150" fill="none" stroke="#c93c1a" stroke-opacity=".25" stroke-width="40"/>' +
       '<g transform="translate(70 52)"><rect width="46" height="46" rx="13" fill="#c93c1a"/><rect x="11.5" y="8.6" width="6" height="28.7" rx="3" fill="#fff"/><circle cx="26.6" cy="27.3" r="8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5.7"/><path d="M26.6 19.3a8 8 0 1 1-8 8" fill="none" stroke="#fff" stroke-width="5.7" stroke-linecap="round"/></g>' +
-      '<text x="132" y="86" font-family="' + F + '" font-size="34" font-weight="800" fill="#ffffff" letter-spacing="-1">benchwork</text>' +
+      '<text x="132" y="86" font-family="' + F + '" font-size="34" font-weight="800" fill="#ffffff" letter-spacing="-1">benchwrk</text>' +
       '<text x="70" y="230" font-family="' + B + '" font-size="18" font-weight="700" fill="#c93c1a" letter-spacing="2">CERTIFICATE OF COMPLETION</text>' +
       '<text x="70" y="315" font-family="' + F + '" font-size="64" font-weight="800" fill="#0e1726" letter-spacing="-2">' + x(name) + "</text>" +
       '<text x="70" y="370" font-family="' + B + '" font-size="22" fill="#566173">has completed</text>' +
@@ -294,32 +318,84 @@
   function certShare(m) {
     const url = ui.certUrl && ui.certUrl[m.id]; if (!url) return "";
     const st = S.mods[m.id] || {}, d = parseDate(st.done || today());
-    const li = "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=" + encodeURIComponent(m.title) + "&organizationName=Benchwork&issueYear=" + d.getFullYear() + "&issueMonth=" + (d.getMonth() + 1) + "&certUrl=" + encodeURIComponent(url) + "&certId=" + encodeURIComponent(url.split("/").pop());
+    const li = "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=" + encodeURIComponent(m.title) + "&organizationName=Benchwrk&issueYear=" + d.getFullYear() + "&issueMonth=" + (d.getMonth() + 1) + "&certUrl=" + encodeURIComponent(url) + "&certId=" + encodeURIComponent(url.split("/").pop());
     return '<div class="card sec" style="margin-top:16px"><h2>Share it</h2><p class="muted">Anyone with this link can check your certificate is real. It shows your display name, the course and the date.</p>' +
       '<div class="sharebox"><input id="cert-url" readonly value="' + esc(url) + '" aria-label="Certificate link"><button class="btn line" data-act="copycert">Copy</button></div>' +
       '<div class="row"><a class="btn" target="_blank" rel="noopener" href="' + esc(li) + '">Add to LinkedIn</a><a class="btn line" target="_blank" rel="noopener" href="' + esc(url) + '">Open the public page</a></div></div>';
   }
 
   /* ---------- the tutor (asks Claude through /api/tutor) ---------- */
+  // The tutor lives in a floating button at the bottom right of every page. It opens a chat panel that
+  // knows which lesson, exercise or problem you're on. In-page buttons open the same panel.
+  const LOGO_MARK = '<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>';
   function tutorBlock(key, title, blurb, startLabel) {
-    const T = ui.tutor[key] || { msgs: [] };
-    if (!sample) return '<div class="tutor no-print" data-tutor="' + key + '" hidden></div>';
-    return '<div class="tutor no-print" data-tutor="' + key + '"><h2>' + esc(title) + '</h2><p class="small muted">' + esc(blurb) + "</p>" +
-      (T.msgs.length ? '<div class="msgs" aria-live="polite">' + T.msgs.map((x) => '<div class="msg ' + (x.role === "user" ? "you" : "") + '"><b>' + (x.role === "user" ? "You" : "Tutor") + "</b>" + (x.role === "user" ? "<p>" + esc(x.content) + "</p>" : x.content ? md(x.content) : '<p class="thinking">Thinking…</p>') + "</div>").join("") + "</div>" : "") +
-      (T.err ? '<p class="err">' + esc(T.err) + "</p>" : "") +
-      (startLabel && !T.msgs.length ? '<button class="btn line" data-act="tstart" data-k="' + key + '">' + esc(startLabel) + "</button>"
-        : '<form data-tform="' + key + '"><textarea aria-label="Your message to the tutor" maxlength="2000" placeholder="' + (key.indexOf("interview") === 0 ? "Your answer" : "Your question") + '"' + (T.busy ? " disabled" : "") + '></textarea><button class="btn" type="submit"' + (T.busy ? " disabled" : "") + ">Send</button></form>") + "</div>";
+    if (!sample) return "";
+    return '<div class="tutor-cta no-print"><button class="btn line sm" data-act="tutoropen" data-k="' + esc(key) + '"' + (startLabel ? ' data-start="1"' : "") + ">" + esc(startLabel || "Ask the tutor about this") + '</button><span class="xs muted">' + esc(blurb) + "</span></div>";
   }
-  function refreshTutors() { if (document.querySelector("[data-tutor][hidden]")) render(); }
+  function refreshTutors() { if (phase === "ready") render(); }
+  function pageTutorKey() {
+    const r = route();
+    if (r.name === "lesson") return "lesson-" + r.id + "-" + r.i;
+    if (r.name === "ex") return "ex-" + exKey(r.id, r.ex);
+    if (r.name === "library" && r.sub === "lesson") return r.key;
+    if (r.name === "problems" && r.sub === "one") return "prob-" + r.key;
+    if (r.name === "course" || r.name === "quiz") return "course-" + r.id;
+    return "general";
+  }
+  function tutorTopic(key) {
+    let m;
+    if ((m = key.match(/^lesson-(m\d+)-(\d+)$/)) && LX[m[1]] && LX[m[1]].lessons[Number(m[2])]) return LX[m[1]].lessons[Number(m[2])].t;
+    if ((m = key.match(/^ex-(m\d+)\.(\w+)$/)) && LX[m[1]]) { const ex = LX[m[1]].ex.find((x) => x.id === m[2]); return ex ? "Exercise: " + ex.t : "This exercise"; }
+    if ((m = key.match(/^(lib-\d\d-\d\d)$/)) && L$.lessons[m[1]]) return L$.lessons[m[1]].t;
+    if ((m = key.match(/^prob-([a-z0-9-]+)$/)) && L$.probs[m[1]]) return "Problem: " + L$.probs[m[1]].title;
+    if ((m = key.match(/^(?:course|interview)-(m\d+)$/)) && byId[m[1]]) return (key.indexOf("interview") === 0 ? "Mock interview: " : "") + byId[m[1]].title;
+    return "Anything on your course";
+  }
+  const TUTOR_SUGGEST = { lesson: ["Explain this lesson more simply", "Give me another example", "Quiz me on this"], ex: ["What should I look at first?", "What does this error mean?", "Explain the idea, not the answer"], prob: ["What should I look at first?", "Explain the idea behind it"], general: ["What should I study tonight?", "Explain a term I keep seeing", "How do I stay consistent?"] };
+  function renderDock() {
+    let el = document.getElementById("tutor-dock");
+    if (phase !== "ready" || !sample) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement("div"); el.id = "tutor-dock"; el.className = "dock no-print"; document.body.appendChild(el); }
+    const D = ui.dock = ui.dock || { open: false, key: "general", auto: true };
+    if (D.auto) D.key = pageTutorKey();
+    const key = D.key, T = ui.tutor[key] || { msgs: [] }, kind = key.split("-")[0];
+    const panel = D.open ? '<section id="tutor-panel" class="tpanel" role="dialog" aria-modal="false" aria-labelledby="tp-h"><header class="tp-head"><div><h2 id="tp-h">Tutor</h2><p class="xs">Helping with: ' + esc(tutorTopic(key)) + "</p></div>" +
+      (!D.auto ? '<button class="link xs" data-act="tutorpage">Back to this page</button>' : "") + '<button class="tp-x" data-act="tutorclose" aria-label="Close the tutor"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header>' +
+      '<div class="tp-body" aria-live="polite">' + (T.msgs.length ? '<div class="msgs">' + T.msgs.map((x) => '<div class="msg ' + (x.role === "user" ? "you" : "") + '"><b>' + (x.role === "user" ? "You" : "Tutor") + "</b>" + (x.role === "user" ? "<p>" + esc(x.content) + "</p>" : x.content ? md(x.content) : '<p class="thinking">Thinking…</p>') + "</div>").join("") + "</div>"
+        : '<p class="small">' + (kind === "interview" ? "The tutor asks one interview question at a time and gives feedback on each answer." : kind === "ex" || kind === "prob" ? "The tutor sees the task, your code and the last result. It gives hints and explanations, not the finished answer." : "Ask anything about what you're learning, in your own words.") + "</p>" +
+          (kind === "interview" ? '<button class="btn sm" data-act="tstart" data-k="' + esc(key) + '">Start the mock interview</button>' : '<div class="chips">' + (TUTOR_SUGGEST[kind] || TUTOR_SUGGEST.general).map((q) => '<button class="chip-q" data-act="tutorsay" data-q="' + esc(q) + '">' + esc(q) + "</button>").join("") + "</div>")) +
+      (T.err ? '<p class="err">' + esc(T.err) + "</p>" : "") + "</div>" +
+      '<form class="tp-form" data-tform="' + esc(key) + '"><label class="sr" for="tp-in">Your message to the tutor</label><textarea id="tp-in" rows="2" maxlength="2000" placeholder="' + (kind === "interview" ? "Your answer" : "Ask a question") + '"' + (T.busy ? " disabled" : "") + '></textarea><button class="btn sm" type="submit"' + (T.busy ? " disabled" : "") + ">Send</button></form><p class=\"xs muted tp-foot\">Enter sends. Shift and Enter for a new line.</p></section>" : "";
+    const old = document.getElementById("tp-in"), draft = old ? old.value : "", hadFocus = old && document.activeElement === old;
+    el.innerHTML = panel + '<button class="fab" data-act="tutortoggle" aria-label="' + (D.open ? "Close the tutor" : "Ask the tutor") + '" aria-expanded="' + (D.open ? "true" : "false") + '" aria-controls="tutor-panel">' + LOGO_MARK + '<span class="fab-l">' + (D.open ? "Close" : "Ask the tutor") + '</span><span class="fab-dot" aria-hidden="true"></span></button>';
+    const msgs = el.querySelector(".tp-body"); if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    const nu = document.getElementById("tp-in"); if (nu && draft && !nu.disabled) { nu.value = draft; if (hadFocus) nu.focus(); }
+  }
+  function openDock(key, focus) {
+    ui.dock = ui.dock || {}; ui.dock.open = true;
+    if (key) { ui.dock.key = key; ui.dock.auto = key === pageTutorKey(); } else ui.dock.auto = true;
+    renderDock(); if (focus !== false) { const t = document.getElementById("tp-in"); if (t) t.focus(); }
+  }
+  function closeDock() { if (!ui.dock) return; ui.dock.open = false; renderDock(); const f = document.querySelector("#tutor-dock .fab"); if (f) f.focus(); }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b || phase !== "ready") return;
+    const a = b.dataset.act;
+    if (a === "tutortoggle") { if (ui.dock && ui.dock.open) closeDock(); else openDock(null); }
+    else if (a === "tutoropen") { openDock(b.dataset.k); if (b.dataset.start && !(ui.tutor[b.dataset.k] || { msgs: [] }).msgs.length) askTutor(b.dataset.k, "Start the mock interview."); }
+    else if (a === "tutorclose") closeDock();
+    else if (a === "tutorpage") { ui.dock.auto = true; renderDock(); }
+    else if (a === "tutorsay") askTutor(ui.dock.key, b.dataset.q);
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ui.dock && ui.dock.open && document.getElementById("tutor-dock").contains(document.activeElement)) closeDock(); });
   function tutorContext(key) {
-    const base = "You are the tutor inside Benchwork, a course that takes beginners to applied AI engineer roles. Write in British English, plainly, without em dashes. Keep answers under 160 words unless asked for more. Use short code examples in fenced blocks when they help." + learnForTutor();
+    const base = "You are the tutor inside Benchwrk, a course that takes beginners to applied AI engineer roles. Write in British English, plainly, without em dashes. Keep answers under 160 words unless asked for more. Use short code examples in fenced blocks when they help." + learnForTutor();
     let m;
     if ((m = key.match(/^lesson-(m\d+)-(\d+)$/))) { const L = LX[m[1]].lessons[Number(m[2])]; return base + "\n\nThe learner is reading this lesson from the course " + byId[m[1]].title + ":\n<lesson title=\"" + L.t + "\">\n" + L.md + "\n</lesson>\nAnswer their question about it. If they ask something unrelated to learning, steer them back."; }
     if ((m = key.match(/^ex-(m\d+)\.(\w+)$/))) {
       const ex = LX[m[1]].ex.find((x) => x.id === m[2]), k = m[1] + "." + m[2], code = (document.getElementById("code") || {}).value || (codeDoc && codeDoc[k]) || ex.start, res = ui.exres[k];
       return base + "\n\nThe learner is solving a coding exercise. Never give the full solution or more than three lines of corrected code. Point at the specific line or idea that is wrong, explain why and suggest the next step.\n<exercise title=\"" + ex.t + "\" language=\"" + (ex.kind === "sql" ? "SQL" : "Python") + "\">\n" + ex.md + "\n</exercise>\n<their_code>\n" + code + "\n</their_code>\n<last_result>\n" + (res && !res.running ? (res.error ? "Error: " + res.error + "\n" : "") + res.tests.map((t) => (t[1] ? "PASS " : "FAIL ") + t[0] + (t[2] ? ": " + t[2] : "")).join("\n") : "Not run yet") + "\n</last_result>";
     }
-    if ((m = key.match(/^(lib-\d\d-\d\d)$/)) && L$.lessons[m[1]]) { const L = L$.lessons[m[1]]; return base + "\n\nThe learner is reading this lesson from the Benchwork library (AI Engineering from Scratch):\n<lesson title=\"" + L.t + "\">\n" + L.md.slice(0, 14000) + "\n</lesson>\nAnswer their question about it. Point to the part of the lesson that helps."; }
+    if ((m = key.match(/^(lib-\d\d-\d\d)$/)) && L$.lessons[m[1]]) { const L = L$.lessons[m[1]]; return base + "\n\nThe learner is reading this lesson from the Benchwrk library (AI Engineering from Scratch):\n<lesson title=\"" + L.t + "\">\n" + L.md.slice(0, 14000) + "\n</lesson>\nAnswer their question about it. Point to the part of the lesson that helps."; }
     if ((m = key.match(/^prob-([a-z0-9-]+)$/)) && L$.probs[m[1]]) {
       const P = L$.probs[m[1]], res = ui.probRes && ui.probRes[m[1]], code = (ui.probCode && ui.probCode[m[1]]) || P.starter;
       const fails = res && res.results ? res.results.filter((x) => x.status !== "pass").slice(0, 5).map((x) => "- " + x.name + ": " + x.message).join("\n") : "(not run yet)";
@@ -329,27 +405,29 @@
       const bank = (byId[m[1]].bank || []).map((b) => b.type + ":\n" + b.qs.map((q) => "- " + q[0]).join("\n")).join("\n\n");
       return base + "\n\nRun a mock interview for an applied AI engineer role. Ask exactly one question at a time, drawn from this bank, mixing types. After each answer give feedback in three short parts: what worked, what to improve, and the outline of a stronger answer. Then ask the next question. Be encouraging but honest.\n<question_bank>\n" + bank + "\n</question_bank>";
     }
-    return base;
+    if ((m = key.match(/^course-(m\d+)$/)) && byId[m[1]]) { const c = byId[m[1]]; return base + "\n\nThe learner is on the course page for " + c.title + ". What it covers:\n" + c.lessons.map((t, i) => (i + 1) + ". " + String(t).replace(/<[^>]+>/g, "")).join("\n") + "\nOutcomes: " + (c.outcomes || []).join("; "); }
+    const cur = MOD.length ? activeRow(plan()) : null;
+    return base + "\n\nThe learner opened the tutor from the " + route().name + " page." + (cur ? " They are working on the course " + cur.m.title + "." : "") + " They study about " + S.hpw + " hours a week around a job. Help with learning, study habits and AI engineering careers; steer anything else back.";
   }
   async function askTutor(key, text) {
     const T = ui.tutor[key] = ui.tutor[key] || { msgs: [] };
     if (!sample || T.busy) return;
     T.err = ""; T.busy = true;
     T.msgs.push({ role: "user", content: text }); T.msgs.push({ role: "assistant", content: "" });
-    render();
+    if (!ui.dock || !ui.dock.open || ui.dock.key !== key) openDock(key, false); else renderDock();
     const convo = T.msgs.slice(0, -1).map((x) => ({ role: x.role, content: x.content }));
     convo[0] = { role: "user", content: tutorContext(key) + "\n\n" + convo[0].content };
     const live = T.msgs[T.msgs.length - 1];
     let raf = 0;
     try {
-      const out = await sample(convo, { cache: false, onText: (e) => { live.content = e.text; if (!raf) raf = requestAnimationFrame(() => { raf = 0; const el = document.querySelector('[data-tutor="' + key + '"] .msgs .msg:last-child'); if (el) el.innerHTML = "<b>Tutor</b>" + md(live.content); }); } });
+      const out = await sample(convo, { cache: false, onText: (e) => { live.content = e.text; if (!raf) raf = requestAnimationFrame(() => { raf = 0; const el = document.querySelector("#tutor-dock .msgs .msg:last-child"); if (el) { el.innerHTML = "<b>Tutor</b>" + md(live.content); const bd = el.closest(".tp-body"); if (bd) bd.scrollTop = bd.scrollHeight; } }); } });
       live.content = (out && out.text) || live.content || "No answer came back. Try again.";
     } catch (e) {
       T.msgs.pop(); T.msgs.pop();
       T.err = e && (e.code === "daily_cap" || e.code === "site_cap") && e.message ? e.message : e && e.code === "rate_limited" ? "The tutor is busy. Wait a minute and try again." : "The tutor couldn't answer just now.";
     }
-    T.busy = false; render();
-    const box = document.querySelector('[data-tutor="' + key + '"] textarea'); if (box) box.focus();
+    T.busy = false; renderDock();
+    const box = document.getElementById("tp-in"); if (box) box.focus();
   }
 
   /* ---------- welcome: confetti, then a short tour of the tabs ---------- */
@@ -372,7 +450,7 @@
   function showWelcome() {
     const name = firstName();
     const el = document.createElement("div"); el.className = "welcome-modal"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wm-t");
-    el.innerHTML = '<div class="wm-card"><span class="wm-badge">' + SVG.check.replace('width="18" height="18"', 'width="34" height="34"') + '</span><p class="label" style="color:var(--accent-text)">Step one done</p><h2 id="wm-t">Welcome to Benchwork' + (name ? ", " + esc(name) : "") + '</h2><p class="muted">You\'ve made the hardest move: you started. Your account is ready, and every evening from here moves you closer to your first AI engineering role.</p>' +
+    el.innerHTML = '<div class="wm-card"><span class="wm-badge">' + SVG.check.replace('width="18" height="18"', 'width="34" height="34"') + '</span><p class="label" style="color:var(--accent-text)">Step one done</p><h2 id="wm-t">Welcome to Benchwrk' + (name ? ", " + esc(name) : "") + '</h2><p class="muted">You\'ve made the hardest move: you started. Your account is ready, and every evening from here moves you closer to your first AI engineering role.</p>' +
       '<div class="wm-xp"><span class="ico xp">' + SVG.bolt + '</span><div><b>Level 1: Starter</b><span class="bar xp thin" style="margin-top:6px"><i style="--f:.04"></i></span></div></div>' +
       '<div class="row" style="justify-content:center;margin-top:20px"><button class="btn lg" data-act="tour">Show me around</button><button class="btn lg line" data-act="welcomedone">Skip the tour</button></div></div>';
     document.body.appendChild(el);

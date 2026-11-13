@@ -1,7 +1,8 @@
 
   /* ---------- events ---------- */
-  function addLog(h, d, m, n) {
-    S.log.unshift({ id: uidGen(), d, h, m, n: n || "" });
+  function addLog(h, d, m, n, k) {
+    const e = { id: uidGen(), d, h, m, n: n || "" }; if (k) e.k = k;
+    S.log.unshift(e);
     S.log.sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : 0));
     if (S.log.length > 800) S.log = S.log.slice(0, 800);
     persist();
@@ -59,11 +60,11 @@
       bw.client.auth.resetPasswordForEmail(bw.email, { redirectTo: bw.site.replace(/\/$/, "") + "/?reset=1" }).then(({ error }) => { if (error) toast("Couldn't send the link. Try again in a minute."); else { ui.pwSent = true; render(); } });
       return;
     }
-    if (act === "calics") { saveFile("benchwork-study-sessions.ics", buildIcs(ui.cal), "text/calendar").then(() => toast("Calendar file saved. Open it to add the sessions.")).catch(() => {}); return; }
+    if (act === "calics") { saveFile("benchwrk-study-sessions.ics", buildIcs(ui.cal), "text/calendar").then(() => toast("Calendar file saved. Open it to add the sessions.")).catch(() => {}); return; }
     if (act === "export") {
       if (!window.BW || ui.exporting) return;
       ui.exporting = true; render();
-      window.BW.api("/api/me-export").then((d) => saveFile("benchwork-my-data-" + today() + ".json", JSON.stringify(d, null, 2), "application/json")).then(() => toast("Your data is downloading."))
+      window.BW.api("/api/me-export").then((d) => saveFile("benchwrk-my-data-" + today() + ".json", JSON.stringify(d, null, 2), "application/json")).then(() => toast("Your data is downloading."))
         .catch(() => toast("Couldn't prepare your data. Try again.")).then(() => { ui.exporting = false; render(); });
       return;
     }
@@ -86,6 +87,7 @@
     if (act === "tourback") { tourStep(tourI - 1); return; }
     if (act === "tourskip" || act === "welcomedone") { endTour(); return; }
     if (phase !== "ready") return;
+    if (act === "tick") { tickToday(); return; }
     if (act === "qlog") {
       const h = Number(b.dataset.h), cur = currentRow(plan());
       const td = thisWeekDays().find((d) => d.today);
@@ -96,17 +98,27 @@
     if (act === "retools") { e.preventDefault(); ui.place = { stage: "tools", tools: Object.assign({}, S.tools || {}) }; if (location.hash === "#placement") render(); else location.hash = "placement"; return; }
     if (act === "toolsave") {
       S.tools = Object.assign({}, ui.place.tools); persist();
-      const diag = placementDiag();
-      ui.place = diag.length ? { stage: "q", i: 0, ans: {}, diag } : { stage: "result", ans: {}, diag };
+      ui.place = newPlacement();
       render(); scrollTop(); return;
     }
     if (act === "pstart" || act === "preset") {
-      if (!S.tools) { ui.place = { stage: "tools", tools: {} }; } else { const diag = placementDiag(); ui.place = diag.length ? { stage: "q", i: 0, ans: {}, diag } : { stage: "result", ans: {}, diag }; }
+      ui.place = S.tools ? newPlacement() : { stage: "tools", tools: {} };
       if (act === "pstart") { render(); scrollTop(); } return;
     }
-    if (act === "pick") { const P = ui.place; P.ans[P.i] = Number(b.dataset.i); if (P.i < P.diag.length - 1) P.i++; else P.stage = "result"; render(); scrollTop(); return; }
-    if (act === "pback") { ui.place.i = Math.max(0, ui.place.i - 1); render(); return; }
-    if (act === "psave") { S.placement = { scores: scorePlacement(ui.place.ans, ui.place.diag), at: today(), answers: ui.place.ans }; ui.place = null; persist(); toast("Plan saved."); location.hash = "plan"; return; }
+    if (act === "learnfull") { S.lf = S.lf || {}; if (S.lf[id]) delete S.lf[id]; else S.lf[id] = 1; persist(); render(); toast(S.lf[id] ? "This course is now in your plan in full." : "Back to your placement result for this course."); return; }
+    if (act === "pick") {
+      const P = ui.place; P.ans[P.i] = Number(b.dataset.i); P.hist.push(P.i);
+      const nx = placeNext(P, P.i + 1); if (nx < 0) P.stage = "result"; else P.i = nx;
+      render(); scrollTop(); const f = document.querySelector(".popt"); if (f) f.focus(); return;
+    }
+    if (act === "pskiptool") {
+      const P = ui.place, t = P.diag[P.i].t;
+      let j = P.i; while (j < P.diag.length && P.diag[j].t === t) { P.ans[j] = -1; j++; }
+      P.hist.push(P.i); const nx = placeNext(P, j); if (nx < 0) P.stage = "result"; else P.i = nx;
+      render(); scrollTop(); return;
+    }
+    if (act === "pback") { const P = ui.place, k = P.hist.pop(); if (k == null) return; Object.keys(P.ans).forEach((x) => { if (Number(x) >= k) delete P.ans[x]; }); P.i = k; P.stage = "q"; render(); return; }
+    if (act === "psave") { const P = ui.place, tl = toolLadder(P.ans, P.diag); S.placement = { scores: scorePlacement(P.ans, P.diag), at: today(), answers: P.ans, tools: Object.fromEntries(Object.entries(tl).map(([k, v]) => [k, v.got])) }; S.lf = Object.assign({}, P.lf); ui.place = null; persist(); toast("Plan saved."); location.hash = "plan"; return; }
     if (act === "lread") {
       const st = mod(id); st.checks = st.checks || {}; st.checks[b.dataset.i] = today(); persist();
       location.hash = b.dataset.next.slice(1); celebrate("Lesson read", "+" + PTS.lesson + " XP"); return;
@@ -208,6 +220,7 @@
       st.checks = st.checks || {}; if (t.checked) st.checks[i] = today(); else delete st.checks[i];
       persist(); return;
     }
+    if (t.dataset.plf) { const P = ui.place; P.lf = P.lf || {}; if (t.checked) P.lf[t.dataset.plf] = 1; else delete P.lf[t.dataset.plf]; render(); const el = document.querySelector('[data-plf="' + t.dataset.plf + '"]'); if (el) el.focus(); return; }
     if (t.dataset.cp) {
       const [id, i] = t.dataset.cp.split(":"); const st = mod(id);
       st.cp = st.cp || {}; if (t.checked) st.cp[i] = 1; else delete st.cp[i];
@@ -308,7 +321,7 @@
       const h = Number(document.getElementById("l-h").value), d = document.getElementById("l-d").value || today();
       if (!(h > 0 && h <= 16)) { toast("Enter between 0.25 and 16 hours."); return; }
       addLog(h, d, document.getElementById("l-m").value, document.getElementById("l-n").value.slice(0, 400));
-      toast("Session logged: " + plural(h, "hour") + "."); render(); return;
+      toast("Logged " + plural(h, "hour") + " away from Benchwrk."); render(); return;
     }
     if (f.id === "sform") {
       const nm = document.getElementById("s-name").value.trim();

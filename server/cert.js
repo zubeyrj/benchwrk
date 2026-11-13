@@ -13,17 +13,17 @@ export default withErrors(async function handler(req, res) {
   res.setHeader("content-type", "text/html; charset=utf-8");
   if (!c) {
     res.statusCode = 404;
-    return res.end('<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificate not found · Benchwork</title></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f1ec;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px"><main style="background:#fff;border-radius:16px;padding:28px;max-width:420px;border:1px solid #e6e0d6"><h1 style="font-size:22px;margin:0 0 8px">No certificate here</h1><p>This link doesn\'t match a Benchwork certificate. Check it was copied in full.</p><p><a href="' + site + '" style="color:#c93c1a;font-weight:700">Go to Benchwork</a></p></main></body></html>');
+    return res.end('<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificate not found · Benchwrk</title></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f1ec;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px"><main style="background:#fff;border-radius:16px;padding:28px;max-width:420px;border:1px solid #e6e0d6"><h1 style="font-size:22px;margin:0 0 8px">No certificate here</h1><p>This link doesn\'t match a Benchwrk certificate. Check it was copied in full.</p><p><a href="' + site + '" style="color:#c93c1a;font-weight:700">Go to Benchwrk</a></p></main></body></html>');
   }
   res.statusCode = 200;
   res.setHeader("cache-control", "public, max-age=300");
   const title = c.name + " completed " + c.course_title;
   const hours = c.hours ? Math.round(Number(c.hours)) + " hours of logged study" : "";
   res.end(`<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)} · Benchwork</title>
-<meta name="description" content="${esc(title)} on Benchwork, issued ${esc(longDate(c.issued))}.">
+<title>${esc(title)} · Benchwrk</title>
+<meta name="description" content="${esc(title)} on Benchwrk, issued ${esc(longDate(c.issued))}.">
 <meta property="og:type" content="website"><meta property="og:url" content="${esc(url)}"><meta property="og:title" content="${esc(title)}">
-<meta property="og:description" content="Verified Benchwork certificate, issued ${esc(longDate(c.issued))}.${hours ? " " + esc(hours) + "." : ""}">
+<meta property="og:description" content="Verified Benchwrk certificate, issued ${esc(longDate(c.issued))}.${hours ? " " + esc(hours) + "." : ""}">
 <meta property="og:image" content="${esc(site)}/og-cert.png"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
@@ -42,13 +42,13 @@ h1{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-size:clamp(34px,7vw
 .foot{margin-top:18px;font-size:14px;color:var(--muted);text-align:center}.foot a{color:var(--accent);font-weight:700}
 </style></head><body><main>
 <article class="cert" aria-label="Certificate">
-<div class="brand"><i>b</i>benchwork</div>
+<div class="brand"><i>b</i>benchwrk</div>
 <p class="k">Certificate of completion</p>
 <h1>${esc(c.name)}</h1>
 <p class="course">completed <b>${esc(c.course_title)}</b></p>
 <div class="meta"><div>Issued<b>${esc(longDate(c.issued))}</b></div>${hours ? `<div>Study<b>${esc(hours)}</b></div>` : ""}<div>Certificate ID<b>${esc(c.id)}</b></div></div>
-<span class="ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Verified by Benchwork</span>
+<span class="ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Verified by Benchwrk</span>
 </article>
-<p class="foot">Benchwork takes people from zero to AI engineer. <a href="${esc(site)}">Start free</a></p>
+<p class="foot">Benchwrk takes people from zero to AI engineer. <a href="${esc(site)}">Start free</a></p>
 </main></body></html>`);
 });

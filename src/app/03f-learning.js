@@ -48,7 +48,7 @@
   }
   // On Today: the one outside resource that suits this member for the current course.
   function todayPick(m) {
-    if (!learnSet()) return '<p class="pick">How do you learn best? <a href="#settings">Tell us</a> and Benchwork picks resources to match.</p>';
+    if (!learnSet()) return '<p class="pick">How do you learn best? <a href="#settings">Tell us</a> and Benchwrk picks resources to match.</p>';
     const r = bestFor(m); if (!r) return "";
     return '<p class="pick">Best for you this course: <a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.t) + "</a> <span>(" + esc((r.fmt || []).map((f) => FMTNAME[f].toLowerCase()).join(" and ")) + ", " + esc(r.cost) + ")</span></p>";
   }

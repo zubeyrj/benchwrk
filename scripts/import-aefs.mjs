@@ -1,5 +1,5 @@
 // Imports "AI Engineering from Scratch" (github.com/rohitg00/ai-engineering-from-scratch, MIT licence)
-// into Benchwork's library: lessons and quizzes for all 20 phases, coding problems, the interview bank,
+// into Benchwrk's library: lessons and quizzes for all 20 phases, coding problems, the interview bank,
 // career routes, project challenges and the glossary.
 //
 //   git clone --depth 1 https://github.com/rohitg00/ai-engineering-from-scratch /tmp/aefs
@@ -31,7 +31,7 @@ const ghBlob = (p) => REPO + "/blob/" + SHA + "/" + p;
 const ghRaw = (p) => "https://raw.githubusercontent.com/rohitg00/ai-engineering-from-scratch/" + SHA + "/" + p;
 const libId = (lessonPath) => { const m = String(lessonPath).match(/phases\/(\d\d)-[^/]+\/(\d\d)-([^/]+)/); return m ? "lib-" + m[1] + "-" + m[2] : null; };
 
-// Links inside a lesson: other lessons become Benchwork routes, repo files go to GitHub, images to raw files.
+// Links inside a lesson: other lessons become Benchwrk routes, repo files go to GitHub, images to raw files.
 function fixLinks(md, dir) {
   return md.replace(/(!?)\[([^\]]*)\]\(([^)\s]+)([^)]*)\)/g, (all, bang, text, href, rest) => {
     if (/^(https?:|mailto:|#)/.test(href)) return all;
@@ -49,7 +49,7 @@ function meta(md) {
   return { title: title.trim(), motto: motto.trim(), type: get("Type"), langs: get("Languages"), prereq: get("Prerequisites"), min: mins };
 }
 function body(md) {
-  // Drop the title, motto and the bold metadata lines: Benchwork shows those in the lesson header.
+  // Drop the title, motto and the bold metadata lines: Benchwrk shows those in the lesson header.
   const lines = md.split("\n"); let i = 0, seenTitle = false;
   for (; i < lines.length; i++) {
     const l = lines[i].trim();

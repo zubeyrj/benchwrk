@@ -30,7 +30,7 @@ let html = fs.readFileSync(path.join(root, "public/index.html"), "utf8");
 html = html.replace('<script src="config.js"></script>\n<script src="platform.js"></script>', '<script src="demo.js"></script>\n<script src="platform.js"></script>');
 html = html.replace(/<link rel="manifest"[^>]*>\n/, "").replace(/<link rel="icon"[^>]*>/, '<link rel="icon" href="icon.svg" type="image/svg+xml">').replace(/<link rel="apple-touch-icon"[^>]*>\n/, "").replace(/<meta property="og:image"[^>]*>\n/, "");
 html = html.replace("</style>", ".preview-bar{position:relative;z-index:21;background:#fff4d6;color:#5a3b00;font-size:13.5px;line-height:1.4;padding:8px 16px;text-align:center}.preview-bar b{margin-right:6px}\n</style>");
-html = html.replace("<title>Benchwork</title>", "<title>Benchwork preview</title>");
+html = html.replace("<title>Benchwrk</title>", "<title>Benchwrk preview</title>");
 if (!html.includes('src="demo.js"')) throw new Error("script swap failed");
 fs.writeFileSync(path.join(out, "index.html"), html);
 console.log("preview built: " + fs.readdirSync(out).join(", "));

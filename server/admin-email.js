@@ -12,7 +12,7 @@ export default withErrors(async function handler(req, res) {
   const paras = body.slice(0, 5000).split(/\n{2,}/).map((t) => p(esc(t).replace(/\n/g, "<br>"))).join("");
   await sendEmail({
     to: profile.email, subject: subject.slice(0, 140), replyTo: user.email,
-    html: layout({ preheader: body.slice(0, 90), heading: subject.slice(0, 140), body: paras, cta: "Open Benchwork", footer: "Sent by the Benchwork owner. Reply to this email to answer them directly." }),
+    html: layout({ preheader: body.slice(0, 90), heading: subject.slice(0, 140), body: paras, cta: "Open Benchwrk", footer: "Sent by the Benchwrk owner. Reply to this email to answer them directly." }),
     text: body.slice(0, 5000),
   });
   await logEmail(to, "admin", user.id);

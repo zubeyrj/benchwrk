@@ -1,7 +1,7 @@
 // Vercel cron, daily 17:00 UTC. Only for members on the gentle reminder level.
 // Friday and Saturday: "your streak ends Sunday" for members short of this week's target.
 // Any day: a gentle come-back note after 10 quiet days (at most every 14 days, 3 in total).
-import { SITE, adminClient, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, weekHours, withErrors } from "../_lib.js";
+import { SITE, adminClient, esc, footerFor, unsubLink, isoDay, layout, logEmail, mondayOf, p, requireCron, send, sendEmail, sentSince, weekHours, lastStudyDay, withErrors } from "../_lib.js";
 import { loadMembers } from "./_members.js";
 import { remindOf } from "../_nudge.js";
 import { updateLeagues } from "./league.js";
@@ -28,7 +28,7 @@ export default withErrors(async function handler(req, res) {
   let streak = 0, comeback = 0, failed = 0;
   for (const m of await loadMembers()) {
     if (!m.prefs.streak || remindOf(m.state).level !== "gentle") continue; // persistent and relentless: cron/nudge.js
-    const st = m.state, need = Number(st.hpw || 15) * 0.6, last = (st.log && st.log[0] && st.log[0].d) || null;
+    const st = m.state, need = Number(st.hpw || 15) * 0.6, last = lastStudyDay(st);
     const quiet = last ? Math.floor((Date.parse(isoDay(now)) - Date.parse(last)) / 864e5) : null;
     try {
       if ((dow === 5 || dow === 6) && (m.summary.streak || 0) >= 1 && weekHours(st, monday) < need && quiet !== null && quiet < 10 &&

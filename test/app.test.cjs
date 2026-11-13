@@ -44,7 +44,7 @@ let BASE = '';
   // 1. signed out
   let p = await page(null);
   ok('unconfigured site shows setup screen', /isn't connected to its database/.test(await p.textContent('main')));
-  ok('brand renamed', /benchwork/.test(await p.textContent('.mast')));
+  ok('brand renamed', /benchwrk/.test(await p.textContent('.mast')));
   await shot(p, '01-noaccess', false); await overflow(p, 'noaccess');
 
   // 2. sign up
@@ -84,15 +84,18 @@ let BASE = '';
   for (const t in rate) await p.check(`input[data-tool="${t}"][value="${rate[t]}"]`);
   await shot(p, '03-tools');
   await p.click('[data-act="toolsave"]'); await p.waitForTimeout(250);
-  const nq = await p.evaluate(() => document.querySelectorAll('.pbar i').length);
-  ok('placement skips never-used areas', nq > 0 && nq < 18, nq + ' questions');
-  for (let i = 0; i < nq; i++) await p.click('[data-act="pick"]:not(.unsure) >> nth=1');
+  const ntools = await p.evaluate(() => document.querySelectorAll('.pbar i').length);
+  ok('placement asks only about tools used', ntools === 4, ntools + ' tools');
+  ok('questions start easy and say where you are', /Python, question 1 of up to 6/.test(await p.textContent('main')));
+  let nq = 0;
+  while (await p.$('[data-act="pick"]') && nq < 40) { await p.click('[data-act="pick"]:not(.unsure) >> nth=1'); nq++; }
+  ok('two misses end a ladder', nq > 4 && nq < 24, nq + ' questions');
   await shot(p, '04-result');
   ok('zero course flagged', /Programming from zero/.test(await p.textContent('main')));
   await p.click('[data-act="psave"]'); await p.waitForTimeout(400);
   await shot(p, '05-plan'); await overflow(p, 'plan');
-  ok('plan includes zero course', /Programming from zero/.test(await p.textContent('.plan')));
-  ok('finish line drawn', (await p.$$('.finish svg')).length === 1);
+  ok('plan includes zero course', /Programming from zero/.test(await p.textContent('.tl')));
+  ok('finish line drawn', (await p.$$('.tl-ms.end svg')).length === 1);
 
   // 3. home
   await go(p, 'home', 600);
@@ -104,13 +107,17 @@ let BASE = '';
   // 4. course + lesson
   await go(p, 'course-m13', 500);
   await shot(p, '07-course'); await overflow(p, 'course');
-  ok('course lists 8 lessons', (await p.$$('.card ol.rl >> nth=0 >> li')).length === 8);
+  ok('course lists 8 lessons', (await p.$$('.csteps .cstep.lesson')).length === 8);
+  ok('exercises sit under the lesson they practise', (await p.$$('.csteps .cstep.ex')).length === 9 && await p.evaluate(() => { const li = [...document.querySelectorAll('.cstep')]; return li[1].classList.contains('ex') && /Variables/.test(li[1].textContent); }));
+  ok('course page says what to do next', /Start here/.test(await p.textContent('.start-card')));
   await go(p, 'lesson-m13-0', 400);
   await p.check('input[data-lc="m13-0"][value="2"]'); await p.waitForTimeout(150);
   ok('quick check feedback', (await p.$$('.q .opt.right')).length === 1);
   await shot(p, '08-lesson'); await overflow(p, 'lesson');
   await p.click('[data-act="lread"]'); await p.waitForTimeout(400);
-  ok('mark read moves to lesson 2', (await p.evaluate(() => location.hash)) === '#lesson-m13-1');
+  ok('mark read moves to the practice for that lesson', (await p.evaluate(() => location.hash)) === '#ex-m13-z1');
+  ok('exercise links back to its lesson', /Learn this first/.test(await p.textContent('main')) && !!(await p.$('a[href="#lesson-m13-0"]')));
+  await go(p, 'lesson-m13-1', 400);
   {
     const h1 = (await p.textContent('#app h1')).trim();
     await go(p, 'home', 500);
@@ -120,8 +127,14 @@ let BASE = '';
     ok('Continue reopens the lesson', (await p.evaluate(() => location.hash)) === '#lesson-m13-1');
   }
   // tutor on lesson
-  await p.fill('[data-tform] textarea', 'Why does the newest value win?'); await p.press('[data-tform] textarea', 'Enter'); await p.waitForTimeout(400);
-  ok('tutor answers on lesson', /Tutor/.test(await p.textContent('.tutor .msgs')));
+  ok('tutor is a floating button', await p.isVisible('#tutor-dock .fab') && !(await p.$('#tutor-panel')));
+  await p.click('#tutor-dock .fab'); await p.waitForTimeout(150);
+  ok('tutor panel opens with the lesson as context', await p.isVisible('#tutor-panel') && /Helping with: Numbers, text and types/.test(await p.textContent('#tutor-panel')) && await p.evaluate(() => document.activeElement.id === 'tp-in'));
+  await p.fill('#tp-in', 'Why does the newest value win?'); await p.press('#tp-in', 'Enter'); await p.waitForTimeout(400);
+  ok('tutor answers on lesson', /Tutor/.test(await p.textContent('#tutor-dock .msgs')));
+  await shot(p, '08b-tutor', false);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  ok('Escape closes the tutor and returns focus', !(await p.$('#tutor-panel')) && await p.evaluate(() => document.activeElement.classList.contains('fab')));
   ok('tutor got lesson context', await p.evaluate(() => /<lesson title=/.test(window.__lastSample[0].content)));
 
   // 5. Python exercise
@@ -185,7 +198,7 @@ let BASE = '';
   ok('certificate download offered', /certificate-programming-from-zero\.svg/.test(await p.evaluate(() => window.__lastDownload)));
   await p.click('[data-act="certshare"]'); await p.waitForTimeout(250);
   ok('certificate share link', (await p.inputValue('#cert-url')) === 'https://benchwork.test/c/0123456789abcdef' && await p.evaluate(() => window.__cert.course === 'm13' && window.__cert.name === 'Z'));
-  ok('add to LinkedIn link', /linkedin\.com\/profile\/add\?startTask=CERTIFICATION_NAME.*organizationName=Benchwork.*certUrl=/.test(await p.getAttribute('a[href*="linkedin.com"]', 'href')));
+  ok('add to LinkedIn link', /linkedin\.com\/profile\/add\?startTask=CERTIFICATION_NAME.*organizationName=Benchwrk.*certUrl=/.test(await p.getAttribute('a[href*="linkedin.com"]', 'href')));
   await shot(p, '13b-cert-share', false);
 
   // 8. practice
@@ -226,7 +239,7 @@ let BASE = '';
   // screen readers: page changes move focus to the heading and name the tab; messages go to one live region
   await go(p, 'library', 600);
   ok('page change focuses the heading', await p.evaluate(() => document.activeElement && document.activeElement.tagName === 'H1' && /Library/.test(document.activeElement.textContent)));
-  ok('tab title names the page', /^Library · Benchwork$/.test(await p.title()));
+  ok('tab title names the page', /^Library · Benchwrk$/.test(await p.title()));
   await go(p, 'league', 300); await p.click('[data-act="lgleave"]'); await p.waitForTimeout(300);
   ok('toasts are announced', /left the leagues/.test(await p.textContent('#sr-live')));
   await p.click('[data-act="lgjoin"]'); await p.waitForTimeout(300);
@@ -509,7 +522,7 @@ let BASE = '';
   await p.click('[data-act="extra"]'); await p.waitForTimeout(900);
   ok('extra removed again', await p.evaluate(() => !window.__store.get('data/users/u1/state').extras.m14));
   await go(p, 'course-m6', 600);
-  ok('optional lessons marked on the lean path', (await p.$$eval('.rl .state', (els) => els.filter((e) => e.textContent === 'Optional').length)) === 2);
+  ok('optional lessons marked on the lean path', (await p.$$eval('.csteps .state', (els) => els.filter((e) => e.textContent === 'Optional').length)) === 2);
   await go(p, 'settings', 500);
   await p.check('input[name="st-path"][value="full"]'); await p.waitForTimeout(900);
   ok('full path saved', await p.evaluate(() => window.__store.get('data/users/u1/state').path === 'full'));
@@ -535,7 +548,7 @@ let BASE = '';
   ok('own schedule saved and sets hours a week', await p.evaluate(() => { const st = window.__store.get('data/users/u1/state'); const m = Object.values(st.sched.days).reduce((a, d) => a + d.m, 0); return st.sched.mode === 'own' && st.sched.days.FR.t === '18:15' && st.sched.days.FR.m === 120 && !st.sched.days.SU && st.hpw === Math.round(m / 30) / 2 && st.sched.ms.length > 3 && !!st.sched.tz; }), tot);
   ok('subscribe links for iPhone, Google and Outlook', /^webcal:\/\/bw\.test\/cal\/token0\.ics$/.test(await p.getAttribute('.cal-links a:nth-child(1)', 'href')) && /calendar\.google\.com\/calendar\/r\?cid=webcal/.test(await p.getAttribute('.cal-links a:nth-child(2)', 'href')) && /outlook\.live\.com.*addfromweb/.test(await p.getAttribute('.cal-links a:nth-child(3)', 'href')));
   await p.click('[data-act="calfile"]'); await p.waitForTimeout(200);
-  ok('calendar file downloaded', (await p.evaluate(() => window.__lastDownload)) === 'benchwork-study-week.ics');
+  ok('calendar file downloaded', (await p.evaluate(() => window.__lastDownload)) === 'benchwrk-study-week.ics');
   await p.click('.cal-url + button, details.small summary'); await p.waitForTimeout(100);
   await p.click('[data-act="calrotate"]'); await p.waitForTimeout(200);
   ok('calendar link can be replaced', /token1\.ics/.test(await p.inputValue('.cal-url')));
@@ -548,7 +561,7 @@ let BASE = '';
   await p.click('[data-act="pwreset"]'); await p.waitForTimeout(150);
   ok('password reset link requested', await p.evaluate(() => window.__reset && window.__reset.e === 'z@example.org' && /\?reset=1$/.test(window.__reset.o.redirectTo)));
   await p.click('[data-act="export"]'); await p.waitForTimeout(250);
-  ok('data export downloaded', /benchwork-my-data-.*\.json/.test(await p.evaluate(() => window.__lastDownload)));
+  ok('data export downloaded', /benchwrk-my-data-.*\.json/.test(await p.evaluate(() => window.__lastDownload)));
   await shot(p, '19b-settings-extras'); await overflow(p, 'settings extras');
   await p.click('[data-act="delopen"]'); await p.waitForTimeout(120);
   await p.fill('#del-confirm', 'delete'); await p.click('#delform button[type=submit]'); await p.waitForTimeout(120);
@@ -643,9 +656,33 @@ let BASE = '';
   const dk = await page({state: { account: { name: 'Z', created: '2026-11-09' }, tools: rate, placement: { scores: { python: 33, eng: 0, web: 50, sql: 100, cloud: 0, llm: 0 }, at: '2026-11-09' }, hpw: 15, goal: 'engineer', start: '2026-11-09', mods: { m13: { checks: { 0: 1 } } }, log: [{ id: 'a', d: new Date().toISOString().slice(0, 10), h: 1, m: 'm13' }], miss: {} }}, { width: 1366, height: 900 }, 'dark'); await dk.waitForTimeout(800); await shot(dk, '40-d-home', false);
   await go(dk, 'lesson-m13-2', 500); await shot(dk, '41-d-lesson', false);
   await go(dk, 'ex-m13-z3', 500); await shot(dk, '42-d-ex', false);
+  // study time: counted on study pages plus time logged away, a tick for today's session, and the cohort sees both
+  {
+    const td = await p.evaluate(() => { const z = new Date(); return new Date(z.getTime() - z.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); });
+    const hp = await page({ state: { account: { name: 'Hana' }, hpw: 14, start: '2026-11-09', mods: { m13: { checks: { 0: td } } }, log: [{ id: 'a1', d: td, h: 0.5, m: 'm13', n: 'CS50 video' }], act: { [td]: 3600 } } });
+    await hp.waitForTimeout(800); await go(hp, 'home', 500);
+    ok('Today shows the dashboard once you have started, even without the placement', /Personalise my plan/.test(await hp.textContent('main')) && /Continue/.test(await hp.textContent('.hero')));
+    ok('today splits counted and logged time', /Today: 1\.5 h/.test(await hp.textContent('.today-line')) && /1 h counted on Benchwrk, 30 min logged/.test(await hp.textContent('.today-line')));
+    await shot(hp, '22b-home-hours', false);
+    const tick = await hp.$('[data-act="tick"]');
+    if (tick) {
+      await tick.click(); await hp.waitForTimeout(900);
+      const st = await hp.evaluate(() => window.__store.get('data/users/u1/state'));
+      ok('ticking tops today up to the planned session, no more', st.log.some((e) => e.k === 'tick') && st.log.filter((e) => e.k === 'tick').every((e) => e.h > 0 && e.h <= 14));
+      await hp.click('[data-act="tick"]'); await hp.waitForTimeout(900);
+      ok('tick can be undone', !(await hp.evaluate(() => window.__store.get('data/users/u1/state').log.some((e) => e.k === 'tick'))));
+    } else ok('no tick offered on a rest day or once covered', true);
+    const sum = await hp.evaluate(() => window.__store.get('learners/u1'));
+    ok('cohort summary names the real course, with counted hours', sum.cur === 'Programming from zero' && sum.wauto === 1 && sum.week >= 1.5, JSON.stringify({ cur: sum.cur, wauto: sum.wauto, week: sum.week }));
+    await go(hp, 'log', 500);
+    ok('study log shows counted time and asks only for time away', /Counted on Benchwrk/.test(await hp.textContent('main')) && /Log time away from Benchwrk/.test(await hp.textContent('#logform')));
+    await go(hp, 'plan', 500); await shot(hp, '05b-plan-unplaced');
+    ok('plan without placement offers to personalise', /starting from scratch/.test(await hp.textContent('main')) && (await hp.$$('.tl-row')).length > 5);
+    await hp.close();
+  }
   // no sample capability hides the tutor
-  const ns = await page({ noSample: true , state: { account: { name: 'Z' }, tools: rate, placement: { scores: { python: 33 }, at: '2026-11-09' }, hpw: 15, start: '2026-11-09', mods: {}, log: [] }}); await ns.waitForTimeout(600); await go(ns, 'lesson-m13-0', 400); await ns.waitForSelector('[data-tutor]', { state: 'attached', timeout: 8000 }).catch(async () => console.log('NS MAIN:', (await ns.textContent('main')).slice(0, 300)));
-  ok('tutor hidden without capability', await ns.$eval('[data-tutor]', n => n.hidden).catch(() => false));
+  const ns = await page({ noSample: true , state: { account: { name: 'Z' }, tools: rate, placement: { scores: { python: 33 }, at: '2026-11-09' }, hpw: 15, start: '2026-11-09', mods: {}, log: [] }}); await ns.waitForTimeout(600); await go(ns, 'lesson-m13-0', 400); await ns.waitForSelector('.prose', { timeout: 8000 }).catch(async () => console.log('NS MAIN:', (await ns.textContent('main')).slice(0, 300)));
+  ok('tutor hidden without capability', !(await ns.$('#tutor-dock')) && !(await ns.$('.tutor-cta')));
   // no email from the platform: the form requires one
   const ne = await page({ noEmail: true });
   await ne.fill('#a-name', 'Sam'); await ne.click('#signup button[type=submit]'); await ne.waitForTimeout(200);

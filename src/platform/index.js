@@ -1,4 +1,4 @@
-// Benchwork's front door: sign-in, sign-up, Google, email verification and password reset.
+// Benchwrk's front door: sign-in, sign-up, Google, email verification and password reset.
 // Once there's a session it installs the runtime (window.claude) and extras (window.BW), then loads the app.
 import { createClient } from "@supabase/supabase-js";
 import { makeRuntime } from "./runtime.js";
@@ -16,7 +16,7 @@ const ICON = {
 };
 
 const side = '<aside class="auth-side"><div><h1>Become an AI engineer, <em>from zero</em>, one evening at a time.</h1>' +
-  '<p class="lede">Benchwork is a free training ground. You get a dated plan at your hours, lessons with coding exercises that run in your browser, and three real projects to ship.</p></div>' +
+  '<p class="lede">Benchwrk is a free training ground. You get a dated plan at your hours, lessons with coding exercises that run in your browser, and three real projects to ship.</p></div>' +
   '<div class="props">' +
   '<div class="prop"><span class="ico">' + ICON.target + '</span><div><b>A plan built around you</b><span>Rate the tools you\'ve used, take a short placement and skip what you already know.</span></div></div>' +
   '<div class="prop"><span class="ico">' + ICON.code + '</span><div><b>59 exercises, checked as you go</b><span>Python and SQL run in the browser. Hints and a tutor when you\'re stuck.</span></div></div>' +
@@ -67,11 +67,11 @@ function view() {
       '<button class="btn lg wide" type="submit"' + busy + ">Save and continue</button></form>";
   } else if (m === "sent" || m === "sent-reset") {
     card = '<div class="auth-card sent"><div class="wm-badge" aria-hidden="true">' + ICON.check + '</div><h2 style="font-size:28px;margin-bottom:6px">Check your email</h2>' +
-      '<p class="muted">We sent a link to <b>' + esc(ui.email) + "</b>. " + (m === "sent" ? "Open it to confirm your address and you'll land straight in Benchwork." : "Open it to choose a new password.") + "</p>" + banner +
+      '<p class="muted">We sent a link to <b>' + esc(ui.email) + "</b>. " + (m === "sent" ? "Open it to confirm your address and you'll land straight in Benchwrk." : "Open it to choose a new password.") + "</p>" + banner +
       '<p class="small muted">Nothing after a couple of minutes? Check spam, or ' + (m === "sent" ? '<a href="#" data-auth="resend">send it again</a>' : '<a href="#" data-auth="to-forgot">try again</a>') + '.</p>' +
       '<p class="small"><a href="#" data-auth="to-signin">Back to sign in</a></p></div>';
   } else if (m === "setup") {
-    card = '<div class="auth-card"><h2 style="font-size:26px">Almost there</h2><p class="muted">This copy of Benchwork isn\'t connected to its database yet. Add the Supabase keys in Vercel (see SETUP.md), redeploy, and reload this page.</p></div>';
+    card = '<div class="auth-card"><h2 style="font-size:26px">Almost there</h2><p class="muted">This copy of Benchwrk isn\'t connected to its database yet. Add the Supabase keys in Vercel (see SETUP.md), redeploy, and reload this page.</p></div>';
   } else {
     card = '<div class="auth-card"><p class="muted">Loading…</p></div>';
   }
@@ -85,7 +85,7 @@ const MARK = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" heigh
 function mast() {
   const me = $("#me"); if (!me) return;
   me.innerHTML = ui.mode === "home" ? '<a class="btn ghost sm" href="?signin" data-auth="to-signin">Sign in</a><button class="btn sm" type="button" data-home="start">Start free</button>'
-    : ["signup", "signin", "forgot"].indexOf(ui.mode) >= 0 ? '<a class="btn ghost sm" href="./" data-home="back">About Benchwork</a>' : "";
+    : ["signup", "signin", "forgot"].indexOf(ui.mode) >= 0 ? '<a class="btn ghost sm" href="./" data-home="back">About Benchwrk</a>' : "";
   const shell = $("#shell"); if (shell) shell.classList.toggle("home", ui.mode === "home");
 }
 
@@ -104,11 +104,11 @@ function friendly(e) {
   if (/already registered|already exists/i.test(msg)) return "There's already an account with that email. Sign in instead.";
   if (/rate limit|too many/i.test(msg)) return "Too many attempts. Wait a minute and try again.";
   if (/weak|password should/i.test(msg)) return "Choose a stronger password: at least 8 characters, not a common word.";
-  if (/network|fetch/i.test(msg)) return "Couldn't reach Benchwork. Check your connection and try again.";
+  if (/network|fetch/i.test(msg)) return "Couldn't reach Benchwrk. Check your connection and try again.";
   return msg || "Something went wrong. Try again.";
 }
 
-// Phone and browser notifications. iPhones and iPads only allow them once Benchwork is added to the Home Screen.
+// Phone and browser notifications. iPhones and iPads only allow them once Benchwrk is added to the Home Screen.
 function makePush(key, api) {
   const nav = typeof navigator !== "undefined" ? navigator : {};
   const ios = /iPad|iPhone|iPod/.test(nav.userAgent || "") || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1);

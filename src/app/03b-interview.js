@@ -28,7 +28,7 @@
 
   /* ----- views ----- */
   function vInterview(r) {
-    if (!ivReady()) return '<div class="narrow"><h1>Interview room</h1><p class="lede">Mock interviews run on the Benchwork website. Open Benchwork in your browser to use them.</p></div>';
+    if (!ivReady()) return '<div class="narrow"><h1>Interview room</h1><p class="lede">Mock interviews run on the Benchwrk website. Open Benchwrk in your browser to use them.</p></div>';
     if (r.sub === "new") return vIvNew();
     if (r.sub === "stories") return vIvStories();
     if (r.sub === "compare") return vIvCompare();
@@ -48,7 +48,7 @@
         (x.score ? '<span class="tag ' + (SIGNAL[x.score.hire_signal] || "") + '">' + esc(x.score.hire_signal || "") + '</span><span class="iv-num">' + a + "</span>" : '<span class="tag behind">Unfinished</span><span></span>') + "</a>";
     }).join("");
     const jobs = S.iv.jobs.slice().reverse().map((j) => '<a class="iv-row" href="#iv-job-' + j.id + '"><div><b>' + esc(j.title || "Untitled job") + "</b>" + (j.company ? '<span class="muted"> at ' + esc(j.company) + "</span>" : "") + '<div class="xs muted">' + esc(j.source || "Pasted") + (j.location ? " · " + esc(j.location) : "") + "</div></div>" + (j.decoded && j.decoded.fit ? '<span class="tag ' + (VERDICT[j.decoded.fit.verdict] || "") + '">' + esc(j.decoded.fit.verdict) + "</span>" : "<span></span>") + "<span></span></a>").join("");
-    return '<section class="banner iv-banner"><div><p class="crumb">Interview room</p><h1>Practise the interview before it counts</h1><p class="lede">Bring a real job advert, or find one here. Benchwork decodes what the employer wants, an AI interviewer asks one question at a time, and you get a scorecard on five dimensions with a stronger version of each answer.</p>' +
+    return '<section class="banner iv-banner"><div><p class="crumb">Interview room</p><h1>Practise the interview before it counts</h1><p class="lede">Bring a real job advert, or find one here. Benchwrk decodes what the employer wants, an AI interviewer asks one question at a time, and you get a scorecard on five dimensions with a stronger version of each answer.</p>' +
       '<div class="row" style="margin-top:18px"><a class="btn lg" href="#iv-new">Start a mock interview</a><a class="btn line lg on-dark" href="#iv-stories">Your stories (' + S.iv.stories.length + ")</a>" + '<a class="btn line lg on-dark" href="#iv-bank">Question bank</a>' + (S.iv.jobs.length >= 2 ? '<a class="btn line lg on-dark" href="#iv-compare">Compare saved jobs</a>' : "") + "</div></div></section>" +
       '<div class="cols"><div>' +
       (ses.length ? '<div class="card sec"><div class="row between"><h2 style="margin:0">Your interviews</h2><span class="xs muted">' + plural(scored.length, "scored interview") + "</span></div>" + trend + '<div class="iv-list">' + rows + "</div></div>"
@@ -106,7 +106,7 @@
       '<div class="iv-setrow"><div class="field"><label for="iv-count">Questions</label><select id="iv-count">' + [4, 5, 6].map((n) => "<option" + (st.count === n ? " selected" : "") + ">" + n + "</option>").join("") + '</select></div>' +
       '<div class="field"><label for="iv-band">Your experience</label><select id="iv-band">' + [["early", "Early career (0 to 3 years)"], ["mid", "Mid-career (4 to 8 years)"], ["senior", "Senior (8+ years)"]].map((b) => '<option value="' + b[0] + '"' + (st.band === b[0] ? " selected" : "") + ">" + b[1] + "</option>").join("") + "</select></div>" +
       '<div class="field"><label for="iv-direct">Feedback style</label><select id="iv-direct">' + [[1, "Encouraging"], [2, "Gentle"], [3, "Balanced"], [4, "Direct"], [5, "No softening"]].map((d) => '<option value="' + d[0] + '"' + (Number(st.directness) === d[0] ? " selected" : "") + ">" + d[1] + "</option>").join("") + "</select></div></div>" +
-      ("speechSynthesis" in window ? '<label class="iv-remote iv-voiceopt" style="margin:0 0 16px"><input type="checkbox" id="iv-voice"' + (st.voice ? " checked" : "") + '><span><b>Spoken interview</b><br><span class="small muted">' + (SR ? "The interviewer reads each question aloud and you answer out loud. Benchwork writes down what you say and tracks your pace and filler words." : "The interviewer reads each question aloud. This browser can't write down speech, so you'll type answers; Chrome, Edge and Safari can.") + "</span></span></label>" : "") +
+      ("speechSynthesis" in window ? '<label class="iv-remote iv-voiceopt" style="margin:0 0 16px"><input type="checkbox" id="iv-voice"' + (st.voice ? " checked" : "") + '><span><b>Spoken interview</b><br><span class="small muted">' + (SR ? "The interviewer reads each question aloud and you answer out loud. Benchwrk writes down what you say and tracks your pace and filler words." : "The interviewer reads each question aloud. This browser can't write down speech, so you'll type answers; Chrome, Edge and Safari can.") + "</span></span></label>" : "") +
       '<div class="row"><button class="btn lg" type="submit">Start the interview</button><span class="xs muted">About ' + (st.count * 4) + " minutes. Your answers stay private.</span></div></form>" : "";
     return '<p class="crumb"><a href="#interview">Interview room</a> / Job</p><div class="row between" style="align-items:flex-end"><div><h1 style="margin-bottom:4px">' + esc(j.title || "Untitled job") + '</h1><p class="muted" style="margin:0">' + esc([j.company, j.location, j.source].filter(Boolean).join(" · ")) + (j.url ? ' · <a href="' + esc(j.url) + '" target="_blank" rel="noopener">Original advert</a>' : "") + "</p></div>" +
       '<div class="row"><button class="btn line sm" data-act="trackjob" data-id="' + j.id + '">' + (S.apps.some((a) => a.jobId === j.id) ? "Tracked in Applications" : "Track this application") + '</button><button class="link small" data-iv="deljob" data-id="' + j.id + '" style="color:var(--fail)">' + (ui.iv.delArm === j.id ? "Click again to delete" : "Delete job") + "</button></div></div>" +
@@ -296,7 +296,7 @@
     }
     if (a === "transcript") {
       const x = ivSess(id), j = ivJob(x.jobId) || {};
-      const txt = "Benchwork mock interview: " + (j.title || "") + (j.company ? " at " + j.company : "") + "\n" + IVF[x.setup.format] + ", " + x.at.slice(0, 10) + "\n\n" + x.transcript.map((t) => (t.role === "candidate" ? "YOU: " : "INTERVIEWER: ") + t.text).join("\n\n") + "\n";
+      const txt = "Benchwrk mock interview: " + (j.title || "") + (j.company ? " at " + j.company : "") + "\n" + IVF[x.setup.format] + ", " + x.at.slice(0, 10) + "\n\n" + x.transcript.map((t) => (t.role === "candidate" ? "YOU: " : "INTERVIEWER: ") + t.text).join("\n\n") + "\n";
       saveFile("interview-" + x.at.slice(0, 10) + ".txt", txt, "text/plain"); return;
     }
     if (a === "storyfrom") { const x = ivSess(id); ui.iv.story = { title: "", skill: IVSKILLS[0], s: x.score.story_ideas[Number(b.dataset.i)] || "" }; location.hash = "iv-stories"; return; }

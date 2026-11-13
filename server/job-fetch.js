@@ -29,7 +29,7 @@ async function fetchPage(url) {
   for (let hop = 0; hop < 4 && u; hop++) {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 8000);
     let r;
-    try { r = await fetch(u, { redirect: "manual", signal: ctl.signal, headers: { "user-agent": "Mozilla/5.0 (compatible; BenchworkJobReader/1.0; +" + env("SITE_URL", "") + ")", accept: "text/html,application/xhtml+xml" } }); }
+    try { r = await fetch(u, { redirect: "manual", signal: ctl.signal, headers: { "user-agent": "Mozilla/5.0 (compatible; BenchwrkJobReader/1.0; +" + env("SITE_URL", "") + ")", accept: "text/html,application/xhtml+xml" } }); }
     finally { clearTimeout(t); }
     if (r.status >= 300 && r.status < 400 && r.headers.get("location")) { u = await safeUrl(new URL(r.headers.get("location"), u).toString()); continue; }
     if (!r.ok) return { status: r.status };

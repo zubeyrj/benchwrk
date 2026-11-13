@@ -1,7 +1,7 @@
 // Exercises every API route against the in-memory Supabase, with Anthropic and Resend stubbed.
 import "./fake-supabase.js";
 
-Object.assign(process.env, { SITE_URL: "https://benchwork.test", ANTHROPIC_API_KEY: "sk-test", RESEND_API_KEY: "re-test", CRON_SECRET: "cron-secret", TUTOR_DAILY_LIMIT: "3", EMAIL_FROM: "Benchwork <hi@benchwork.test>" });
+Object.assign(process.env, { SITE_URL: "https://benchwork.test", ANTHROPIC_API_KEY: "sk-test", RESEND_API_KEY: "re-test", CRON_SECRET: "cron-secret", TUTOR_DAILY_LIMIT: "3", EMAIL_FROM: "Benchwrk <hi@benchwork.test>" });
 const sb = globalThis.makeFakeSupabase({ ownerEmail: "owner@example.org" });
 globalThis.__testAdminClient = sb;
 
@@ -136,7 +136,7 @@ ok("owner email needs subject", (await call(adminEmail, { token: T.owner, body: 
 const seed = await load("admin-seed.js");
 ok("members can't seed", (await call(seed, { token: T.amira, body: {} })).status === 403);
 r = await call(seed, { token: T.owner, body: {} });
-ok("owner loads content", r.status === 200 && r.json.loaded === 32 && sb.tables.docs.filter((d) => d.parent === "content").length === 17 && sb.tables.docs.filter((d) => d.parent === "lessons").length === 15);
+ok("owner loads content", r.status === 200 && r.json.loaded === 33 && sb.tables.docs.filter((d) => d.parent === "content").length === 18 && sb.tables.docs.filter((d) => d.parent === "lessons").length === 15);
 ok("seed leaves learners alone", sb.tables.docs.some((d) => d.path === "learners/" + amira.id));
 
 // ---- certificates ----
@@ -527,7 +527,7 @@ r = await call(health, { method: "GET", token: T.owner, headers: { host: "benchw
 ok("health runs every check", r.status === 200 && r.json.checks.length === 9 && r.json.checks.find((c) => c.name === "Backups").warn && r.json.checks.find((c) => c.name === "Database").ok && r.json.checks.find((c) => c.name === "Site address").ok);
 ok("health flags missing captcha as optional", r.json.checks.find((c) => c.name === "Sign-up protection").warn === true);
 r = await call(health, { token: T.owner, body: { test: "email" } });
-ok("test email", r.status === 200 && sent[sent.length - 1].subject === "Benchwork test email");
+ok("test email", r.status === 200 && sent[sent.length - 1].subject === "Benchwrk test email");
 
 // ---- jobs ----
 const jobs = await load("jobs.js");

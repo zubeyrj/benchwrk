@@ -16,7 +16,7 @@ const logo = fs.readFileSync(path.join(pub, "icon.svg"), "utf8");
   await p.setContent(`<html><head><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=Figtree:wght@500;700&display=swap" rel="stylesheet"></head>
   <body style="margin:0;width:1200px;height:630px;background:#0e1726;color:#fff;font-family:Figtree,sans-serif;position:relative;overflow:hidden">
   <div style="position:absolute;right:-160px;top:-160px;width:560px;height:560px;border-radius:50%;border:90px solid rgb(201 60 26 / .3)"></div>
-  <div style="position:absolute;left:80px;top:72px;display:flex;align-items:center;gap:18px;font-weight:800;font-size:40px;letter-spacing:-1px">${logo.replace("<svg ", '<svg width="64" height="64" ')}benchwork</div>
+  <div style="position:absolute;left:80px;top:72px;display:flex;align-items:center;gap:18px;font-weight:800;font-size:40px;letter-spacing:-1px">${logo.replace("<svg ", '<svg width="64" height="64" ')}benchwrk</div>
   <div style="position:absolute;left:80px;top:230px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:84px;line-height:1;letter-spacing:-3px;max-width:900px">From zero to<br><span style="color:#ff7a52">AI engineer.</span></div>
   <div style="position:absolute;left:80px;bottom:72px;font-size:28px;color:#b8c2d3">A dated plan, coding exercises in your browser, real projects. Free.</div></body></html>`);
   await p.waitForTimeout(1200);

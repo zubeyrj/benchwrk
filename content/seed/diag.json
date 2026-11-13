@@ -1,1 +1,628 @@
-{"items": [{"d": "python", "q": "What does this print? <code>x = [1, 2, 3]; y = x; y.append(4); print(len(x))</code>", "o": ["3", "4", "An error", "None"], "a": 1}, {"d": "python", "q": "Which reads a JSON file into a Python dict?", "o": ["<code>json.dumps(open('f.json'))</code>", "<code>with open('f.json') as f: data = json.load(f)</code>", "<code>pd.read_json('f.json').dict</code>", "<code>open('f.json').json()</code>"], "a": 1}, {"d": "python", "q": "What does <code>[n for n in range(10) if n % 3 == 0]</code> give?", "o": ["[3, 6, 9]", "[0, 3, 6, 9]", "[1, 4, 7]", "4"], "a": 1}, {"d": "python", "q": "What do <code>async</code> and <code>await</code> let you do?", "o": ["Run code on a GPU", "Run I/O-bound tasks concurrently, such as several API calls", "Make loops faster", "Encrypt data"], "a": 1}, {"d": "eng", "q": "You changed three files and want a local snapshot of the change. You run:", "o": ["<code>git push</code>", "<code>git add</code> then <code>git commit</code>", "<code>git clone</code>", "<code>git pull</code>"], "a": 1}, {"d": "eng", "q": "A unit test checks:", "o": ["The whole app in production", "That one small piece of code behaves as expected", "How fast the server is", "The UI colours"], "a": 1}, {"d": "eng", "q": "A Python virtual environment is for:", "o": ["Running Windows apps", "Keeping each project's packages isolated", "Hiding code", "Speeding up the internet"], "a": 1}, {"d": "web", "q": "An HTTP 404 response means:", "o": ["Server error", "Not found", "Created", "Unauthorised"], "a": 1}, {"d": "web", "q": "To send JSON data to an API to create something, you would usually use:", "o": ["GET with the data in the URL", "POST with a JSON body", "DELETE", "HEAD"], "a": 1}, {"d": "web", "q": "FastAPI is:", "o": ["A database", "A Python framework for building web APIs", "A cloud provider", "A JavaScript library"], "a": 1}, {"d": "sql", "q": "To count rows per category you use:", "o": ["ORDER BY", "GROUP BY with COUNT(*)", "DISTINCT only", "UNION"], "a": 1}, {"d": "sql", "q": "A LEFT JOIN returns:", "o": ["Only matching rows", "Every row from the left table, plus matches from the right", "Only the right table", "A random sample"], "a": 1}, {"d": "cloud", "q": "A Docker container is:", "o": ["A virtual hard drive", "An app packaged with its dependencies, running isolated", "A Python package", "A type of database"], "a": 1}, {"d": "cloud", "q": "Continuous integration (CI) means:", "o": ["Coding without breaks", "Automatically running tests and builds on every push", "Merging branches by hand weekly", "Deploying from a laptop"], "a": 1}, {"d": "llm", "q": "RAG stands for:", "o": ["Random answer generation", "Retrieval-augmented generation", "Rapid API gateway", "Recurrent attention graph"], "a": 1}, {"d": "llm", "q": "An embedding is:", "o": ["A screenshot of text", "A list of numbers representing meaning", "An HTML tag", "A prompt template"], "a": 1}, {"d": "llm", "q": "Why might a chatbot cite a source that doesn't exist?", "o": ["It's hacked", "It generates plausible text and isn't grounded in real retrieved sources", "The internet is down", "Its temperature is 0"], "a": 1}, {"d": "llm", "q": "In LLM work, an 'eval' is:", "o": ["A JavaScript function", "A systematic measurement of output quality against test cases", "A model licence", "A billing report"], "a": 1}, {"d": "ml", "q": "In a model that predicts house prices, the price is the:", "o": ["Feature", "Label", "Loss", "Epoch"], "a": 1}, {"d": "ml", "q": "A model scores 99% on training data and 60% on test data. This is:", "o": ["Underfitting", "Overfitting", "Data cleaning", "Normal and fine"], "a": 1}, {"d": "ml", "q": "Recall measures:", "o": ["Of predicted positives, how many were right", "Of actual positives, how many were found", "Training speed", "Model size"], "a": 1}]}
+{
+ "items": [
+  {
+   "t": "python",
+   "lv": 1,
+   "q": "What does <code>print(3 + 4 * 2)</code> show?",
+   "o": [
+    "14",
+    "24",
+    "3 + 4 * 2",
+    "11"
+   ],
+   "a": 3,
+   "e": "Multiplication happens before addition: 4 * 2 = 8, then 3 + 8."
+  },
+  {
+   "t": "python",
+   "lv": 2,
+   "q": "What does this print? <code>x = [1, 2, 3]; y = x; y.append(4); print(len(x))</code>",
+   "o": [
+    "An error",
+    "None",
+    "4",
+    "3"
+   ],
+   "a": 2,
+   "e": "y and x name the same list, so appending through y changes x too."
+  },
+  {
+   "t": "python",
+   "lv": 3,
+   "q": "What does <code>[n for n in range(10) if n % 3 == 0]</code> give?",
+   "o": [
+    "[3, 6, 9]",
+    "[1, 4, 7]",
+    "4",
+    "[0, 3, 6, 9]"
+   ],
+   "a": 3,
+   "e": "range(10) starts at 0, and 0 % 3 is 0."
+  },
+  {
+   "t": "python",
+   "lv": 4,
+   "q": "With <code>d = {\"a\": 1}</code>, what is <code>d.get(\"b\", 0) + d[\"a\"]</code>?",
+   "o": [
+    "None",
+    "1",
+    "0",
+    "A KeyError"
+   ],
+   "a": 1,
+   "e": ".get returns the default 0 for a missing key; d['a'] is 1."
+  },
+  {
+   "t": "python",
+   "lv": 5,
+   "q": "What does this print? <code>def add(x, items=[]): items.append(x); return items</code> then <code>add(1); print(add(2))</code>",
+   "o": [
+    "[2, 2]",
+    "An error",
+    "[1, 2]",
+    "[2]"
+   ],
+   "a": 2,
+   "e": "A default list is created once, when the function is defined, so both calls share it."
+  },
+  {
+   "t": "python",
+   "lv": 6,
+   "q": "What does this print? <code>g = (n * n for n in range(3)); print(sum(g), sum(g))</code>",
+   "o": [
+    "An error",
+    "5 0",
+    "5 5",
+    "0 5"
+   ],
+   "a": 1,
+   "e": "A generator can be used once. The second sum gets nothing left."
+  },
+  {
+   "t": "terminal",
+   "lv": 1,
+   "q": "Which command shows the folder you're in?",
+   "o": [
+    "<code>whoami</code>",
+    "<code>pwd</code>",
+    "<code>ls</code>",
+    "<code>cd</code>"
+   ],
+   "a": 1,
+   "e": "pwd prints the working directory."
+  },
+  {
+   "t": "terminal",
+   "lv": 2,
+   "q": "What does <code>cd ..</code> do?",
+   "o": [
+    "Moves up one folder",
+    "Goes to your home folder",
+    "Lists the folder above",
+    "Nothing"
+   ],
+   "a": 0,
+   "e": ".. means the parent folder."
+  },
+  {
+   "t": "terminal",
+   "lv": 3,
+   "q": "What does <code>mkdir -p a/b/c</code> do?",
+   "o": [
+    "Makes a file called a/b/c",
+    "Creates a, then b inside it, then c inside that, even if none exist yet",
+    "Fails unless a already exists",
+    "Makes three folders side by side"
+   ],
+   "a": 1,
+   "e": "-p creates any missing parent folders."
+  },
+  {
+   "t": "terminal",
+   "lv": 4,
+   "q": "What does <code>grep -r \"TODO\" src | wc -l</code> tell you?",
+   "o": [
+    "How many files are in src",
+    "It deletes the TODO lines",
+    "How many words are in each TODO",
+    "How many lines in the files under src contain TODO"
+   ],
+   "a": 3,
+   "e": "grep -r searches every file; wc -l counts the matching lines."
+  },
+  {
+   "t": "terminal",
+   "lv": 5,
+   "q": "What does <code>python app.py > out.txt 2>&1</code> do?",
+   "o": [
+    "Sends both normal output and errors into out.txt",
+    "Sends only errors to out.txt",
+    "Adds to the end of out.txt",
+    "Sends output to the file and errors to the screen"
+   ],
+   "a": 0,
+   "e": "2>&1 points errors (stream 2) at wherever output (stream 1) is going."
+  },
+  {
+   "t": "terminal",
+   "lv": 6,
+   "q": "You run <code>export KEY=abc</code> in one terminal, then open a brand new terminal window and run <code>echo $KEY</code>. What prints?",
+   "o": [
+    "abc",
+    "An error",
+    "KEY",
+    "An empty line"
+   ],
+   "a": 3,
+   "e": "export only reaches that shell and programs it starts. A new window starts a fresh shell."
+  },
+  {
+   "t": "git",
+   "lv": 1,
+   "q": "Which command saves your staged changes into the project's history?",
+   "o": [
+    "<code>git add</code>",
+    "<code>git push</code>",
+    "<code>git status</code>",
+    "<code>git commit</code>"
+   ],
+   "a": 3,
+   "e": "commit records a snapshot; push only uploads commits."
+  },
+  {
+   "t": "git",
+   "lv": 2,
+   "q": "What does <code>git add file.py</code> do?",
+   "o": [
+    "Creates a branch",
+    "Undoes your changes",
+    "Stages the file's changes for the next commit",
+    "Uploads it to GitHub"
+   ],
+   "a": 2,
+   "e": "add puts changes in the staging area; commit saves them."
+  },
+  {
+   "t": "git",
+   "lv": 3,
+   "q": "What does <code>git switch -c feature</code> do?",
+   "o": [
+    "Deletes the feature branch",
+    "Merges feature into the current branch",
+    "Renames the current branch",
+    "Creates a branch called feature and moves you onto it"
+   ],
+   "a": 3,
+   "e": "-c means create."
+  },
+  {
+   "t": "git",
+   "lv": 4,
+   "q": "You pushed a commit that broke main and your teammates have already pulled it. What's the safest way to undo it?",
+   "o": [
+    "<code>git commit --amend</code>",
+    "<code>git revert</code> that commit, then push",
+    "<code>git reset --hard HEAD~1</code>, then force push",
+    "Delete the repository and push again"
+   ],
+   "a": 1,
+   "e": "revert adds a new commit that undoes the change without rewriting history others already have."
+  },
+  {
+   "t": "git",
+   "lv": 5,
+   "q": "In a merge conflict, what is between <code><<<<<<< HEAD</code> and <code>=======</code>?",
+   "o": [
+    "The common ancestor",
+    "Git's suggested fix",
+    "The version on the branch you're on",
+    "The version from the branch you're merging in"
+   ],
+   "a": 2,
+   "e": "HEAD is your current branch."
+  },
+  {
+   "t": "git",
+   "lv": 6,
+   "q": "On your feature branch you run <code>git rebase main</code>. What happens?",
+   "o": [
+    "All your commits are squashed into one",
+    "Your feature commits are replayed on top of the latest main",
+    "Your feature branch is merged into main",
+    "Commits on main are deleted"
+   ],
+   "a": 1,
+   "e": "Rebase moves your commits so they start from main's tip."
+  },
+  {
+   "t": "sql",
+   "lv": 1,
+   "q": "Which query returns every column of the users table?",
+   "o": [
+    "<code>SHOW ALL users</code>",
+    "<code>SELECT * FROM users</code>",
+    "<code>GET users</code>",
+    "<code>SELECT users</code>"
+   ],
+   "a": 1,
+   "e": "* means every column."
+  },
+  {
+   "t": "sql",
+   "lv": 2,
+   "q": "Which clause keeps only rows where age is over 30?",
+   "o": [
+    "<code>WHERE age > 30</code>",
+    "<code>ORDER BY age > 30</code>",
+    "<code>LIMIT age > 30</code>",
+    "<code>FILTER age > 30</code>"
+   ],
+   "a": 0,
+   "e": "WHERE filters rows."
+  },
+  {
+   "t": "sql",
+   "lv": 3,
+   "q": "Which query counts orders per customer?",
+   "o": [
+    "<code>SELECT customer_id FROM orders WHERE COUNT(*) > 0</code>",
+    "<code>SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id</code>",
+    "<code>SELECT customer_id, COUNT(*) FROM orders ORDER BY customer_id</code>",
+    "<code>SELECT COUNT(customer_id) FROM orders</code>"
+   ],
+   "a": 1,
+   "e": "GROUP BY makes one row per customer for COUNT to work on."
+  },
+  {
+   "t": "sql",
+   "lv": 4,
+   "q": "What's the difference between WHERE and HAVING?",
+   "o": [
+    "They do the same thing",
+    "HAVING is a faster WHERE",
+    "WHERE only works with JOIN",
+    "WHERE filters rows before grouping; HAVING filters groups after"
+   ],
+   "a": 3,
+   "e": "Use HAVING for conditions on aggregates like SUM or COUNT."
+  },
+  {
+   "t": "sql",
+   "lv": 5,
+   "q": "You <code>LEFT JOIN</code> customers to orders. What happens to customers with no orders?",
+   "o": [
+    "They appear, with NULL in the order columns",
+    "They're left out",
+    "They appear with zeros",
+    "The query fails"
+   ],
+   "a": 0,
+   "e": "A left join keeps every row from the left table."
+  },
+  {
+   "t": "sql",
+   "lv": 6,
+   "q": "Which keeps one row per customer: their most recent order?",
+   "o": [
+    "<code>SELECT * FROM orders GROUP BY customer_id</code>",
+    "<code>SELECT DISTINCT customer_id, created_at FROM orders</code>",
+    "<code>SELECT * FROM orders ORDER BY created_at DESC LIMIT 1</code>",
+    "Number rows with <code>ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY created_at DESC)</code> and keep row 1"
+   ],
+   "a": 3,
+   "e": "A window function ranks each customer's orders separately; LIMIT 1 would return one row in total."
+  },
+  {
+   "t": "web",
+   "lv": 1,
+   "q": "Which of these is valid JSON?",
+   "o": [
+    "<code>{name: 'Sam'}</code>",
+    "<code><name>Sam</name></code>",
+    "<code>name=Sam</code>",
+    "<code>{\"name\": \"Sam\", \"hours\": 2}</code>"
+   ],
+   "a": 3,
+   "e": "JSON needs double quotes around keys and text."
+  },
+  {
+   "t": "web",
+   "lv": 2,
+   "q": "An API answers with status 404. What does that mean?",
+   "o": [
+    "Success",
+    "Too many requests",
+    "Not found",
+    "Server error"
+   ],
+   "a": 2,
+   "e": "4xx codes are problems with the request; 404 is a missing resource."
+  },
+  {
+   "t": "web",
+   "lv": 3,
+   "q": "With Python's requests library, how do you read a JSON response <code>r</code> as a dict?",
+   "o": [
+    "<code>r.text()</code>",
+    "<code>json(r)</code>",
+    "<code>r.body</code>",
+    "<code>r.json()</code>"
+   ],
+   "a": 3,
+   "e": "r.json() parses the body."
+  },
+  {
+   "t": "web",
+   "lv": 4,
+   "q": "An API returns 429 Too Many Requests. What should your code do?",
+   "o": [
+    "Switch from GET to POST",
+    "Wait, then retry with a growing delay",
+    "Retry straight away in a loop",
+    "Treat it as a success"
+   ],
+   "a": 1,
+   "e": "429 is rate limiting; back off and retry."
+  },
+  {
+   "t": "web",
+   "lv": 5,
+   "q": "Which HTTP method is meant to be idempotent, so sending it twice has the same effect as once?",
+   "o": [
+    "None of them",
+    "Only methods that carry a body",
+    "<code>PUT</code>",
+    "<code>POST</code>"
+   ],
+   "a": 2,
+   "e": "PUT replaces a resource with the same content each time; POST usually creates a new one."
+  },
+  {
+   "t": "web",
+   "lv": 6,
+   "q": "In FastAPI, <code>@app.get(\"/items/{id}\")</code> handles <code>def item(id: int)</code>. What happens on a request to /items/abc?",
+   "o": [
+    "The server crashes with a 500",
+    "FastAPI returns a 422 validation error",
+    "id is the text 'abc'",
+    "404 Not found"
+   ],
+   "a": 1,
+   "e": "Type hints are validated before your function runs."
+  },
+  {
+   "t": "cloud",
+   "lv": 1,
+   "q": "What is a Docker container?",
+   "o": [
+    "A type of virtual machine disk",
+    "A running instance of an image",
+    "A file of source code",
+    "A cloud provider"
+   ],
+   "a": 1,
+   "e": "An image is the template; a container is it running."
+  },
+  {
+   "t": "cloud",
+   "lv": 2,
+   "q": "Which file describes how to build a Docker image?",
+   "o": [
+    "Dockerfile",
+    "requirements.txt",
+    "package.json",
+    "docker.yml"
+   ],
+   "a": 0,
+   "e": "Each Dockerfile line is a build step."
+  },
+  {
+   "t": "cloud",
+   "lv": 3,
+   "q": "What does <code>docker run -p 8000:80 app</code> do?",
+   "o": [
+    "Limits the container to 8000 MB",
+    "Sends port 8000 on your machine to port 80 in the container",
+    "Sends container port 8000 to your port 80",
+    "Opens both ports to the internet"
+   ],
+   "a": 1,
+   "e": "The format is host:container."
+  },
+  {
+   "t": "cloud",
+   "lv": 4,
+   "q": "Why copy requirements.txt and install packages before <code>COPY . .</code> in a Dockerfile?",
+   "o": [
+    "Docker requires that order",
+    "It always makes the image smaller",
+    "It hides your code from the image",
+    "So the installed packages stay cached when only your code changes"
+   ],
+   "a": 3,
+   "e": "Each step is a cached layer; a code change only rebuilds the steps after it."
+  },
+  {
+   "t": "cloud",
+   "lv": 5,
+   "q": "Where should an API key go for a deployed container?",
+   "o": [
+    "In an environment variable or secret set on the platform",
+    "Built into the image",
+    "In a .env file committed to the repo",
+    "Hard-coded in the source"
+   ],
+   "a": 0,
+   "e": "Images and repos get shared; secrets set at deploy don't travel with them."
+  },
+  {
+   "t": "cloud",
+   "lv": 6,
+   "q": "Your app works on your laptop, but the platform can't reach it. It listens on 127.0.0.1:8000. What fixes it?",
+   "o": [
+    "Open the firewall on your laptop",
+    "Switch to HTTPS",
+    "Give the container more memory",
+    "Listen on 0.0.0.0 and on the port the platform gives you in PORT"
+   ],
+   "a": 3,
+   "e": "127.0.0.1 only accepts connections from inside the container itself."
+  },
+  {
+   "t": "ml",
+   "lv": 1,
+   "q": "What does supervised learning need?",
+   "o": [
+    "No data at all",
+    "Only images",
+    "A GPU",
+    "Examples with the right answers attached"
+   ],
+   "a": 3,
+   "e": "Labelled data: inputs plus known outputs."
+  },
+  {
+   "t": "ml",
+   "lv": 2,
+   "q": "Why keep a separate test set?",
+   "o": [
+    "Because scikit-learn requires it",
+    "To shrink the dataset",
+    "To measure how the model does on data it hasn't seen",
+    "To make training faster"
+   ],
+   "a": 2,
+   "e": "Scores on training data flatter the model."
+  },
+  {
+   "t": "ml",
+   "lv": 3,
+   "q": "A fraud model is 99% accurate, and 1% of transactions are fraud. What's the worry?",
+   "o": [
+    "Nothing: 99% is excellent",
+    "The test set is too big",
+    "It has too few features",
+    "Saying 'not fraud' every time also scores 99%"
+   ],
+   "a": 3,
+   "e": "With rare classes, accuracy hides failure; look at precision and recall."
+  },
+  {
+   "t": "ml",
+   "lv": 4,
+   "q": "Training accuracy is 99%, validation accuracy is 70%. What's happening?",
+   "o": [
+    "The learning rate is zero",
+    "Overfitting",
+    "Underfitting",
+    "The model is ideal"
+   ],
+   "a": 1,
+   "e": "It memorised the training data and doesn't generalise."
+  },
+  {
+   "t": "ml",
+   "lv": 5,
+   "q": "A spam filter must almost never send a real email to spam. Which metric for the spam class matters most?",
+   "o": [
+    "Accuracy",
+    "Training loss",
+    "Precision",
+    "Recall"
+   ],
+   "a": 2,
+   "e": "Precision is the share of emails flagged as spam that really are spam."
+  },
+  {
+   "t": "ml",
+   "lv": 6,
+   "q": "You scaled features with the mean and standard deviation of the whole dataset, then split it. What's wrong?",
+   "o": [
+    "It removes features",
+    "Test data leaked into training, so scores look better than they are",
+    "Nothing",
+    "The model can't converge"
+   ],
+   "a": 1,
+   "e": "Fit the scaler on the training split only."
+  },
+  {
+   "t": "llm",
+   "lv": 1,
+   "q": "What is a token, for a language model?",
+   "o": [
+    "One letter",
+    "A chunk of text it reads and writes, often part of a word",
+    "A password",
+    "A whole sentence"
+   ],
+   "a": 1,
+   "e": "Models count and charge by tokens."
+  },
+  {
+   "t": "llm",
+   "lv": 2,
+   "q": "What does lowering the temperature do?",
+   "o": [
+    "Makes answers more predictable and repeatable",
+    "Makes answers more factual",
+    "Makes answers shorter",
+    "Lowers the price"
+   ],
+   "a": 0,
+   "e": "Temperature controls randomness, not truth."
+  },
+  {
+   "t": "llm",
+   "lv": 3,
+   "q": "What is a system prompt for?",
+   "o": [
+    "Training the model",
+    "Instructions and a role that apply to the whole conversation",
+    "Saving memory permanently",
+    "Running code"
+   ],
+   "a": 1,
+   "e": "It frames every turn that follows."
+  },
+  {
+   "t": "llm",
+   "lv": 4,
+   "q": "What is retrieval-augmented generation (RAG)?",
+   "o": [
+    "Retraining the model on your documents",
+    "Generating random text",
+    "Rate-limiting requests",
+    "Finding relevant documents and putting them in the prompt so the model answers from them"
+   ],
+   "a": 3,
+   "e": "Retrieval supplies the facts; the model writes the answer."
+  },
+  {
+   "t": "llm",
+   "lv": 5,
+   "q": "Why ask a model for JSON that matches a schema instead of parsing free text?",
+   "o": [
+    "Your code can check it and use it reliably",
+    "It's always cheaper",
+    "Models can only write JSON",
+    "It uses no tokens"
+   ],
+   "a": 0,
+   "e": "Structured output fails loudly instead of quietly."
+  },
+  {
+   "t": "llm",
+   "lv": 6,
+   "q": "How do you know a prompt change made your app better?",
+   "o": [
+    "Ask the model which is better",
+    "Try it on one example",
+    "Check that it uses fewer tokens",
+    "Run old and new on the same evaluation set and compare the scores"
+   ],
+   "a": 3,
+   "e": "One example is an anecdote; a fixed eval set is evidence."
+  }
+ ]
+}

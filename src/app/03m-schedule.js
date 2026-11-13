@@ -35,10 +35,10 @@
   }
   // Course start dates for the calendar feed, refreshed whenever the plan moves.
   function schedMilestones() {
-    if (!MOD.length || !S.placement) return [];
+    if (!MOD.length) return [];
     const P = plan();
     const out = P.rows.filter((r) => !r.done && r.sd >= addDays(parseDate(today()), -1)).slice(0, 20).map((r) => [isoDate(r.sd), "Start " + r.m.title]);
-    out.push([isoDate(P.end), "Benchwork plan complete"]);
+    out.push([isoDate(P.end), "Benchwrk plan complete"]);
     return out;
   }
   function saveSched(s) {
@@ -47,7 +47,7 @@
     const mins = weekMins(days);
     if (mins >= 180) S.hpw = Math.max(3, Math.min(40, Math.round(mins / 30) / 2));
     S.sched = { mode: s.mode === "own" ? "own" : "auto", tod: s.tod || "evening", weekends: s.weekends !== false, avoid: (s.avoid || []).filter((d) => WEEK.some((w) => w[0] === d)), days,
-      until: MOD.length && S.placement ? isoDate(plan().end) : isoDate(addDays(parseDate(today()), 7 * 52)), ms: [], tz: myTz() };
+      until: MOD.length ? isoDate(plan().end) : isoDate(addDays(parseDate(today()), 7 * 52)), ms: [], tz: myTz() };
     S.sched.ms = schedMilestones();
     persist();
   }
@@ -60,15 +60,15 @@
   }
   // Keeps the calendar feed's course dates in step with the plan as you progress.
   function refreshSchedDates() {
-    if (!S.sched || !S.sched.days || !MOD.length || !S.placement) return;
+    if (!S.sched || !S.sched.days || !MOD.length) return;
     const ms = schedMilestones(), until = isoDate(plan().end);
     if (JSON.stringify(ms) !== JSON.stringify(S.sched.ms) || until !== S.sched.until || S.sched.tz !== myTz()) { S.sched.ms = ms; S.sched.until = until; S.sched.tz = myTz(); persist(); }
   }
   function homeSchedCard() {
-    if (!S.placement) return "";
+    if (!MOD.length) return "";
     refreshSchedDates();
     const t = todaySession();
-    if (!t) return '<a class="card sched-mini" href="#schedule"><b>Set your study week</b><span class="small muted">Pick your days and times, or let Benchwork plan them, then add them to your calendar.</span></a>';
+    if (!t) return '<a class="card sched-mini" href="#schedule"><b>Set your study week</b><span class="small muted">Pick your days and times, or let Benchwrk plan them, then add them to your calendar.</span></a>';
     const studied = S.log.some((e) => e.d === today());
     return '<a class="card sched-mini" href="#schedule"><span class="small muted">' + (t.today ? (studied ? "Today's session, done" : "Today's session") : "No session today") + "</span><b>" + (t.today ? esc(t.t) + ", " + fmtMins(t.m) : "Next: " + esc(t.day) + " at " + esc(t.t)) + '</b><span class="small muted">Your week: ' + fmtMins(weekMins(S.sched.days)) + "</span></a>";
   }
@@ -86,8 +86,8 @@
     const mins = weekMins(days), hp = Math.round(mins / 30) / 2;
     const saved = S.sched && JSON.stringify(S.sched.days) === JSON.stringify(days) && S.sched.mode === s.mode;
     let end = null;
-    if (MOD.length && S.placement && hp >= 3) end = plan(Object.assign({}, S, { hpw: Math.min(40, hp) })).end;
-    const head = "<h1>Your study week</h1><p class=\"lede\">Study at the same times each week and it becomes a habit. Pick your own times, or let Benchwork spread your hours for you.</p>";
+    if (MOD.length && hp >= 3) end = plan(Object.assign({}, S, { hpw: Math.min(40, hp) })).end;
+    const head = "<h1>Your study week</h1><p class=\"lede\">Study at the same times each week and it becomes a habit. Pick your own times, or let Benchwrk spread your hours for you.</p>";
     const seg = '<div class="seg sched-seg" role="radiogroup" aria-label="How to set your week"><label><input type="radio" name="sc-mode" value="auto"' + (auto ? " checked" : "") + '><span>Set it for me</span></label><label><input type="radio" name="sc-mode" value="own"' + (auto ? "" : " checked") + "><span>I'll set my own</span></label></div>";
     let form;
     if (auto) {
@@ -121,7 +121,7 @@
       sub = '<p class="small">Subscribe once and changes to your week appear by themselves.</p><div class="cal-links">' +
         '<a class="btn line" href="' + esc(webcal) + '">iPhone, iPad or Mac</a>' +
         '<a class="btn line" target="_blank" rel="noopener" href="https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(webcal) + '">Google Calendar and Android</a>' +
-        '<a class="btn line" target="_blank" rel="noopener" href="https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(link) + '&name=Benchwork">Outlook</a></div>' +
+        '<a class="btn line" target="_blank" rel="noopener" href="https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(link) + '&name=Benchwrk">Outlook</a></div>' +
         '<p class="xs muted">On Android, add it with Google Calendar and it shows in your phone\'s calendar app. Google checks for changes a few times a day; Apple about every hour.</p>' +
         '<details class="small"><summary>Copy the link, or stop it working</summary><p class="xs muted">Anyone with this link can see your study times, nothing else.</p><input class="cal-url" readonly value="' + esc(link) + '" aria-label="Calendar link" onclick="this.select()"><button class="link small" data-act="calrotate">Make a new link (the old one stops working)</button></details>';
     } else if (bw && bw.calendar) sub = '<p class="small muted">Preparing your calendar link…</p>';
@@ -131,15 +131,15 @@
   function schedIcs() {
     const s = S.sched, tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "Europe/London", site = (window.BW && window.BW.site) || location.origin;
     const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z", until = (s.until || isoDate(addDays(parseDate(today()), 364))).replace(/-/g, "") + "T235959Z";
-    const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwork//Study week//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Benchwork"];
+    const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwrk//Study week//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Benchwrk"];
     const base = parseDate(today());
     WEEK.forEach((w, i) => {
       const d = s.days[w[0]]; if (!d) return;
       const first = new Date(base); while ((first.getDay() + 6) % 7 !== i) first.setDate(first.getDate() + 1);
       const [hh, mm] = d.t.split(":").map(Number); first.setHours(hh, mm, 0, 0); const stop = new Date(first.getTime() + d.m * 6e4);
       L.push("BEGIN:VEVENT", "UID:bw-" + uid + "-" + w[0] + "@benchwork", "DTSTAMP:" + stamp, "DTSTART;TZID=" + tz + ":" + icsLocal(first), "DTEND;TZID=" + tz + ":" + icsLocal(stop),
-        "RRULE:FREQ=WEEKLY;BYDAY=" + w[0] + ";UNTIL=" + until, "SUMMARY:Benchwork study session", "DESCRIPTION:Open Benchwork and pick up where you left off: " + site, "URL:" + site,
-        "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", "DESCRIPTION:Benchwork in 10 minutes", "END:VALARM", "END:VEVENT");
+        "RRULE:FREQ=WEEKLY;BYDAY=" + w[0] + ";UNTIL=" + until, "SUMMARY:Benchwrk study session", "DESCRIPTION:Open Benchwrk and pick up where you left off: " + site, "URL:" + site,
+        "BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", "DESCRIPTION:Benchwrk in 10 minutes", "END:VALARM", "END:VEVENT");
     });
     (s.ms || []).forEach((m, i) => { const d = m[0].replace(/-/g, ""); L.push("BEGIN:VEVENT", "UID:bw-" + uid + "-ms" + i + "-" + d + "@benchwork", "DTSTAMP:" + stamp, "DTSTART;VALUE=DATE:" + d, "SUMMARY:" + String(m[1]).replace(/[,;\\]/g, (c) => "\\" + c), "TRANSP:TRANSPARENT", "END:VEVENT"); });
     L.push("END:VCALENDAR");
@@ -163,6 +163,6 @@
     const a = b.dataset.act;
     if (a === "scedit") { const s = ui.schedDraft; s.mode = "own"; s.days = JSON.parse(JSON.stringify(s.days)); render(); return; }
     if (a === "scsave") { saveSched(ui.schedDraft); ui.schedDraft = null; toast("Saved. Your plan now runs at " + S.hpw + " hours a week."); render(); return; }
-    if (a === "calfile") { saveFile("benchwork-study-week.ics", schedIcs(), "text/calendar").then(() => toast("Calendar file saved. Open it to add your sessions.")).catch(() => {}); return; }
+    if (a === "calfile") { saveFile("benchwrk-study-week.ics", schedIcs(), "text/calendar").then(() => toast("Calendar file saved. Open it to add your sessions.")).catch(() => {}); return; }
     if (a === "calrotate") { try { ui.calLink = await window.BW.calendar.link(true); toast("New link made. Subscribe again with it; the old one has stopped working."); render(); } catch (x) { toast("That didn't work. Try again."); } }
   });

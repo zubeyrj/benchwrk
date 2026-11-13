@@ -52,7 +52,7 @@
 
   /* ----- CV and pitch hub ----- */
   function vCareer(r) {
-    if (!ivReady()) return '<h1>CV and pitch</h1><p class="lede">These tools run on the Benchwork website.</p>';
+    if (!ivReady()) return '<h1>CV and pitch</h1><p class="lede">These tools run on the Benchwrk website.</p>';
     if (r.sub === "cv") return vCv();
     if (r.sub === "pitch") return vPitch();
     if (r.sub === "debrief") return vDebrief();
@@ -118,7 +118,7 @@
   function vIvCompare() {
     const J = S.iv.jobs, sel = ui.car.cmp, R = ui.car.cmpOut, busy = ui.car.busy.cmp, err = ui.car.err.cmp;
     const out = R ? '<div class="card sec"><h2>Where to start</h2><p>' + esc(R.recommendation || "") + "</p>" + '<ol class="iv-comp">' + (R.ranking || []).slice().sort((a, b) => a.rank - b.rank).map((x) => { const j = ivJob(x.id) || {}; return "<li><b>" + esc(j.title || x.id) + "</b>" + (j.company ? " at " + esc(j.company) : "") + ' <span class="tag ' + (VERDICT[x.verdict] || "") + '">' + esc(x.verdict) + '</span> <span class="xs muted">Prep effort: ' + esc(x.prep_effort || "") + '</span><p class="small" style="margin:4px 0">' + esc(x.why) + '</p><p class="xs"><b>First step:</b> ' + esc(x.first_step || "") + "</p></li>"; }).join("") + "</ol>" + ((R.skip || []).filter(Boolean).length ? "<h3>Probably skip</h3>" + listOr(R.skip) : "") + "</div>" : "";
-    return '<p class="crumb"><a href="#interview">Interview room</a> / Compare jobs</p><h1>Which should you apply for first?</h1><p class="lede">Pick two to five saved jobs. Benchwork ranks them on fit, stretch and the effort to prepare.</p>' +
+    return '<p class="crumb"><a href="#interview">Interview room</a> / Compare jobs</p><h1>Which should you apply for first?</h1><p class="lede">Pick two to five saved jobs. Benchwrk ranks them on fit, stretch and the effort to prepare.</p>' +
       (J.length < 2 ? '<div class="card sec"><p class="muted">Save at least two jobs first.</p><a class="btn" href="#iv-new">Add a job</a></div>'
         : '<form id="cmpform" class="card sec"><fieldset><legend>Saved jobs</legend>' + J.map((j) => '<label class="radio-row"><input type="checkbox" name="cmp" value="' + j.id + '"' + (sel.indexOf(j.id) >= 0 ? " checked" : "") + "> <b>" + esc(j.title || "Untitled") + "</b>" + (j.company ? " at " + esc(j.company) : "") + "</label>").join("") + "</fieldset>" + (err ? '<p class="err">' + esc(err) + "</p>" : "") + '<button class="btn" type="submit"' + (busy ? " disabled" : "") + ">" + (busy ? "Comparing…" : "Compare") + "</button></form>") + out;
   }
@@ -126,7 +126,7 @@
   /* ----- events ----- */
   function icsFor(a) {
     const d = a.next.date.replace(/-/g, ""), site = (window.BW && window.BW.site) || location.origin;
-    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwork//Applications//EN", "BEGIN:VEVENT", "UID:benchwork-app-" + a.id + "@benchwork", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Benchwrk//Applications//EN", "BEGIN:VEVENT", "UID:benchwrk-app-" + a.id + "@benchwork", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
       "DTSTART;VALUE=DATE:" + d, "SUMMARY:" + (a.next.what || "Interview") + ": " + a.company, "DESCRIPTION:" + a.role + ". Practise first: " + site, "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:Interview tomorrow", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n") + "\r\n";
   }
   document.addEventListener("click", (e) => {

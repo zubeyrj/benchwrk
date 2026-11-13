@@ -1,4 +1,4 @@
-/* Benchwork: portal logic. Course content is never in this file: it is read from the
+/* Benchwrk: portal logic. Course content is never in this file: it is read from the
    portal database (collections "content" and "lessons"), readable only by invited members,
    and only after they have created an account. */
 (function () {
@@ -40,7 +40,7 @@
   const NAV = GROUPS.reduce((a, g) => a.concat(g.pages), []);
   const groupOf = (page) => GROUPS.find((g) => g.pages.some((p) => p[0] === page)) || null;
   const LEVELS = ["Starter", "Tinkerer", "Builder", "Maker", "Engineer", "Shipper", "Architect"];
-  const QUESTS = [["hours", "Log your weekly hours", 100], ["lessons", "Read 3 lessons", 50], ["ex", "Solve 3 exercises", 75], ["quiz", "Pass or review a quiz", 50]];
+  const QUESTS = [["hours", "Study your weekly hours", 100], ["lessons", "Read 3 lessons", 50], ["ex", "Solve 3 exercises", 75], ["quiz", "Pass or review a quiz", 50]];
   const $app = document.getElementById("app");
   const $shell = document.getElementById("shell");
 
@@ -60,7 +60,7 @@
       if (/^```/.test(l)) {
         const buf = []; i++;
         while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
-        i++; out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue;
+        i++; out.push('<pre tabindex="0"><code>' + esc(buf.join("\n")) + "</code></pre>"); continue;
       }
       if (!l.trim()) { i++; continue; }
       if (/^\s*[-*] /.test(l)) { const it = []; while (i < lines.length && /^\s*[-*] /.test(lines[i])) { it.push("<li>" + inline(lines[i].replace(/^\s*[-*] /, "")) + "</li>"); i++; } out.push("<ul>" + it.join("") + "</ul>"); continue; }
@@ -116,6 +116,8 @@
     if (!n.resume || typeof n.resume !== "object" || typeof n.resume.h !== "string" || !/^[a-z0-9-]{1,60}$/.test(n.resume.h)) n.resume = null;
     if (!n.learn || typeof n.learn !== "object" || !Array.isArray(n.learn.formats)) n.learn = null;
     if (!n.lib || typeof n.lib !== "object") n.lib = { done: {}, quiz: {}, prob: {}, route: "" };
+    if (!n.act || typeof n.act !== "object" || Array.isArray(n.act)) n.act = {};
+    if (!n.lf || typeof n.lf !== "object" || Array.isArray(n.lf)) n.lf = {};
     n.hpw = clampH(n.hpw);
     return n;
   }
@@ -133,7 +135,21 @@
     const vals = Object.keys(TOOL_DOMAIN).filter((t) => TOOL_DOMAIN[t] === d).map((t) => st.tools[t]).filter((v) => v != null);
     return vals.length ? Math.min.apply(null, vals) : null;
   }
+  // Placement questions come in ladders: up to six per tool, easiest first. A tool's score is the share of
+  // its ladder answered correctly; questions not reached (two misses end a ladder) count as not known.
+  function toolLadder(ans, diag) {
+    const out = {};
+    diag.forEach((q, i) => { if (!q.t) return; const o = out[q.t] = out[q.t] || { got: 0, of: 0 }; o.of++; if (ans[i] === q.a) o.got++; });
+    return out;
+  }
   function scorePlacement(ans, diag, st) {
+    if (diag.some((q) => q.t)) {
+      const tl = toolLadder(ans, diag), sum = {}, n = {};
+      Object.keys(tl).forEach((t) => { const d = TOOL_DOMAIN[t]; sum[d] = (sum[d] || 0) + (100 * tl[t].got) / tl[t].of; n[d] = (n[d] || 0) + 1; });
+      const out = {};
+      Object.keys(DOMAINS).forEach((d) => { out[d] = n[d] ? Math.round(sum[d] / n[d]) : 0; if (domainRating(d, st) === 0) out[d] = 0; });
+      return out;
+    }
     const tot = {}, got = {};
     diag.forEach((q, i) => { tot[q.d] = (tot[q.d] || 0) + 1; if (ans[i] === q.a) got[q.d] = (got[q.d] || 0) + 1; });
     const out = {};
@@ -151,6 +167,7 @@
   function modLevel(m, st) {
     st = st || S;
     if (m.zero) return null;
+    if (st.lf && st.lf[m.id]) return null; // they chose to take this course in full
     if (m.id === "m0") return st.tools && st.tools.python >= 2 && st.tools.git >= 2 && st.tools.terminal >= 2 ? "fast" : null;
     if (!m.domain || !st.placement) return null;
     if (domainRating(m.domain, st) === 0) return "start";
@@ -186,6 +203,14 @@
   }
   const inPlan = (id) => plan().rows.some((r) => r.m.id === id);
   const currentRow = (p) => p.rows.find((r) => !r.done) || null;
+  // The course they are actually working in: the last one they opened, if it isn't finished, else the next in the plan.
+  function activeRow(p) {
+    p = p || plan();
+    const R = S.resume, k = R && /^(?:lesson|ex|quiz|course)-(m\d+)/.exec(R.h);
+    if (k) { const r = p.rows.find((x) => x.m.id === k[1] && !x.done); if (r) return r; }
+    return currentRow(p);
+  }
+  const hasActivity = () => S.log.length > 0 || Object.keys(S.act || {}).length > 0 || Object.values(S.mods).some((x) => Object.keys(x.checks || {}).length || Object.keys(x.ex || {}).length || x.quiz);
   function lessonFrac(id) { const m = byId[id]; const ch = (S.mods[id] && S.mods[id].checks) || {}; const core = m.lessons.map((_, i) => i).filter((i) => !optLesson(m, i)); return core.length ? core.filter((i) => ch[i]).length / core.length : 0; }
   function progress() {
     const p = plan(); let done = 0;
@@ -199,20 +224,26 @@
     const scale = S.hpw / 15;
     return src.map((d) => ({ name: d[0], hours: Math.round(d[1] * scale * 2) / 2, kind: String(d[2]).toLowerCase(), label: d[2], note: d[3] || "" }));
   }
-  function loggedByDate() { const o = {}; S.log.forEach((e) => { o[e.d] = (o[e.d] || 0) + Number(e.h || 0); }); return o; }
+  // Study time = time counted on Benchwrk's study pages (S.act, seconds per day) plus sessions logged by hand
+  // for time away from the site. The two never overlap: the log form only asks for time away.
+  const autoH = (d) => ((S.act || {})[d] || 0) / 3600;
+  function loggedByDate() { const o = {}; S.log.forEach((e) => { o[e.d] = (o[e.d] || 0) + Number(e.h || 0); }); Object.keys(S.act || {}).forEach((d) => { o[d] = (o[d] || 0) + autoH(d); }); return o; }
   function gridStart(p) { return mondayOf(p.start); }
   function weekIndex(p, d) { return Math.floor((mondayOf(d) - gridStart(p)) / (7 * DAY)); }
   function coursesInWeek(p, i) { const ws = addDays(gridStart(p), 7 * i), we = addDays(ws, 7); return p.rows.filter((r) => r.sd < we && r.ed > ws); }
 
   /* ---------- hours, streaks, points ---------- */
   const weekKey = (s) => isoDate(mondayOf(parseDate(s)));
-  function hoursByWeek() { const o = {}; S.log.forEach((e) => { const k = weekKey(e.d); o[k] = (o[k] || 0) + Number(e.h || 0); }); return o; }
-  const totalHours = () => S.log.reduce((a, e) => a + Number(e.h || 0), 0);
+  function hoursByWeek() { const o = {}; Object.entries(loggedByDate()).forEach(([d, h]) => { const k = weekKey(d); o[k] = (o[k] || 0) + h; }); return o; }
+  const totalHours = () => S.log.reduce((a, e) => a + Number(e.h || 0), 0) + Object.keys(S.act || {}).reduce((a, d) => a + autoH(d), 0);
+  function weekAuto(mon) { const from = isoDate(mon || mondayOf(new Date())), to = isoDate(addDays(parseDate(from), 7)); return Object.keys(S.act || {}).filter((d) => d >= from && d < to).reduce((a, d) => a + autoH(d), 0); }
+  // First day with any study, for streak counting.
+  const firstStudyDay = () => { const ds = S.log.map((e) => e.d).concat(Object.keys(S.act || {})).sort(); return ds.length ? ds[0] : null; };
   const thisWeekHours = () => hoursByWeek()[isoDate(mondayOf(new Date()))] || 0;
   // Weekly streak: a week counts at 60% of target. Every 4 weeks earns a freeze (max 2) that
   // covers one missed week, so one bad week doesn't wipe months of effort.
   function streakInfo() {
-    const by = hoursByWeek(), need = S.hpw * 0.6, first = S.log.length ? mondayOf(parseDate(S.log[S.log.length - 1].d)) : null;
+    const by = hoursByWeek(), need = S.hpw * 0.6, fd = firstStudyDay(), first = fd ? mondayOf(parseDate(fd)) : null;
     let w = mondayOf(new Date()), n = 0, used = 0;
     if ((by[isoDate(w)] || 0) < need) w = addDays(w, -7);
     while (n < 200 && first && w >= first) {
@@ -262,7 +293,7 @@
   function quests() {
     const c = weekCounts(), claimed = S.quests[thisMon()] || {};
     const goal = { hours: S.hpw, lessons: 3, ex: 3, quiz: 1 };
-    return QUESTS.map((q) => ({ id: q[0], title: q[0] === "hours" ? "Log " + S.hpw + " hours this week" : q[1], xp: q[2], got: Math.min(goal[q[0]], c[q[0]]), need: goal[q[0]], done: c[q[0]] >= goal[q[0]], claimed: !!claimed[q[0]] }));
+    return QUESTS.map((q) => ({ id: q[0], title: q[0] === "hours" ? "Study " + S.hpw + " hours this week" : q[1], xp: q[2], got: Math.min(goal[q[0]], c[q[0]]), need: goal[q[0]], done: c[q[0]] >= goal[q[0]], claimed: !!claimed[q[0]] }));
   }
   // Award quest XP once per quest per week; returns the newly completed ones.
   function claimQuests() {
@@ -277,7 +308,7 @@
   /* ---------- pace and countdowns ---------- */
   function pace() {
     const by = hoursByWeek(), mon = mondayOf(new Date()); let sum = 0, n = 0;
-    for (let i = 1; i <= 3; i++) { const k = isoDate(addDays(mon, -7 * i)); if (S.log.length && parseDate(S.log[S.log.length - 1].d) <= addDays(mon, -7 * i + 6)) { sum += by[k] || 0; n++; } }
+    const fd = firstStudyDay(); for (let i = 1; i <= 3; i++) { const k = isoDate(addDays(mon, -7 * i)); if (fd && parseDate(fd) <= addDays(mon, -7 * i + 6)) { sum += by[k] || 0; n++; } }
     const avg = n ? sum / n : 0;
     return { hpw: avg >= 1 ? avg : S.hpw, measured: avg >= 1, avg };
   }
@@ -316,11 +347,12 @@
   function persist() { clearTimeout(saveT); saveT = setTimeout(flush, 600); }
   function summary() {
     const c = counts();
-    const out = { lvl: levelInfo(points()).level, name: (S.account && S.account.name) || "", goal: S.goal, hours: r1(totalHours()), week: r1(thisWeekHours()), at: today(), pts: points(), streak: streak(), qp: c.quiz, xs: c.ex + c.exSol, ls: c.lessons, last: S.log.length ? S.log[0].d : "", co: S.cohort || "" };
-    if (MOD.length && S.placement) {
-      const pr = progress(), cur = currentRow(pr.p); out.pct = pr.pct; out.cur = cur ? cur.m.title : "Race day reached";
-      out.behind = cur && cur.ed < parseDate(today()) ? Math.ceil((parseDate(today()) - cur.ed) / DAY) : 0;
-    } else { out.pct = 0; out.cur = S.tools ? "Taking the placement" : "Rating their tools"; out.behind = 0; }
+    const days = Object.keys(loggedByDate()).sort();
+    const out = { lvl: levelInfo(points()).level, name: (S.account && S.account.name) || "", goal: S.goal, hours: r1(totalHours()), week: r1(thisWeekHours()), wauto: r1(weekAuto()), at: today(), pts: points(), streak: streak(), qp: c.quiz, xs: c.ex + c.exSol, ls: c.lessons, last: days.length ? days[days.length - 1] : "", co: S.cohort || "" };
+    if (MOD.length && (S.placement || hasActivity())) {
+      const pr = progress(), cur = activeRow(pr.p), nx = currentRow(pr.p); out.pct = pr.pct; out.cur = cur ? cur.m.title : "Every course done";
+      out.behind = nx && nx.ed < parseDate(today()) ? Math.ceil((parseDate(today()) - nx.ed) / DAY) : 0;
+    } else { out.pct = 0; out.cur = "Getting started"; out.behind = 0; }
     return leagueSummary(out);
   }
   function flush() {
@@ -345,7 +377,7 @@
 
   /* ---------- boot ---------- */
   const timeout = (ms) => new Promise((res) => setTimeout(() => res("__timeout"), ms));
-  // Benchwork's own runtime (platform.js) wins over any host-provided window.claude.
+  // Benchwrk's own runtime (platform.js) wins over any host-provided window.claude.
   const RT = () => window.BW_RUNTIME || window.claude;
   async function boot() {
     try {
@@ -382,12 +414,19 @@
       CT = { LEAGUE: docs.league && docs.league.wk ? docs.league : null, DIAG: docs.diag.items, TK: docs.toolkit, COH: (docs.cohorts && Array.isArray(docs.cohorts.list)) ? docs.cohorts.list : [] };
       notice = docs.notice && docs.notice.text ? docs.notice : null;
       phase = "ready";
+      // After a deploy with new course files, the owner's browser loads them into the database once.
+      if (isOwner && window.BW && window.BW_CONTENT_V && (!docs.meta || docs.meta.v !== window.BW_CONTENT_V)) autoSeed();
       subscribeCohort();
       subscribePairs();
       subscribeShared();
       loadMyReports();
       flush();
     } catch (e) { phase = "nocontent"; }
+  }
+  let seededOnce = false;
+  function autoSeed() {
+    if (seededOnce) return; seededOnce = true;
+    window.BW.api("/api/admin-seed", {}).then(() => { LX = {}; lxWait = {}; return loadContent(); }).then(() => { render(); toast("New course content loaded for everyone."); }).catch(() => {});
   }
   // Lesson text, exercises and question pools load per course, on first use.
   function needLX(id) {

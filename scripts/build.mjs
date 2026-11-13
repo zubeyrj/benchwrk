@@ -3,11 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import { build } from "esbuild";
+import { contentHash } from "./content-hash.mjs";
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const pub = (f) => path.join(root, "public", f);
 
 const src = fs.readdirSync(path.join(root, "src/app")).filter((f) => f.endsWith(".js")).sort().map((f) => fs.readFileSync(path.join(root, "src/app", f), "utf8")).join("\n");
-fs.writeFileSync(pub("app.js"), src);
+fs.writeFileSync(pub("app.js"), "window.BW_CONTENT_V = " + JSON.stringify(contentHash(root)) + ";\n" + src);
 execSync("node --check " + JSON.stringify(pub("app.js")));
 
 // The public homepage's plan calculator and sample exercise come from the course content.
@@ -30,6 +31,6 @@ if (fs.existsSync(LIB)) { fs.rmSync(pub("library"), { recursive: true, force: tr
 // Legal pages carry the owner's contact address from CONTACT_EMAIL, so it stays out of the repo.
 for (const f of ["privacy.html", "terms.html"]) {
   const t = path.join(root, "src/pages", f);
-  if (fs.existsSync(t)) fs.writeFileSync(pub(f), fs.readFileSync(t, "utf8").replaceAll("{{CONTACT_EMAIL}}", env("CONTACT_EMAIL") || "the email address on the Benchwork sign-in page").replaceAll("{{UPDATED}}", "10 November 2026"));
+  if (fs.existsSync(t)) fs.writeFileSync(pub(f), fs.readFileSync(t, "utf8").replaceAll("{{CONTACT_EMAIL}}", env("CONTACT_EMAIL") || "the email address on the Benchwrk sign-in page").replaceAll("{{UPDATED}}", "10 November 2026"));
 }
 console.log("built" + (env("SUPABASE_URL") || env("NEXT_PUBLIC_SUPABASE_URL") ? "" : " (no SUPABASE_URL: the site will show its setup screen)"));

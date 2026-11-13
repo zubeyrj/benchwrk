@@ -1,4 +1,4 @@
-// Benchwork preview: the real site running on an in-memory database, with the server routes answered
+// Benchwrk preview: the real site running on an in-memory database, with the server routes answered
 // by sample data. Nothing is saved; reloading starts again.
 (function () {
   const SITE = location.href.split("#")[0].split("?")[0];
