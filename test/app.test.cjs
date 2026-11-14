@@ -699,6 +699,19 @@ let BASE = '';
     ok('plan without placement offers to personalise', /starting from scratch/.test(await hp.textContent('main')) && (await hp.$$('.tl-row')).length > 5);
     await hp.close();
   }
+  // a skipped course can be added back, and SQL courses point to the SQL basics
+  {
+    const tools = { python: 3, terminal: 3, git: 3, sql: 3, web: 2, cloud: 1, ml: 0, llm: 1 };
+    const sp = await page({ state: { account: { name: 'Sam' }, hpw: 8, start: '2026-11-09', tools, placement: { at: '2026-11-09', scores: { py: 90, eng: 85, sql: 90, web: 60, cloud: 40, ml: 0, llm: 30 } } } });
+    await sp.waitForTimeout(800); await go(sp, 'course-m4', 800);
+    ok('SQL course offers the SQL basics when the placement skipped them', /Want the SQL basics first/.test(await sp.textContent('main')) && !!(await sp.$('a[href^="#lesson-m13-"]')));
+    await sp.click('[data-act="learnfull"][data-id="m13"]'); await sp.waitForTimeout(900);
+    const st = await sp.evaluate(() => window.__store.get('data/users/u1/state'));
+    ok('adding Programming from zero puts it back in the plan', st.lf && st.lf.m13 === 1);
+    await go(sp, 'plan', 500);
+    ok('plan now includes Programming from zero', /Programming from zero/.test(await sp.textContent('.tl')));
+    await sp.close();
+  }
   // no sample capability hides the tutor
   const ns = await page({ noSample: true , state: { account: { name: 'Z' }, tools: rate, placement: { scores: { python: 33 }, at: '2026-11-09' }, hpw: 15, start: '2026-11-09', mods: {}, log: [] }}); await ns.waitForTimeout(600); await go(ns, 'lesson-m13-0', 400); await ns.waitForSelector('.prose', { timeout: 8000 }).catch(async () => console.log('NS MAIN:', (await ns.textContent('main')).slice(0, 300)));
   ok('tutor hidden without capability', !(await ns.$('#tutor-dock')) && !(await ns.$('.tutor-cta')));

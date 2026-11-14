@@ -199,7 +199,7 @@
     st = st || S; mods = mods || MOD;
     const hpw = clampH(st.hpw), start = parseDate(st.start || today());
     let cum = 0;
-    const rows = mods.filter((m) => (!m.zero || needZero(st)) && extraOn(m, st)).map((m) => {
+    const rows = mods.filter((m) => (!m.zero || needZero(st) || (st.lf && st.lf[m.id])) && extraOn(m, st)).map((m) => {
       const lv = modLevel(m, st);
       const base = !isFull(st) && m.lean ? m.lean : m.hours;
       const hours = Math.max(2, Math.round(base * FACTOR[lv || "start"]));

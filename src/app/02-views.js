@@ -379,6 +379,10 @@
     const short = r && (r.lv === "testout" || r.lv === "fast");
     const lvNote = (short ? '<div class="notice row between" style="gap:12px"><span>' + (r.lv === "testout" ? "<b>Prove it.</b> Your placement says you know this. Pass the quiz at 80% and mark it tested out, or work through whatever you miss." : "<b>Fast track.</b> Skim the lessons you know and spend the time on the exercises and the build.") + '</span><button class="btn line sm" data-act="learnfull" data-id="' + id + '">Take the full course instead</button></div>' : "") +
       (S.lf && S.lf[id] ? '<div class="notice row between" style="gap:12px"><span>You chose to take this course in full.</span><button class="btn line sm" data-act="learnfull" data-id="' + id + '">Use my placement result</button></div>' : "");
+    // A course the placement left out can still be added; SQL courses point to the SQL basics if they're not in the plan.
+    const zeroOut = !inPlan("m13") && byId.m13, sqlLesson = zeroOut && LX.m13 ? LX.m13.lessons.findIndex((l) => /sql/i.test(l.t)) : 7;
+    const addNote = (m.zero && !r ? '<div class="notice row between" style="gap:12px"><span>Your placement says you can skip this course. You can still take it, or just read the parts you need.</span><button class="btn sm" data-act="learnfull" data-id="' + id + '">Add it to my plan</button></div>' : "") +
+      (m.domain === "sql" && zeroOut ? '<div class="notice row between" style="gap:12px"><span><b>Want the SQL basics first?</b> The lesson <a href="#lesson-m13-' + Math.max(0, sqlLesson) + '">SQL from zero</a> covers SELECT, WHERE, GROUP BY and JOIN in about 30 minutes, with three exercises.</span><button class="btn line sm" data-act="learnfull" data-id="m13">Add Programming from zero to my plan</button></div>' : "");
     const steps = courseSteps(m, lx), todo = steps.filter((x) => !x.done && !x.opt), nx = nextStep(m);
     let n = 0;
     const stepHtml = '<ol class="csteps">' + steps.map((x) => {
@@ -397,7 +401,7 @@
     const project = PROJECTS.includes(id) ? '<div class="card"><h2>Project checkpoints</h2><p class="muted">Tick checkpoints and share your project for peer review on the Projects page.</p><a class="btn line" href="#projects">Open Projects</a></div>' : "";
     const mock = m.interview && sample ? '<div class="card"><h2>Mock interview</h2>' + tutorBlock("interview-" + id, "Mock interview", "The tutor asks one question at a time from the question bank and gives feedback on each answer.", "Start a mock interview") + "</div>" : "";
     const startCard = '<div class="card start-card"><div><p class="small muted" style="margin:0 0 2px">' + (todo.length ? (steps.length - todo.length ? "Up next" : "Start here") : q.best >= 80 ? "All done" : "Last step") + '</p><b>' + esc(nx.title) + '</b><p class="xs muted" style="margin:2px 0 0">' + (todo.length ? plural(todo.filter((x) => x.kind === "lesson").length, "lesson") + " and " + plural(todo.filter((x) => x.kind === "ex").length, "exercise") + " to go, then the quiz" : q.best >= 80 ? "Mark the course complete to get your certificate" : "Pass the quiz at 80%") + '</p></div><a class="btn" href="' + nx.href + '">' + esc(nx.label) + "</a></div>";
-    return courseHead(m, r, p) + lvNote +
+    return courseHead(m, r, p) + addNote + lvNote +
       '<div class="cols sec" style="margin-top:20px"><div class="stack">' + startCard +
       '<div class="card"><h2 style="margin:0">How this course runs</h2><p class="small muted" style="margin:6px 0 4px">Read a lesson, then practise it straight away. Exercises run in your browser and check your answer. Finish with the quiz, then the build.</p>' + stepHtml + "</div>" +
       '<div class="card"><h2>Build</h2><p>' + rich(m.build) + '</p><h3 style="margin-top:16px">How to learn this</h3><p class="muted" style="margin:0">' + esc(m.method) + "</p></div>" + project + mock + bank +
