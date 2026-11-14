@@ -9,3 +9,4 @@ test/shots/
 .env*
 preview/
 public/library/
+public/example.html

@@ -35,7 +35,7 @@ function field(id, label, type, attrs, hint) {
 
 function view() {
   const m = ui.mode, busy = ui.busy ? ' aria-busy="true" disabled' : "";
-  const google = '<button type="button" class="btn line wide google" data-auth="google"' + busy + ">" + ICON.google + "<span>Continue with Google</span></button>" +
+  const google = '<div class="gsi-wrap"><div id="gsi-btn" hidden></div><button type="button" class="btn line wide google" data-auth="google"' + busy + ">" + ICON.google + "<span>Continue with Google</span></button></div>" +
     '<div class="or"><span>or with email</span></div>';
   const banner = (ui.err ? '<p class="notice bad" role="alert">' + esc(ui.err) + "</p>" : "") + (ui.info ? '<p class="notice" role="status">' + esc(ui.info) + "</p>" : "");
   let card;
@@ -89,14 +89,18 @@ function mast() {
   const shell = $("#shell"); if (shell) shell.classList.toggle("home", ui.mode === "home");
 }
 
+let afterRender = null;
 function render() {
   const app = $("#app");
   mast();
   const focusId = document.activeElement && document.activeElement.id;
   app.innerHTML = view();
+  if (afterRender) afterRender();
   const target = (focusId && document.getElementById(focusId)) || app.querySelector('[aria-invalid="true"]') || null;
   if (target) target.focus();
 }
+
+const GOOGLE_CLIENT_ID = "1006300593261-u5pmj28a38tuat19o444l5uv9redc7t6.apps.googleusercontent.com";
 
 function friendly(e) {
   const msg = (e && e.message) || String(e || "");
@@ -143,6 +147,40 @@ async function bootstrap() {
   if (!sb) { ui.mode = "setup"; render(); return; }
   const site = cfg.siteUrl || location.origin;
   let started = false;
+
+  // Google sign-in runs on benchwrk.com itself (Google Identity Services), so Google's screen names this site,
+  // not the database host. The ID token goes to Supabase. If Google's script can't load, the plain button
+  // falls back to the redirect flow.
+  const gid = cfg.googleClientId || GOOGLE_CLIENT_ID;
+  let gsiLoad = null, gsiReady = false, rawNonce = "";
+  const loadGsi = () => gsiLoad || (gsiLoad = new Promise((res, rej) => {
+    if (window.google && window.google.accounts && window.google.accounts.id) return res();
+    const sc = document.createElement("script"); sc.src = "https://accounts.google.com/gsi/client"; sc.async = true; sc.onload = () => res(); sc.onerror = () => { gsiLoad = null; rej(new Error("gsi")); }; document.head.appendChild(sc);
+  }));
+  const sha256 = async (t) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  async function onGoogle(r) {
+    ui.busy = true; ui.err = ""; render();
+    const { error } = await sb.auth.signInWithIdToken({ provider: "google", token: r.credential, nonce: rawNonce });
+    if (error) { ui.busy = false; ui.err = friendly(error); gsiReady = false; rawNonce = ""; render(); }
+  }
+  async function mountGoogle() {
+    const host = $("#gsi-btn");
+    if (!host || !gid || window.__fakeSupabase || !window.crypto || !crypto.subtle) return;
+    try {
+      await loadGsi();
+      if (!gsiReady) {
+        rawNonce = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, "0")).join("");
+        window.google.accounts.id.initialize({ client_id: gid, nonce: await sha256(rawNonce), callback: onGoogle, ux_mode: "popup", use_fedcm_for_button: true, itp_support: true, context: ui.mode === "signup" ? "signup" : "signin" });
+        gsiReady = true;
+      }
+      const now = $("#gsi-btn"); if (!now || started) return;
+      const w = Math.max(220, Math.min(400, (now.parentElement && now.parentElement.clientWidth) || 320));
+      window.google.accounts.id.renderButton(now, { theme: "outline", size: "large", shape: "pill", text: ui.mode === "signup" ? "signup_with" : "continue_with", width: w, logo_alignment: "center" });
+      now.hidden = false;
+      const fb = now.parentElement && now.parentElement.querySelector('[data-auth="google"]'); if (fb) fb.hidden = true;
+    } catch (e) { /* the redirect button stays */ }
+  }
+  afterRender = () => { if (!started && (ui.mode === "signin" || ui.mode === "signup")) mountGoogle(); };
   // An invite link (?invite=CODE) is remembered through sign-up and email confirmation.
   const invite = (new URLSearchParams(location.search).get("invite") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
   if (invite) { try { localStorage.setItem("bw-invite", invite); } catch (e) { /* storage blocked */ } }

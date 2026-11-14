@@ -495,10 +495,10 @@
       libLinks(LL && LL.lib) + '<p class="xs muted" style="margin:8px 0 0">' + starterNote(ex) + "</p></div>";
     const pyState = ex.kind === "sql" ? "SQLite in your browser" : { cold: "Python starts on first run", loading: "Starting Python…", ready: "Python ready", failed: "Python couldn't start" }[window.AILRunner ? AILRunner.state() : "failed"];
     let out = "";
-    if (res && res.running) out = '<div class="console"><div class="head"><p class="verdict thinking" role="status">Running the checks…</p></div></div>';
+    if (res && res.running) out = '<div class="console"><div class="head"><p class="verdict thinking" role="status">Running…</p></div></div>';
     else if (res) {
       const all = !res.error && res.tests.length && res.tests.every((t) => t[1]);
-      out = '<div class="console results" role="status"><div class="head"><p class="verdict ' + (all ? "pass" : "fail") + '">' + (all ? "All checks pass" : res.error ? "Your code raised an error" : res.tests.filter((t) => !t[1]).length + " of " + res.tests.length + " checks failing") + "</p>" +
+      out = '<div class="console results" role="status"><div class="head"><p class="verdict ' + (res.tryOnly ? (res.error ? "fail" : "") : all ? "pass" : "fail") + '">' + (res.tryOnly ? (res.error ? "Your code raised an error" : "Ran without checks" + (res.stdout ? "" : ": nothing printed")) : all ? "All checks pass" : res.error ? "Your code raised an error" : res.tests.filter((t) => !t[1]).length + " of " + res.tests.length + " checks failing") + "</p>" +
         (all ? (next ? '<a class="btn sm" href="#ex-' + id + "-" + next.id + '">Next exercise</a>' : afterLesson ? '<a class="btn sm" href="' + afterLesson.href + '">Next lesson</a>' : '<a class="btn sm" href="#quiz-' + id + '">Take the quiz</a>') : "") + "</div>" +
         (res.error ? '<div class="out err">' + esc(res.error) + "</div>" : "") +
         (res.tests.length ? "<ul>" + res.tests.map((t) => '<li class="' + (t[1] ? "pass" : "fail") + '">' + (t[1] ? TICK : CROSS) + "<span>" + esc(t[0]) + (t[2] ? '<span class="why">' + esc(t[2]) + "</span>" : "") + "</span></li>").join("") + "</ul>" : "") +
@@ -514,7 +514,7 @@
       '<button class="btn line sm" data-act="sol" data-id="' + id + '" data-ex="' + ex.id + '"' + (canSol && !ui.solShown[k] ? "" : " disabled") + ">" + (ui.solArm[k] ? "Click again to see the answer" : "Show the answer") + "</button></div>" +
       (canSol ? "" : '<p class="xs muted" style="margin:8px 0 0">The answer unlocks after two runs or every hint. Solving it yourself earns ' + PTS.ex + " XP; with the answer, " + PTS.exSol + ".</p>") + hints + "</div>" + learnFirst + sol + "</div>" +
       '<div><div class="editor"><div class="bar-top"><span><span class="dots"><i></i><i></i><i></i></span>' + (ex.kind === "sql" ? "query.sql" : "solution.py") + '</span><span id="pystate">' + esc(pyState) + '</span></div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Your code" data-k="' + k + '">' + esc(code) + "</textarea></div>" +
-      '<div class="row" style="margin-top:12px"><button class="btn lg" data-act="run" data-id="' + id + '" data-ex="' + ex.id + '"' + (res && res.running ? " disabled" : "") + '>Run the checks</button><button class="btn line" data-act="resetcode" data-id="' + id + '" data-ex="' + ex.id + '">Reset</button><span class="xs muted">Ctrl or Cmd + Enter runs</span></div>' +
+      '<div class="row" style="margin-top:12px"><button class="btn lg" data-act="run" data-id="' + id + '" data-ex="' + ex.id + '"' + (res && res.running ? " disabled" : "") + '>Run the checks</button>' + (ex.kind === "sql" || ex.mode === "write-tests" ? "" : '<button class="btn line" data-act="tryrun" data-id="' + id + '" data-ex="' + ex.id + '"' + (res && res.running ? " disabled" : "") + '>Just run it</button>') + '<button class="btn line" data-act="resetcode" data-id="' + id + '" data-ex="' + ex.id + '">Reset</button><span class="xs muted">Ctrl or Cmd + Enter runs</span></div>' +
       out + tutorBlock("ex-" + k, "Ask the tutor", "The tutor sees the exercise, your code and the last result. It gives hints, not answers.", null) + "</div></div>";
   }
 

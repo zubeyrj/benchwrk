@@ -158,6 +158,9 @@ let BASE = '';
   await p.fill('#code', LXS.m13.ex.find(e => e.id === 'z5').sol);
   await p.click('[data-act="run"]'); await p.waitForSelector('.verdict:not(.thinking)', { timeout: 30000 });
   ok('solution passes', /All checks pass/.test(await p.textContent('.verdict')));
+  await p.fill('#code', 'print(6 * 7)\n'); await p.click('[data-act="tryrun"]'); await p.waitForSelector('.verdict:not(.thinking)', { timeout: 30000 });
+  ok('Just run it shows output without checks', /Ran without checks/.test(await p.textContent('.verdict')) && /42/.test(await p.textContent('.results')), (await p.textContent('.results')).slice(0, 200));
+  await p.fill('#code', LXS.m13.ex.find(e => e.id === 'z5').sol);
   await shot(p, '10-exercise-pass');
   // infinite loop is stopped
   await go(p, 'ex-m13-z4', 400);

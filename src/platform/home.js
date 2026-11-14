@@ -126,7 +126,7 @@ export function homeView(choice, mark) {
 
     '<section class="hp-sec" aria-labelledby="hp-pj"><div class="hp-in"><h2 id="hp-pj">Three projects you can show an employer</h2>' +
       '<p class="hp-p">You build them in this order, each one on top of the last. Another member reviews each project against the rubric an interviewer would use, and your public portfolio page shows the result.</p>' +
-      '<ol class="hp-projects">' + projects + "</ol></div></section>" +
+      '<ol class="hp-projects">' + projects + '</ol><p class="hp-p" style="margin-top:28px"><a href="/example.html">Read a worked example: a mini RAG system in about 80 lines</a></p></div></section>' +
 
     '<section class="hp-sec hp-night" aria-labelledby="hp-nag"><div class="hp-in hp-split">' +
       '<div><h2 id="hp-nag">It notices when you skip</h2><p class="hp-p">Teaching yourself is easy to start and easy to drop. benchwrk makes dropping it awkward. Pick how hard it pushes you, from off to relentless, then add an accountability partner, a weekly league of up to 20 learners and a streak that resets when you miss your hours.</p></div>' +

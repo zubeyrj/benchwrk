@@ -134,6 +134,16 @@
     if (act === "sol") { const k = exKey(id, b.dataset.ex); if (!ui.solArm[k]) { ui.solArm[k] = true; render(); return; } ui.solShown[k] = true; ui.solArm[k] = false; render(); return; }
     if (act === "usesol") { const [mid, ex] = b.dataset.k.split("."); const sol = LX[mid].ex.find((x) => x.id === ex).sol; const ta = document.getElementById("code"); if (ta) ta.value = sol; if (codeDoc) { codeDoc[b.dataset.k] = sol; saveCode(); } return; }
     if (act === "run") { runEx(id, b.dataset.ex); return; }
+    if (act === "tryrun") {
+      const exId = b.dataset.ex, k = exKey(id, exId), ta = document.getElementById("code"), code = ta ? ta.value : "";
+      if (codeDoc) { codeDoc[k] = code; saveCode(); }
+      ui.exres[k] = { running: true }; render();
+      window.AILRunner.run({ kind: "py", tests: [] }, code).catch((e) => ({ error: String((e && e.message) || e), tests: [], stdout: "" })).then((r) => {
+        ui.exres[k] = Object.assign({}, r, { tryOnly: true, tests: [] });
+        if (route().name === "ex" && route().ex === exId) render();
+      });
+      return;
+    }
     if (act === "resetcode") { const k = exKey(id, b.dataset.ex), ex = LX[id].ex.find((x) => x.id === b.dataset.ex); if (codeDoc) { delete codeDoc[k]; saveCode(); } const ta = document.getElementById("code"); if (ta) ta.value = ex.start; delete ui.exres[k]; render(); return; }
     if (act === "submit") {
       const qs = ui.quiz[id], list = qs.set.map(qByKey);

@@ -19,7 +19,7 @@ export default withErrors(async function handler(req, res) {
   const db = adminClient(), host = req.headers["x-forwarded-host"] || req.headers.host || "";
   const checks = await Promise.all([
     check("Database", async () => { const { count, error } = await db.from("docs").select("path", { count: "exact", head: true }).eq("parent", "content"); if (error) throw new Error(error.message); return { ok: count >= 17, note: count >= 17 ? count + " course documents" : "Course content not loaded: use Load the course content" }; }),
-    check("Site address", async () => { const s = env("SITE_URL"); return { ok: !!s && (!host || s.includes(host)), note: s ? (host && !s.includes(host) ? "SITE_URL is " + s + " but this request came to " + host : s) : "Set SITE_URL in Vercel" }; }),
+    check("Site address", async () => { const s = env("SITE_URL") ? SITE() : ""; return { ok: !!s && (!host || s.includes(host)), note: s ? (host && !s.includes(host) ? "SITE_URL is " + s + " but this request came to " + host : s) : "Set SITE_URL in Vercel" }; }),
     check("Tutor and interviewer (Claude)", async () => {
       if (!env("ANTHROPIC_API_KEY")) return { ok: false, note: "Add ANTHROPIC_API_KEY in Vercel" };
       const r = await fetch("https://api.anthropic.com/v1/models?limit=1", { headers: { "x-api-key": env("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01" } });

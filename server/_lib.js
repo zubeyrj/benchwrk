@@ -2,7 +2,10 @@
 import { createClient } from "@supabase/supabase-js";
 
 export const env = (k, d) => (process.env[k] === undefined || process.env[k] === "" ? d : process.env[k]);
-export const SITE = () => env("SITE_URL", "http://localhost:3000").replace(/\/$/, "");
+// The public address. An old *.vercel.app SITE_URL is replaced by the custom domain, which those addresses redirect to.
+export const CANONICAL = "https://benchwrk.com";
+export const siteFrom = (s) => (s && /\.vercel\.app/i.test(s) ? CANONICAL : s);
+export const SITE = () => siteFrom(env("SITE_URL", "http://localhost:3000")).replace(/\/$/, "");
 
 let admin = null;
 export function adminClient() {
@@ -96,7 +99,7 @@ async function smtpTransport() {
 export async function sendEmail({ to, subject, html, text, unsubscribe, replyTo, attachments }) {
   const headers = {};
   if (unsubscribe) { headers["List-Unsubscribe"] = "<" + unsubscribe + ">"; headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"; }
-  const from = env("EMAIL_FROM", env("SMTP_USER") ? "benchwrk <" + env("SMTP_USER") + ">" : "benchwrk <onboarding@resend.dev>");
+  const from = env("EMAIL_FROM", env("SMTP_USER") ? "benchwrk <" + env("SMTP_USER") + ">" : "benchwrk <hello@benchwrk.com>");
   const key = env("RESEND_API_KEY");
   if (key) {
     const r = await fetch("https://api.resend.com/emails", {
