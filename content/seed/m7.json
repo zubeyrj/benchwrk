@@ -141,6 +141,32 @@
    "Refusal when the answer isn't there",
    "Deploying a working app"
   ],
-  "market": "Retrieval-augmented generation (RAG) and vector databases appear in most applied LLM job adverts. It's the project interviewers ask about first."
+  "market": "Retrieval-augmented generation (RAG) and vector databases appear in most applied LLM job adverts. It's the project interviewers ask about first.",
+  "worked": {
+   "t": "Mini RAG: ask three policy pages",
+   "intro": "A complete, tiny version of project 1 in about 80 lines. Build it in an evening, then grow it into your own project with a real corpus, Postgres and a deploy.",
+   "steps": [
+    {
+     "t": "Set up",
+     "md": "```bash\nuv init mini-rag && cd mini-rag\nuv add anthropic numpy python-dotenv\n```\n\nPut `ANTHROPIC_API_KEY` in `.env`. For embeddings this example uses a tiny bag-of-words vector so it runs anywhere; you'll swap in a real embeddings API in step 5."
+    },
+    {
+     "t": "The documents",
+     "md": "```py\nDOCS = {\n    \"leave-p3\": \"Staff may carry over up to five days of annual leave into the next year.\",\n    \"leave-p4\": \"Carried-over leave must be used by 31 March or it is lost.\",\n    \"expenses-p2\": \"Expenses over £50 need a receipt and line manager approval.\",\n}\n```\n\nThree short passages with ids you can cite. Your project will have hundreds."
+    },
+    {
+     "t": "Retrieve",
+     "md": "```py\nimport re, math\nfrom collections import Counter\n\ndef vec(text):\n    return Counter(re.findall(r\"[a-z0-9£]+\", text.lower()))\n\ndef cosine(a, b):\n    dot = sum(a[w] * b[w] for w in a)\n    return dot / (math.sqrt(sum(v * v for v in a.values())) * math.sqrt(sum(v * v for v in b.values())) or 1)\n\ndef retrieve(question, k=2):\n    q = vec(question)\n    ranked = sorted(DOCS, key=lambda d: cosine(q, vec(DOCS[d])), reverse=True)\n    return [(d, round(cosine(q, vec(DOCS[d])), 2)) for d in ranked[:k]]\n\nprint(retrieve(\"How many days of leave can I carry over?\"))\n```\n\nYou should see `leave-p3` first. Try a question with no good match and look at the scores: that's what your refusal threshold will use."
+    },
+    {
+     "t": "Answer with citations, or refuse",
+     "md": "```py\nimport anthropic\nfrom dotenv import load_dotenv\nload_dotenv()\nclient = anthropic.Anthropic()\n\ndef answer(question, threshold=0.15):\n    hits = [h for h in retrieve(question) if h[1] >= threshold]\n    if not hits:\n        return \"I can't find that in the documents.\"\n    sources = \"\\n\".join(f\"[{d}] {DOCS[d]}\" for d, _ in hits)\n    msg = client.messages.create(\n        model=\"claude-haiku-4-5\", max_tokens=200,\n        system=\"Answer only from the sources. Cite like [leave-p3]. If they don't answer it, say you can't find it.\",\n        messages=[{\"role\": \"user\", \"content\": f\"<sources>\\n{sources}\\n</sources>\\n\\nQuestion: {question}\"}])\n    return msg.content[0].text\n\nprint(answer(\"When do I have to use carried-over leave?\"))\nprint(answer(\"What is the canteen menu?\"))\n```\n\nThe second question should be refused before the model is even called. Check your provider's model list for current names."
+    },
+    {
+     "t": "Grow it into project 1",
+     "md": "- Swap `vec` for a real embeddings API and store vectors in Postgres with pgvector.\n- Add keyword search and merge with reciprocal rank fusion.\n- Check that every citation in the answer is one you sent.\n- Wrap `answer` in a FastAPI `POST /ask`, containerise it and deploy.\n- Write ten real questions and record how many retrieve the right source. That table goes in your README."
+    }
+   ]
+  }
  }
 }

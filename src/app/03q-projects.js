@@ -66,7 +66,9 @@
     if (s.open || isOwner) {
       if (x.kind === "core") {
         const cps = LX[x.id].checkpoints || [], cp = (S.mods[x.id] || {}).cp || {};
-        work = '<div class="card sec"><h2>Milestones</h2><p class="small muted">Build it in this order. Tick each one when it\'s working; your progress and the cohort board update.</p><ol class="checks ms-list">' + cps.map((c, i) => '<li><label><input type="checkbox" data-cp="' + x.id + ":" + i + '"' + (cp[i] ? " checked" : "") + (s.open || isOwner ? "" : " disabled") + "><span>" + esc(c) + "</span></label></li>").join("") + "</ol>" +
+        const W = d.worked;
+        const worked = W ? '<div class="card sec worked"><h2>Worked example: ' + esc(W.t) + '</h2><p class="small muted">' + esc(W.intro) + '</p><ol class="wk-steps">' + W.steps.map((st, k) => '<li><details' + (k === 0 ? " open" : "") + '><summary><b>' + esc(st.t) + '</b></summary><div class="prose">' + md(st.md) + "</div></details></li>").join("") + "</ol></div>" : "";
+        work = worked + '<div class="card sec"><h2>Milestones</h2><p class="small muted">Build it in this order. Tick each one when it\'s working; your progress and the cohort board update.</p><ol class="checks ms-list">' + cps.map((c, i) => '<li><label><input type="checkbox" data-cp="' + x.id + ":" + i + '"' + (cp[i] ? " checked" : "") + (s.open || isOwner ? "" : " disabled") + "><span>" + esc(c) + "</span></label></li>").join("") + "</ol>" +
           '<p class="small" style="margin:12px 0 0">The lessons for this project are on the <a href="#course-' + x.id + '">' + esc(x.m.title) + "</a> course page.</p></div>" + projShare(x.id);
       } else {
         const cp = ((S.builds || {})[x.b.id] || {}).cp || {};
@@ -84,10 +86,36 @@
     const share = !item && !ui.shareOpen[id] ? '<button class="btn line" data-act="shareopen" data-id="' + id + '">Share for review</button>'
       : item && !ui.shareOpen[id] ? '<p class="small">' + [item.repo ? '<a href="' + esc(item.repo) + '" target="_blank" rel="noopener">Repository</a>' : "", item.demo ? '<a href="' + esc(item.demo) + '" target="_blank" rel="noopener">Live demo</a>' : ""].filter(Boolean).join(" · ") + '<span class="muted"> shared ' + fmt(parseDate(item.at)) + '</span></p><button class="link" data-act="shareopen" data-id="' + id + '">Edit the links</button>'
       : '<form data-sub="' + id + '"><div class="two"><div class="field"><label for="s-repo-' + id + '">Repository URL</label><input type="url" id="s-repo-' + id + '" value="' + esc(item ? item.repo : "") + '" placeholder="https://github.com/…"></div><div class="field"><label for="s-demo-' + id + '">Live demo URL</label><input type="url" id="s-demo-' + id + '" value="' + esc(item ? item.demo : "") + '" placeholder="https://…"></div></div>' +
-        '<div class="field"><label for="s-note-' + id + '">What should reviewers look at?</label><textarea id="s-note-' + id + '" maxlength="600">' + esc(item ? item.note : "") + '</textarea></div><button class="btn" type="submit">' + (item ? "Update" : "Share with the cohort") + "</button></form>";
-    return '<div class="card sec"><h2>Peer review</h2><p class="small muted">When it\'s deployed, share it. Two reviews from the cohort before you call it done.</p>' + share +
+        '<div class="field"><label for="s-note-' + id + '">What should reviewers look at?</label><textarea id="s-note-' + id + '" maxlength="600">' + esc(item ? item.note : "") + '</textarea></div>' +
+        '<fieldset class="cs-fields"><legend><b>Case study for your CV</b> <span class="xs muted">Shown on your public project page. Lead with the result.</span></legend>' +
+        csField(id, "problem", "The problem, in one or two sentences", "New staff couldn't find answers across 60 policy documents.", item, 300, true) +
+        csField(id, "result", "The result, with a number", "Cited answers in about 2 seconds; the right source in the top 5 for 87% of test questions.", item, 300, true) +
+        csField(id, "how", "How it works", "Hybrid search (pgvector plus keywords), a reranker, grounded prompts that refuse when the documents don't cover it.", item, 600, true) +
+        csField(id, "stack", "Tools, separated by commas", "Python, FastAPI, Postgres, pgvector, Docker, Render", item, 200) +
+        '<div class="two">' + csField(id, "image", "Screenshot URL (https)", "https://…", item, 400) + csField(id, "video", "Demo video URL (https)", "https://…", item, 400) + "</div></fieldset>" +
+        '<button class="btn" type="submit">' + (item ? "Update" : "Share with the cohort") + "</button></form>";
+    loadPortfolio();
+    return caseStudyCard(id) + '<div class="card sec"><h2>Peer review</h2><p class="small muted">When it\'s deployed, share it. Two reviews from the cohort before you call it done.</p>' + share +
       '<h3 style="margin-top:18px">Reviews received</h3>' + (got.length ? '<ul class="rl">' + got.map((x) => '<li><span class="grow"><b>' + esc(x.by) + "</b> " + moreMenu(x.byId, x.by, "review", id, "Review of your " + m.title) + ' <span class="n">' + x.r.s.reduce((a, b) => a + b, 0) + " / " + x.r.s.length * 3 + '</span><div class="small muted">' + esc(x.r.c || "") + "</div></span></li>").join("") + "</ul>" : '<p class="small muted">' + (item ? "None yet. Ask someone on the cohort table." : "Share the project to get reviews.") + "</p>") + "</div>";
   }
+  function csField(id, key, label, ph, item, max, area) {
+    const v = esc((item && item[key]) || ""), fid = "s-" + key + "-" + id;
+    return '<div class="field"><label for="' + fid + '">' + esc(label) + "</label>" + (area ? '<textarea id="' + fid + '" maxlength="' + max + '" rows="2" placeholder="' + esc(ph) + '">' + v + "</textarea>" : '<input id="' + fid + '" maxlength="' + max + '" value="' + v + '" placeholder="' + esc(ph) + '">') + "</div>";
+  }
+  // The public, CV-ready page for one project, once the member's portfolio is published.
+  function caseStudyCard(id) {
+    const mine = (subs || []).find((s) => s.id === uid) || { items: {} }, item = (mine.items || {})[id];
+    if (!item) return "";
+    const pf = ui.pf && ui.pf.row, ready = item.problem && item.result;
+    const url = pf && pf.slug && window.BW && window.BW.portfolio ? window.BW.portfolio.url(pf.slug) + "/" + id : "";
+    return '<div class="card sec"><h2>Your case study page</h2>' + (ready ? '<p class="small">' + esc(item.result) + "</p>" : '<p class="small muted">Add the problem and result to the share form above to make this page CV-ready.</p>') +
+      (url && pf.published ? '<p class="small">Public link: <a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url.replace(/^https?:\/\//, "")) + '</a></p><div class="row"><button class="btn line sm" data-act="cscopy" data-url="' + esc(url) + '">Copy link</button><a class="btn line sm" href="' + esc(url) + '?print=1" target="_blank" rel="noopener">Print or save as PDF</a></div>'
+        : '<p class="small muted">Publish your <a href="#portfolio">portfolio</a> to get a public link for this project. Put it on your CV and LinkedIn.</p>') + "</div>";
+  }
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest('[data-act="cscopy"]'); if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.url); toast("Link copied."); } catch (err) { toast(b.dataset.url); }
+  });
   function reviewQueue() {
     const queue = (subs || []).filter((s) => s.id !== uid && !isBlocked(s.id) && !((cohort || []).find((c) => c.id === s.id) || {}).suspended).flatMap((s) => PROJECTS.filter((id) => s.items && s.items[id]).map((id) => ({ s, id, it: s.items[id] })));
     const myGiven = ((reviews || []).find((r) => r.id === uid) || {}).given || {};

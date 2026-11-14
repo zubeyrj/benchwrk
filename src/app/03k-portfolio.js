@@ -5,7 +5,7 @@
   function loadPortfolio() {
     const P = window.BW && window.BW.portfolio; if (!P || ui.pf) return;
     ui.pf = { loading: true };
-    P.get().then((d) => { ui.pf = { row: d || null, draft: null }; if (route().name === "portfolio") render(); }).catch(() => { ui.pf = { row: null, err: "Couldn't load your portfolio. Reload to try again." }; render(); });
+    P.get().then((d) => { ui.pf = { row: d || null, draft: null }; if (["portfolio", "project"].includes(route().name)) render(); }).catch(() => { ui.pf = { row: null, err: "Couldn't load your portfolio. Reload to try again." }; render(); });
   }
   function myProjects() {
     const mine = (subs || []).find((s) => s.id === uid), items = (mine && mine.items) || {};

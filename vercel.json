@@ -8,6 +8,10 @@
       "destination": "/api/index?r=cert&id=:id"
     },
     {
+      "source": "/p/:slug/:proj",
+      "destination": "/api/index?r=portfolio&slug=:slug&proj=:proj"
+    },
+    {
       "source": "/p/:slug",
       "destination": "/api/index?r=portfolio&slug=:slug"
     },

@@ -65,9 +65,15 @@
       if (!l.trim()) { i++; continue; }
       if (/^\s*[-*] /.test(l)) { const it = []; while (i < lines.length && /^\s*[-*] /.test(lines[i])) { it.push("<li>" + inline(lines[i].replace(/^\s*[-*] /, "")) + "</li>"); i++; } out.push("<ul>" + it.join("") + "</ul>"); continue; }
       if (/^\s*\d+\. /.test(l)) { const it = []; while (i < lines.length && /^\s*\d+\. /.test(lines[i])) { it.push("<li>" + inline(lines[i].replace(/^\s*\d+\. /, "")) + "</li>"); i++; } out.push("<ol>" + it.join("") + "</ol>"); continue; }
+      if (/^\s*\|.*\|\s*$/.test(l)) {
+        const rows = []; while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(lines[i].trim().slice(1, -1).split("|").map((c) => c.trim())); i++; }
+        const body = rows.filter((r) => !r.every((c) => /^:?-{2,}:?$/.test(c)));
+        out.push('<div class="tblwrap"><table class="tbl"><thead><tr>' + body[0].map((c) => '<th scope="col">' + inline(c) + "</th>").join("") + "</tr></thead><tbody>" + body.slice(1).map((r) => "<tr>" + r.map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>"); continue;
+      }
+      if (/^> ?/.test(l)) { const q = []; while (i < lines.length && /^> ?/.test(lines[i])) { q.push(lines[i].replace(/^> ?/, "")); i++; } out.push("<blockquote>" + md(q.join("\n")) + "</blockquote>"); continue; }
       if (/^#{1,3} /.test(l)) { out.push("<h3>" + inline(l.replace(/^#+ /, "")) + "</h3>"); i++; continue; }
       const buf = [];
-      while (i < lines.length && lines[i].trim() && !/^```|^\s*[-*] |^\s*\d+\. /.test(lines[i])) { buf.push(lines[i]); i++; }
+      while (i < lines.length && lines[i].trim() && !/^```|^\s*[-*] |^\s*\d+\. |^> ?|^\s*\|.*\|\s*$|^#{1,3} /.test(lines[i])) { buf.push(lines[i]); i++; }
       out.push("<p>" + inline(buf.join(" ")) + "</p>");
     }
     return out.join("");
@@ -366,6 +372,11 @@
     const c = counts();
     const days = Object.keys(loggedByDate()).sort();
     const out = { lvl: levelInfo(points()).level, name: (S.account && S.account.name) || "", goal: S.goal, hours: r1(totalHours()), week: r1(thisWeekHours()), wauto: r1(weekAuto()), at: today(), pts: points(), streak: streak(), qp: c.quiz, xs: c.ex + c.exSol, ls: c.lessons, last: days.length ? days[days.length - 1] : "", co: S.cohort || "" };
+    // For the owner's drop-off view: which steps this member has reached, and which courses they've started or finished.
+    const started = (m) => !!(m && (Object.keys(m.checks || {}).length || Object.keys(m.ex || {}).length || m.quiz || m.done || Object.keys(m.cp || {}).length));
+    out.st = Object.keys(S.mods).filter((id) => started(S.mods[id])).slice(0, 40);
+    out.dn = Object.keys(S.mods).filter((id) => S.mods[id] && S.mods[id].done).slice(0, 40);
+    out.fn = { tl: !!S.tools, pl: !!S.placement, l1: c.lessons > 0, x1: c.ex + c.exSol > 0, q1: c.quiz > 0, sh: Object.keys(S.mods).some((id) => S.mods[id] && S.mods[id].sub) };
     if (MOD.length && (S.placement || hasActivity())) {
       const pr = progress(), cur = activeRow(pr.p), nx = currentRow(pr.p); out.pct = pr.pct; out.cur = cur ? cur.m.title : "Every course done";
       out.behind = Math.max(0, pr.p.slip); void nx;

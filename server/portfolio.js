@@ -29,7 +29,7 @@ export async function loadPortfolio(slug) {
   const projects = PROJECTS.filter((m) => items[m] && (safeUrl(items[m].repo) || safeUrl(items[m].demo))).map((m) => {
     const rs = (reviews.data || []).map((r) => r.data && r.data.given && r.data.given[id + ":" + m]).filter((g) => g && Array.isArray(g.s) && g.s.length);
     const avg = rs.length ? Math.round((rs.reduce((a, g) => a + g.s.reduce((x, y) => x + Number(y || 0), 0) / g.s.length, 0) / rs.length) * 10) / 10 : null;
-    return { id: m, title: title[m] || "Project", repo: safeUrl(items[m].repo), demo: safeUrl(items[m].demo), note: String(items[m].note || "").slice(0, 400), at: items[m].at || "", reviews: rs.length, avg, quotes: rs.map((g) => String(g.c || "").trim()).filter((c) => c.length > 12).slice(0, 2) };
+    return { id: m, title: title[m] || "Project", repo: safeUrl(items[m].repo), demo: safeUrl(items[m].demo), note: String(items[m].note || "").slice(0, 400), at: items[m].at || "", problem: String(items[m].problem || "").slice(0, 300), result: String(items[m].result || "").slice(0, 300), how: String(items[m].how || "").slice(0, 600), stack: String(items[m].stack || "").split(",").map((t) => t.trim()).filter(Boolean).slice(0, 12), image: safeUrl(items[m].image), video: safeUrl(items[m].video), reviews: rs.length, avg, quotes: rs.map((g) => String(g.c || "").trim()).filter((c) => c.length > 12).slice(0, 2) };
   });
   return { pf, name: S.name || (prof.data && prof.data.name) || "A benchwrk member", stats: { level: Number(S.lvl) || 1, hours: Math.round(Number(S.hours) || 0), streak: Number(S.streak) || 0, pct: Number(S.pct) || 0, cur: S.cur || "" }, projects, certs: certs.data || [] };
 }
@@ -38,7 +38,7 @@ export function renderPortfolio(P, site) {
   const pf = P.pf, show = Object.assign({ projects: true, certs: true, stats: true, reviews: true, index: false }, pf.show || {}), L = pf.links || {}, url = site + "/p/" + pf.slug;
   const links = [["GitHub", safeUrl(L.github)], ["LinkedIn", safeUrl(L.linkedin)], ["Website", safeUrl(L.web)]].filter((x) => x[1]);
   const desc = pf.headline || P.name + "'s AI engineering portfolio";
-  const proj = show.projects && P.projects.length ? '<section><h2>Projects</h2>' + P.projects.map((x) => '<article class="proj"><h3>' + esc(x.title) + "</h3>" + (x.note ? "<p>" + esc(x.note) + "</p>" : "") +
+  const proj = show.projects && P.projects.length ? '<section><h2>Projects</h2>' + P.projects.map((x) => '<article class="proj"><h3>' + esc(x.title) + "</h3>" + (x.result ? "<p><b>" + esc(x.result) + "</b></p>" : "") + (x.note && !x.result ? "<p>" + esc(x.note) + "</p>" : "") + (x.problem ? '<p class="row"><a href="' + esc(url + "/" + x.id) + '">Read the case study</a></p>' : "") +
     '<p class="row">' + (x.repo ? '<a href="' + esc(x.repo) + '" rel="nofollow noopener ugc" target="_blank">Code</a>' : "") + (x.demo ? '<a href="' + esc(x.demo) + '" rel="nofollow noopener ugc" target="_blank">Live demo</a>' : "") + (x.at ? '<span class="muted">' + esc(monthYear(x.at)) + "</span>" : "") + "</p>" +
     (show.reviews && x.reviews ? '<p class="rev"><b>' + x.avg + " / 3</b> from " + x.reviews + " peer review" + (x.reviews === 1 ? "" : "s") + (x.quotes.length ? "</p>" + x.quotes.map((q) => "<blockquote>" + esc(q) + "</blockquote>").join("") : "</p>") : "") + "</article>").join("") + "</section>" : "";
   const certs = show.certs && P.certs.length ? "<section><h2>Certificates</h2><ul class=\"certs\">" + P.certs.map((c) => '<li><a href="' + esc(site + "/c/" + c.id) + '">' + esc(c.course_title) + '</a> <span class="muted">' + esc(monthYear(c.issued)) + "</span></li>").join("") + "</ul></section>" : "";
@@ -73,9 +73,52 @@ ${stats}${proj}${certs}
 </main></body></html>`;
 }
 
+// GET /p/<slug>/<project> -> one project as a CV-ready case study: problem, result, how, tools, links.
+// "?print=1" opens the print dialog so it can be saved as a PDF.
+export function renderCaseStudy(P, id, site, print) {
+  const x = P.projects.find((p) => p.id === id);
+  if (!x || !x.problem) return null;
+  const url = site + "/p/" + P.pf.slug + "/" + id, base = site + "/p/" + P.pf.slug;
+  const links = [["Live demo", x.demo], ["Code", x.repo], ["Video", x.video]].filter((l) => l[1]);
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(x.title)} · ${esc(P.name)}</title><meta name="robots" content="noindex">
+<meta name="description" content="${esc(x.result || x.problem)}">
+<meta property="og:type" content="article"><meta property="og:url" content="${esc(url)}"><meta property="og:title" content="${esc(x.title)}: ${esc(P.name)}"><meta property="og:description" content="${esc(x.result || x.problem)}">${x.image ? `<meta property="og:image" content="${esc(x.image)}">` : ""}
+<link rel="icon" href="/icon.svg">
+<style>
+:root{--ink:#0e1726;--muted:#566173;--accent:#ad3214;--line:#e6e0d6;--bg:#fffdf9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55;padding:40px 18px}
+main{max-width:720px;margin:0 auto}a{color:var(--accent);font-weight:700}
+.by{color:var(--muted);margin:0 0 6px;font-size:15px}h1{font-size:clamp(30px,6vw,44px);line-height:1.08;letter-spacing:-.02em;margin:0 0 18px}
+.result{font-size:20px;font-weight:700;border-left:4px solid var(--accent);padding:4px 0 4px 14px;margin:0 0 24px}
+h2{font-size:14px;letter-spacing:.06em;color:var(--muted);margin:24px 0 6px}p{margin:0 0 10px}
+.tools{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0;list-style:none}.tools li{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:14px}
+.links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:22px 0}img{max-width:100%;border:1px solid var(--line);border-radius:10px;margin:18px 0}
+footer{margin-top:34px;font-size:13.5px;color:var(--muted)}
+@media print{body{padding:0}a{color:var(--ink)}a[href^="http"]::after{content:" (" attr(href) ")";font-weight:400;font-size:12px;color:var(--muted)}.noprint{display:none}}
+</style></head><body><main>
+<p class="by"><a href="${esc(base)}">${esc(P.name)}</a>, AI engineering portfolio</p>
+<h1>${esc(x.title)}</h1>
+${x.result ? `<p class="result">${esc(x.result)}</p>` : ""}
+<h2>THE PROBLEM</h2><p>${esc(x.problem)}</p>
+${x.how ? `<h2>HOW IT WORKS</h2><p>${esc(x.how)}</p>` : ""}
+${x.stack.length ? `<h2>TOOLS</h2><ul class="tools">${x.stack.map((t) => "<li>" + esc(t) + "</li>").join("")}</ul>` : ""}
+${x.image ? `<img src="${esc(x.image)}" alt="Screenshot of ${esc(x.title)}">` : ""}
+${links.length ? '<p class="links">' + links.map((l) => '<a href="' + esc(l[1]) + '" rel="nofollow noopener ugc" target="_blank">' + l[0] + "</a>").join("") + "</p>" : ""}
+${x.reviews ? `<p class="by">Peer reviewed: ${x.avg} / 3 from ${x.reviews} review${x.reviews === 1 ? "" : "s"}.</p>` : ""}
+<footer class="noprint">Built on <a href="${esc(site)}">benchwrk</a>. <a href="${esc(base)}">See all projects</a>.</footer>
+</main>${print ? "<script>addEventListener('load',()=>setTimeout(()=>print(),300))</script>" : ""}</body></html>`;
+}
+
 export default withErrors(async function handler(req, res) {
-  const slug = (new URL(req.url, "http://x").searchParams.get("slug") || "").toLowerCase();
+  const q = new URL(req.url, "http://x").searchParams;
+  const slug = (q.get("slug") || "").toLowerCase(), proj = (q.get("proj") || "").toLowerCase();
   const P = await loadPortfolio(slug), site = SITE();
+  if (P && proj) {
+    const html = PROJECTS.includes(proj) && renderCaseStudy(P, proj, site, q.get("print") === "1");
+    res.setHeader("content-type", "text/html; charset=utf-8");
+    if (html) { res.statusCode = 200; res.setHeader("cache-control", "public, max-age=120"); return res.end(html); }
+  }
   res.setHeader("content-type", "text/html; charset=utf-8");
   if (!P) {
     res.statusCode = 404;

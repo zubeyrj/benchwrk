@@ -146,6 +146,32 @@
    "Cost and latency monitoring",
    "Evals that run in CI"
   ],
-  "market": "Adverts ask for monitoring, observability and responsible AI. Few junior candidates can show measured results, so this is where you stand out."
+  "market": "Adverts ask for monitoring, observability and responsible AI. Few junior candidates can show measured results, so this is where you stand out.",
+  "worked": {
+   "t": "Mini eval: score the mini RAG",
+   "intro": "Measure the mini RAG from project 1's worked example with a golden set, a retrieval metric and a simple judge. The same shape scales to your real project.",
+   "steps": [
+    {
+     "t": "A golden set",
+     "md": "```py\nGOLD = [\n    {\"q\": \"How many leave days carry over?\", \"src\": {\"leave-p3\"}, \"answer\": \"Five days.\"},\n    {\"q\": \"Deadline for carried-over leave?\", \"src\": {\"leave-p4\"}, \"answer\": \"31 March.\"},\n    {\"q\": \"Do I need a receipt for £80 of expenses?\", \"src\": {\"expenses-p2\"}, \"answer\": \"Yes, and approval.\"},\n    {\"q\": \"What's the canteen menu?\", \"src\": set(), \"answer\": None},\n]\n```\n\nThe last one has no source: the right behaviour is to refuse."
+    },
+    {
+     "t": "Retrieval hit rate",
+     "md": "```py\ndef hit_rate(k=2):\n    answerable = [g for g in GOLD if g[\"src\"]]\n    hits = sum(1 for g in answerable if g[\"src\"] & {d for d, _ in retrieve(g[\"q\"], k)})\n    return hits / len(answerable)\n\nprint(\"hit rate @2:\", hit_rate())\n```\n\nRun it, change the chunking or the threshold, and run it again. That's an experiment."
+    },
+    {
+     "t": "A judge you've checked",
+     "md": "```py\ndef judge(question, reference, reply):\n    msg = client.messages.create(model=\"claude-haiku-4-5\", max_tokens=5,\n        messages=[{\"role\": \"user\", \"content\": f\"Reference: {reference}\\nReply: {reply}\\nDoes the reply agree with the reference? Answer PASS or FAIL.\"}])\n    return msg.content[0].text.strip().upper().startswith(\"PASS\")\n```\n\nMark the four replies yourself first, then compare with `judge`. If you disagree on more than one, tighten the judge's wording."
+    },
+    {
+     "t": "Refusals count too",
+     "md": "```py\nrefused = answer(GOLD[3][\"q\"]).startswith(\"I can't find\")\nprint(\"refuses unanswerable:\", refused)\n```\n\nA wrong, confident answer to an unanswerable question is the worst failure, so track it separately."
+    },
+    {
+     "t": "Grow it into project 2",
+     "md": "- 30 to 50 questions, at least five unanswerable.\n- Hit rate and recall at 5, plus correct and faithful rates.\n- Check the judge against 20 answers you marked by hand.\n- Trace each request (chunks, tokens, time, cost).\n- One write-up: what you changed, what you held constant, before and after numbers.\n- A CI job that fails if hit rate drops more than five points."
+    }
+   ]
+  }
  }
 }

@@ -215,7 +215,7 @@
     const shared = (subs || []).reduce((n, s) => n + Object.keys(s.items || {}).length, 0), revN = (reviews || []).reduce((n, r) => n + Object.keys(r.given || {}).length, 0);
     const A = ui.admin;
     const docOpts = ['<option value="">Choose a document</option>'].concat(MOD.map((m) => '<option value="content/' + m.id + '"' + (A.doc === "content/" + m.id ? " selected" : "") + ">" + esc(m.title) + " (course)</option>"), MOD.map((m) => '<option value="lessons/' + m.id + '"' + (A.doc === "lessons/" + m.id ? " selected" : "") + ">" + esc(m.title) + " (lessons, exercises, questions)</option>"), ["content/diag", "content/toolkit"].map((p) => '<option value="' + p + '"' + (A.doc === p ? " selected" : "") + ">" + p.split("/")[1] + "</option>")).join("");
-    return intro + adminInsights(list) + adminMail(emails) + adminTrust() + adminEditor() + '<div class="sec"><h2>Members</h2>' + table + '<p class="xs muted" style="margin-top:10px">' + plural(shared, "project") + " shared for review, " + plural(revN, "review") + ' given. <button class="link" data-act="copycsv">' + (downloads ? "Download the table as CSV" : "Copy the table as CSV") + '</button></p></div>' +
+    return intro + adminInsights(list) + adminFunnel(list) + adminMail(emails) + adminTrust() + adminEditor() + '<div class="sec"><h2>Members</h2>' + table + '<p class="xs muted" style="margin-top:10px">' + plural(shared, "project") + " shared for review, " + plural(revN, "review") + ' given. <button class="link" data-act="copycsv">' + (downloads ? "Download the table as CSV" : "Copy the table as CSV") + '</button></p></div>' +
       '<div class="card sec"><h2>Notice on everyone\'s Today page</h2><form id="noticeform"><div class="field"><label for="n-text">Message</label><textarea id="n-text" maxlength="400" placeholder="Saturday study call at 10:00. Project 1 reviews due Sunday.">' + esc(notice ? notice.text : "") + '</textarea><p class="hint">Leave empty to remove it.</p></div><button class="btn" type="submit">Publish notice</button></form></div>' +
       '<div class="card sec"><h2>Content editor</h2><p class="muted">Edit any course document as JSON. It\'s checked before saving and members see the change on their next load.</p>' +
       (BWX() ? '<p class="small muted">Changed the course files in the repo? <button class="link" data-act="seed"' + (ui.seeding ? " disabled" : "") + ">" + (ui.seeding ? "Reloading…" : "Reload all courses from the repo") + "</button>. Learner progress isn\'t touched.</p>" : "") +
@@ -223,6 +223,33 @@
       (A.doc ? (A.loading ? loading(200) : '<div class="editor"><div class="bar-top"><span>' + esc(A.doc) + '.json</span><span>' + (A.text.length / 1024).toFixed(1) + ' KB</span></div><textarea id="ad-text" spellcheck="false" style="min-height:420px">' + esc(A.text) + "</textarea></div>" + (A.err ? '<p class="err">' + esc(A.err) + "</p>" : "") + '<div class="row" style="margin-top:12px"><button class="btn" data-act="adsave">' + (A.arm ? "Click again to save for everyone" : "Save document") + '</button><button class="btn line" data-act="adload2">Discard changes</button></div>') : "") + "</div>";
   }
 
+  // Where members stop: a funnel from sign-up to the first project, and how far each course gets people.
+  function adminFunnel(list) {
+    if (!list.length) return "";
+    const has = (c, k) => !!(c.fn && c.fn[k]), dn = (c, id) => (c.dn || []).indexOf(id) >= 0, st = (c, id) => (c.st || []).indexOf(id) >= 0;
+    const firstCourse = (c) => (c.dn || []).length > 0;
+    const steps = [
+      ["Signed up", () => true], ["Rated their tools", (c) => has(c, "tl")], ["Took the placement", (c) => has(c, "pl")],
+      ["Read a lesson", (c) => has(c, "l1")], ["Solved an exercise", (c) => has(c, "x1")], ["Passed a quiz", (c) => has(c, "q1")],
+      ["Finished a course", firstCourse], ["Started project 1", (c) => st(c, "m7")], ["Shared a project", (c) => has(c, "sh")],
+      ["Finished project 2", (c) => dn(c, "m8")], ["Started the job search", (c) => st(c, "m12")],
+    ];
+    const n = list.length;
+    let prev = n;
+    const funnel = '<ol class="funnel">' + steps.map(([label, f]) => {
+      const k = list.filter(f).length, lost = prev - k; prev = k;
+      return '<li><span class="fn-l">' + esc(label) + '</span><span class="bar thin fn-b"><i style="--f:' + (k / n).toFixed(3) + '"></i></span><span class="n fn-n">' + k + '</span><span class="xs muted fn-d">' + (lost > 0 && label !== "Signed up" ? "−" + lost : "") + "</span></li>";
+    }).join("") + "</ol>";
+    const quiet = (c) => c.last && daysSince(c.last) >= 14;
+    const rows = plan().rows.map((r) => {
+      const s = list.filter((c) => st(c, r.m.id)).length, d = list.filter((c) => dn(c, r.m.id)).length, stuck = list.filter((c) => quiet(c) && c.cur === r.m.title).length;
+      return "<tr><td>" + esc(r.m.title) + '</td><td class="r n">' + s + '</td><td class="r n">' + d + '</td><td class="r n">' + (s ? Math.round((100 * d) / s) + "%" : "–") + '</td><td class="r n">' + (stuck ? '<b style="color:var(--fail)">' + stuck + "</b>" : "0") + "</td></tr>";
+    }).join("");
+    const biggest = steps.slice(1).map(([label, f], i) => ({ label, lost: list.filter(steps[i][1]).length - list.filter(f).length })).sort((a, b) => b.lost - a.lost)[0];
+    return '<div class="card sec"><h2>Where people drop off</h2><p class="small muted">From ' + plural(n, "member") + ". " + (biggest && biggest.lost > 0 ? "The biggest drop is before <b>" + esc(biggest.label.toLowerCase()) + "</b> (" + biggest.lost + (biggest.lost === 1 ? " person" : " people") + ")." : "No drop-off yet.") + " Counts update as members study.</p>" + funnel +
+      '<h3 style="margin-top:20px">Course by course</h3><div class="tblwrap"><table class="tbl"><thead><tr><th scope="col">Course</th><th scope="col" class="r">Started</th><th scope="col" class="r">Finished</th><th scope="col" class="r">Finish rate</th><th scope="col" class="r">Stuck 14+ days</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<p class="xs muted" style="margin:10px 0 0">Stuck means quiet for 14 days or more with this as their current course. Email them from the members table below.</p></div>';
+  }
   function adminInsights(list) {
     const bw = BWX();
     if (bw && !ui.admin.usage && !ui.admin.usageLoading) { ui.admin.usageLoading = true; bw.tutorUsage().then((u) => { ui.admin.usage = u; if (route().name === "admin") render(); }).catch(() => { ui.admin.usage = []; }); }
@@ -261,10 +288,10 @@
     const code = (uid || "x").slice(0, 4).toUpperCase() + "-" + m.id.toUpperCase() + "-" + isoDate(date).replace(/-/g, "");
     const x = (s) => esc(s), F = "Bricolage Grotesque, Figtree, Arial, sans-serif", B = "Figtree, Arial, sans-serif";
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" role="img" aria-label="Certificate: ' + x(m.title) + '">' +
-      '<rect width="1100" height="720" fill="#ffffff"/><rect width="1100" height="150" fill="#0e1726"/><circle cx="1010" cy="40" r="150" fill="none" stroke="#18181b" stroke-opacity=".25" stroke-width="40"/>' +
-      '<g transform="translate(70 52)"><rect width="46" height="46" rx="13" fill="#18181b"/><rect x="11.5" y="8.6" width="6" height="28.7" rx="3" fill="#fff"/><circle cx="26.6" cy="27.3" r="8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5.7"/><path d="M26.6 19.3a8 8 0 1 1-8 8" fill="none" stroke="#fff" stroke-width="5.7" stroke-linecap="round"/></g>' +
+      '<rect width="1100" height="720" fill="#ffffff"/><rect width="1100" height="150" fill="#0e1726"/><circle cx="1010" cy="40" r="150" fill="none" stroke="#c93c1a" stroke-opacity=".25" stroke-width="40"/>' +
+      '<g transform="translate(70 52)"><rect width="46" height="46" rx="13" fill="#c93c1a"/><rect x="11.5" y="8.6" width="6" height="28.7" rx="3" fill="#fff"/><circle cx="26.6" cy="27.3" r="8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5.7"/><path d="M26.6 19.3a8 8 0 1 1-8 8" fill="none" stroke="#fff" stroke-width="5.7" stroke-linecap="round"/></g>' +
       '<text x="132" y="86" font-family="' + F + '" font-size="34" font-weight="800" fill="#ffffff" letter-spacing="-1">benchwrk</text>' +
-      '<text x="70" y="230" font-family="' + B + '" font-size="18" font-weight="700" fill="#18181b" letter-spacing="2">CERTIFICATE OF COMPLETION</text>' +
+      '<text x="70" y="230" font-family="' + B + '" font-size="18" font-weight="700" fill="#c93c1a" letter-spacing="2">CERTIFICATE OF COMPLETION</text>' +
       '<text x="70" y="315" font-family="' + F + '" font-size="64" font-weight="800" fill="#0e1726" letter-spacing="-2">' + x(name) + "</text>" +
       '<text x="70" y="370" font-family="' + B + '" font-size="22" fill="#566173">has completed</text>' +
       '<text x="70" y="430" font-family="' + F + '" font-size="42" font-weight="750" fill="#0e1726" letter-spacing="-1">' + x(m.title) + "</text>" +
@@ -292,7 +319,7 @@
   /* ---------- the tutor (asks Claude through /api/tutor) ---------- */
   // The tutor lives in a floating button at the bottom right of every page. It opens a chat panel that
   // knows which lesson, exercise or problem you're on. In-page buttons open the same panel.
-  const LOGO_MARK = '<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#08080a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>';
+  const LOGO_MARK = '<svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#c93c1a"/><rect x="8" y="6" width="4.2" height="20" rx="2.1" fill="#fff"/><circle cx="18.5" cy="19" r="5.6" fill="none" stroke="rgb(255 255 255 / .35)" stroke-width="4"/><path d="M18.5 13.4a5.6 5.6 0 1 1-5.6 5.6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>';
   function tutorBlock(key, title, blurb, startLabel) {
     if (!sample) return "";
     return '<div class="tutor-cta no-print"><button class="btn line sm" data-act="tutoropen" data-k="' + esc(key) + '"' + (startLabel ? ' data-start="1"' : "") + ">" + esc(startLabel || "Ask the tutor about this") + '</button><span class="xs muted">' + esc(blurb) + "</span></div>";
@@ -403,7 +430,7 @@
     const dpr = Math.min(2, window.devicePixelRatio || 1), W = innerWidth, H = innerHeight;
     c.width = W * dpr; c.height = H * dpr; document.body.appendChild(c);
     const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
-    const cols = ["#18181b", "#f5a524", "#13a05a", "#2563d0", "#0e9f9e", "#ff8a66"];
+    const cols = ["#c93c1a", "#f5a524", "#13a05a", "#2563d0", "#0e9f9e", "#ff8a66"];
     const parts = Array.from({ length: 160 }, (_, i) => { const left = i % 2 === 0; return { x: left ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.3), vx: (left ? 1 : -1) * (6 + Math.random() * 9), vy: -(10 + Math.random() * 12), w: 6 + Math.random() * 6, h: 8 + Math.random() * 10, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, col: cols[i % cols.length] }; });
     const t0 = performance.now();
     (function frame(t) {

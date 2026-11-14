@@ -143,6 +143,32 @@
    "MCP",
    "Explaining trade-offs honestly"
   ],
-  "market": "Agentic systems and workflow automation are the fastest-growing ask in AI engineering adverts, and interviewers probe your judgement on when not to use an agent."
+  "market": "Agentic systems and workflow automation are the fastest-growing ask in AI engineering adverts, and interviewers probe your judgement on when not to use an agent.",
+  "worked": {
+   "t": "Mini agent: two tools and a step limit",
+   "intro": "A plain tool-calling loop with two tools, input validation and an approval step, in about 70 lines. It's the skeleton of project 3.",
+   "steps": [
+    {
+     "t": "Two tools with checked inputs",
+     "md": "```py\nfrom pydantic import BaseModel, Field\n\nclass OrderArgs(BaseModel):\n    order_id: str = Field(pattern=r\"^A\\d{4}$\")\n\nORDERS = {\"A1001\": {\"status\": \"shipped\", \"total\": 42.0}}\n\ndef get_order(args):\n    a = OrderArgs(**args)\n    return ORDERS.get(a.order_id, {\"error\": \"not found\"})\n\ndef refund(args):\n    a = OrderArgs(**args)\n    return {\"needs_approval\": True, \"order_id\": a.order_id}   # never refund without a person\n```"
+    },
+    {
+     "t": "Describe them to the model",
+     "md": "```py\nTOOLS = [\n    {\"name\": \"get_order\", \"description\": \"Look up an order's status and total by id like A1001.\",\n     \"input_schema\": {\"type\": \"object\", \"properties\": {\"order_id\": {\"type\": \"string\"}}, \"required\": [\"order_id\"]}},\n    {\"name\": \"refund\", \"description\": \"Request a refund for an order. A person must approve it.\",\n     \"input_schema\": {\"type\": \"object\", \"properties\": {\"order_id\": {\"type\": \"string\"}}, \"required\": [\"order_id\"]}},\n]\nRUN = {\"get_order\": get_order, \"refund\": refund}\n```\n\nClear descriptions are most of what makes the model pick the right tool."
+    },
+    {
+     "t": "The loop",
+     "md": "```py\ndef agent(question, max_steps=5):\n    messages = [{\"role\": \"user\", \"content\": question}]\n    for _ in range(max_steps):\n        r = client.messages.create(model=\"claude-haiku-4-5\", max_tokens=400, tools=TOOLS, messages=messages)\n        if r.stop_reason != \"tool_use\":\n            return \"\".join(b.text for b in r.content if b.type == \"text\")\n        messages.append({\"role\": \"assistant\", \"content\": r.content})\n        results = []\n        for b in r.content:\n            if b.type == \"tool_use\":\n                try:\n                    out = RUN[b.name](b.input)\n                except Exception as e:\n                    out = {\"error\": str(e)}           # errors go back to the model as data\n                print(\"TOOL\", b.name, b.input, \"->\", out)\n                results.append({\"type\": \"tool_result\", \"tool_use_id\": b.id, \"content\": str(out)})\n        messages.append({\"role\": \"user\", \"content\": results})\n    return \"Stopped: step limit reached.\"\n\nprint(agent(\"Where is order A1001, and can I get a refund?\"))\n```"
+    },
+    {
+     "t": "Try to break it",
+     "md": "- Ask about order `XYZ`: the input check should reject it and the agent should explain.\n- Ask it to refund everything: it should stop at the approval step.\n- Set `max_steps=1` and check it stops cleanly.\n\nWrite down what happened each time. Those notes become your guardrails section."
+    },
+    {
+     "t": "Grow it into project 3",
+     "md": "- Three real tools for a task you care about, each with the least access it needs.\n- Approval for anything that sends, pays or deletes.\n- Structured logs of every step; a budget on steps and cost.\n- Expose one tool over MCP.\n- 15 test tasks with a success count, then the same tasks rebuilt in a framework for comparison."
+    }
+   ]
+  }
  }
 }

@@ -222,6 +222,7 @@ let BASE = '';
   ok('projects show tools and time', /pgvector/.test(await p.textContent('main')) && /About 40 hours/.test(await p.textContent('main')));
   ok('later projects are locked with an opening date', (await p.$$('.proj-card.locked')).length >= 2 && /Opens when you/.test(await p.textContent('main')));
   await go(p, 'project-m7', 600);
+  ok('project page has a worked example to copy first', /Worked example: Mini RAG/.test(await p.textContent('main')) && (await p.$$('.wk-steps > li')).length === 5);
   ok('project page explains what, why, tools and when', /What you'll build/.test(await p.textContent('main')) && /Why employers care/.test(await p.textContent('main')) && /Tools you'll use/.test(await p.textContent('main')));
   await shot(p, '15a-project');
   await p.check('input[data-cp="m7:0"]'); await p.waitForTimeout(200);
@@ -588,6 +589,8 @@ let BASE = '';
   await shot(p, '24-home-partner');
   // admin
   await go(p, 'admin', 500);
+  ok('admin shows where people drop off', /Where people drop off/.test(await p.textContent('main')) && (await p.$$('.funnel li')).length === 11 && /Finish rate/.test(await p.textContent('main')));
+  await shot(p, '40-admin-funnel', false);
   await p.waitForTimeout(300); ok('admin shows member table with emails', /Amira/.test(await p.textContent('main')) && /u2@example.org/.test(await p.textContent('main')));
   await p.selectOption('#ad-doc', 'content/m13'); await p.waitForTimeout(300);
   ok('content editor loads JSON', /"title": "Programming from zero"/.test(await p.inputValue('#ad-text')));

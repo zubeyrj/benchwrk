@@ -358,7 +358,9 @@
       const id = f.dataset.sub, repo = document.getElementById("s-repo-" + id).value.trim(), demo = document.getElementById("s-demo-" + id).value.trim(), note = document.getElementById("s-note-" + id).value.trim();
       if (!/^https?:\/\//.test(repo) && !/^https?:\/\//.test(demo)) { toast("Add a repository or demo link starting with https://"); return; }
       const mine = (subs || []).find((s) => s.id === uid) || { items: {} };
-      const items = Object.assign({}, mine.items || {}); items[id] = { repo, demo, note: note.slice(0, 600), at: today() };
+      const val = (k, n) => { const el = document.getElementById("s-" + k + "-" + id); return el ? el.value.trim().slice(0, n) : ""; };
+      const url = (k) => { const v = val(k, 400); return /^https:\/\/\S+$/.test(v) ? v : ""; };
+      const items = Object.assign({}, mine.items || {}); items[id] = { repo, demo, note: note.slice(0, 600), at: today(), problem: val("problem", 300), result: val("result", 300), how: val("how", 600), stack: val("stack", 200), image: url("image"), video: url("video") };
       try { await db.doc("subs/" + uid).set({ name: S.account.name, at: today(), items }); mod(id).sub = today(); ui.shareOpen[id] = false; persist(); render(); celebrate("Project shared with the cohort", "+" + PTS.sub + " XP the first time"); }
       catch (err) { toast("Couldn't share it just now."); }
       return;
